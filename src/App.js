@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Box, Typography, Paper, Button, CircularProgress } from '@mui/material';
+import { Container, Box, Typography, Paper, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -8,14 +8,6 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   textAlign: 'center',
   borderRadius: '16px',
   boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-}));
-
-const PracticeButton = styled(Button)(({ theme }) => ({
-  marginTop: theme.spacing(3),
-  padding: theme.spacing(1.5, 4),
-  borderRadius: '30px',
-  textTransform: 'none',
-  fontSize: '1.1rem',
 }));
 
 function App() {
@@ -84,9 +76,6 @@ function App() {
           <Typography variant="body1" paragraph sx={{ mt: 3 }}>
             {practice?.description}
           </Typography>
-          <PracticeButton variant="contained" color="primary" size="large">
-            실천하기
-          </PracticeButton>
         </StyledPaper>
       </Box>
     </Container>
