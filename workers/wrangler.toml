@@ -1,0 +1,8 @@
+name = "dandani-api"
+main = "src/index.js"
+compatibility_date = "2024-03-18"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dandani-db"
+database_id = "89375d23-da59-4753-8cc7-56e23cf53294"
