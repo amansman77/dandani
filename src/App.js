@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Box, Typography, Paper, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
+
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
   marginTop: theme.spacing(4),
@@ -17,14 +19,32 @@ function App() {
 
   useEffect(() => {
     const fetchPractice = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const response = await fetch('https://dandani-api.amansman77.workers.dev/api/practice/today');
+        console.log('Fetching from:', `${API_URL}/api/practice/today`);
+        const response = await fetch(`${API_URL}/api/practice/today`, {
+          headers: {
+            'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+            'X-Client-Time': new Date().toISOString()
+          }
+        });
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch practice');
+          throw new Error(`Failed to fetch practice: ${response.status} ${responseText}`);
         }
-        const data = await response.json();
+        
+        const data = JSON.parse(responseText);
+        console.log('Parsed data:', data);
         setPractice(data);
       } catch (err) {
+        console.error('Fetch error:', err);
         setError(err.message);
       } finally {
         setLoading(false);
