@@ -40,19 +40,35 @@ async function getTodayPractice(env, request) {
   ));
   
   // 클라이언트 시간대에 따라 날짜 조정
-  let day = utcDate.getUTCDate();
+  let currentDate = utcDate;
   if (clientTimezone) {
     // UTC+9인 경우, UTC 15:00 이후에는 다음날 실천 과제 표시
     const utcHour = now.getUTCHours();
     if (clientTimezone.includes('+9') && utcHour >= 15) {
-      day = (day % 30) + 1;
+      currentDate = new Date(currentDate);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
   }
+
+  // 현재 날짜에 해당하는 챌린지 찾기
+  const challenge = await env.DB.prepare(`
+    SELECT * FROM challenges 
+    WHERE start_date <= date(?) AND end_date >= date(?)
+  `).bind(currentDate.toISOString().split('T')[0], currentDate.toISOString().split('T')[0]).first();
+
+  if (!challenge) {
+    throw new Error('No active challenge found for this date');
+  }
+
+  // 챌린지 시작일로부터의 일수 계산
+  const startDate = new Date(challenge.start_date);
+  const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+  const day = dayDiff + 1;
   
-  // DB에서 해당 일수의 실천 과제 조회
+  // DB에서 해당 챌린지의 해당 일수의 실천 과제 조회
   const practice = await env.DB.prepare(
-    'SELECT * FROM practices WHERE day = ?'
-  ).bind(day).first();
+    'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
+  ).bind(challenge.id, day).first();
 
   if (!practice) {
     throw new Error('Practice not found for this day');
