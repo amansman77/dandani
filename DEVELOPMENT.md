@@ -1,0 +1,326 @@
+# 단단이 (Dandani) 개발 가이드
+
+## 📋 목차
+- [개요](#개요)
+- [개발 환경 설정](#개발-환경-설정)
+- [프로젝트 구조](#프로젝트-구조)
+- [로컬 개발](#로컬-개발)
+- [API 연동](#api-연동)
+- [배포](#배포)
+- [아키텍처](#아키텍처)
+- [코딩 스타일](#코딩-스타일)
+- [테스트](#테스트)
+- [문제 해결](#문제-해결)
+
+## 🎯 개요
+
+단단이는 감정적으로 단단해지는 연습을 돕는 서비스입니다. React 기반 프론트엔드와 Cloudflare Workers 기반 백엔드로 구성되어 있습니다.
+
+### 핵심 기능
+- **오늘의 연습**: 매일 실천 과제 제공
+- **AI 상담사**: 감정 기반 AI 대화 (buddy API 연동)
+- **반응형 UI**: 모바일 친화적 인터페이스
+
+## 🛠️ 개발 환경 설정
+
+### 필수 요구사항
+- **Node.js**: 18.19.0 (nvm 사용 권장)
+- **npm**: 10.2.3 이상
+- **Wrangler CLI**: Cloudflare Workers 개발용
+
+### Node.js 설정
+```bash
+# nvm으로 Node.js 버전 설정
+nvm use 18.19.0
+
+# 버전 확인
+node --version  # v18.19.0
+npm --version   # v10.2.3
+```
+
+### 프로젝트 클론 및 설정
+```bash
+# 저장소 클론
+git clone https://github.com/amansman77/dandani.git
+cd dandani
+
+# 의존성 설치
+npm install
+
+# Workers 의존성 설치
+cd workers
+npm install
+cd ..
+```
+
+## 📁 프로젝트 구조
+
+```
+dandani/
+├── src/                    # React 프론트엔드
+│   ├── components/         # 재사용 가능한 컴포넌트
+│   │   └── ChatInterface.js # AI 상담사 채팅 컴포넌트
+│   ├── App.js             # 메인 앱 컴포넌트
+│   └── index.js           # 앱 진입점
+├── workers/               # Cloudflare Workers 백엔드
+│   ├── src/               # Workers 소스 코드
+│   ├── package.json       # Workers 의존성
+│   └── wrangler.toml      # Workers 설정
+├── public/                # 정적 파일
+├── build/                 # 빌드 결과물
+├── package.json           # 프론트엔드 의존성
+└── README.md             # 프로젝트 문서
+```
+
+## 🚀 로컬 개발
+
+### 프론트엔드 개발 서버 실행
+```bash
+# 개발 서버 시작 (포트 3000)
+npm start
+
+# 브라우저에서 확인
+# http://localhost:3000
+```
+
+### 백엔드 개발 서버 실행 (선택사항)
+```bash
+# Workers 개발 서버 시작 (포트 8787)
+cd workers
+npm run dev
+
+# API 테스트
+# http://localhost:8787/api/practice/today
+```
+
+### 환경 변수 설정
+```bash
+# 프론트엔드 환경 변수 (선택사항)
+REACT_APP_API_URL=http://localhost:8787
+
+# 기본값: https://dandani-api.amansman77.workers.dev
+```
+
+## 🔗 API 연동
+
+### 백엔드 API
+- **프로덕션**: `https://dandani-api.amansman77.workers.dev`
+- **개발**: `http://localhost:8787` (Workers 실행 시)
+
+### 주요 API 엔드포인트
+```javascript
+// 오늘의 실천 과제 조회
+GET /api/practice/today
+
+// 응답 예시
+{
+  "title": "오늘의 단단이가 되는 법",
+  "description": "실천 과제 내용..."
+}
+```
+
+### Buddy AI API 연동
+- **URL**: `https://buddy.yetimates.com/api/chat/dandani`
+- **서비스**: 단단이 전용 AI 상담사
+- **감정**: happy, sad, angry, anxious, neutral
+
+```javascript
+// AI 상담사 API 호출 예시
+POST /api/chat/dandani
+{
+  "message": "오늘 기분이 좋아요",
+  "emotion": "happy",
+  "sessionId": "dandani-123456789",
+  "service": "dandani"
+}
+```
+
+## 🚀 배포
+
+### 프론트엔드 배포 (Cloudflare Pages)
+```bash
+# 프로덕션 빌드
+npm run build
+
+# Cloudflare Pages 배포
+npx wrangler pages deploy build --project-name dandani
+
+# 배포 확인
+# https://dandani.pages.dev
+# https://dandani.yetimates.com
+```
+
+### 백엔드 배포 (Cloudflare Workers)
+```bash
+# Workers 배포
+cd workers
+npm run deploy
+
+# 배포 확인
+# https://dandani-api.amansman77.workers.dev
+```
+
+### 배포 상태 확인
+```bash
+# Pages 프로젝트 목록
+npx wrangler pages project list
+
+# Workers 배포 목록
+cd workers
+npx wrangler deployments list
+```
+
+## 🏗️ 아키텍처
+
+### 프론트엔드 (React)
+- **프레임워크**: React 18.2.0
+- **UI 라이브러리**: Material-UI 5.15.10
+- **아이콘**: @mui/icons-material 5.17.1
+- **스타일링**: @emotion/react, @emotion/styled
+
+### 백엔드 (Cloudflare Workers)
+- **런타임**: Cloudflare Workers
+- **데이터베이스**: Cloudflare D1 (SQLite)
+- **스토리지**: Cloudflare R2
+- **인증**: Cloudflare Access
+
+### 배포 인프라
+- **프론트엔드**: Cloudflare Pages
+- **백엔드**: Cloudflare Workers
+- **CDN**: Cloudflare 전역 네트워크
+
+## 📝 코딩 스타일
+
+### JavaScript/React 규칙
+- **함수형 컴포넌트** 사용
+- **Hooks** 활용 (useState, useEffect, useRef)
+- **ES6+ 문법** 사용
+- **const/let** 사용 (var 금지)
+
+### 컴포넌트 구조
+```javascript
+// 컴포넌트 템플릿
+import React, { useState, useEffect } from 'react';
+import { Box, Typography } from '@mui/material';
+
+const ComponentName = () => {
+  const [state, setState] = useState(null);
+
+  useEffect(() => {
+    // 초기화 로직
+  }, []);
+
+  return (
+    <Box>
+      <Typography>컴포넌트 내용</Typography>
+    </Box>
+  );
+};
+
+export default ComponentName;
+```
+
+### 스타일링 규칙
+- **Material-UI styled** 사용
+- **theme.spacing()** 활용
+- **반응형 디자인** 고려
+- **일관된 색상 팔레트** 사용
+
+## 🧪 테스트
+
+### 프론트엔드 테스트
+```bash
+# 테스트 실행
+npm test
+
+# 테스트 커버리지
+npm test -- --coverage
+```
+
+### API 테스트
+```bash
+# 백엔드 API 테스트
+curl -X GET https://dandani-api.amansman77.workers.dev/api/practice/today
+
+# Buddy API 테스트
+curl -X POST https://buddy.yetimates.com/api/chat/dandani \
+  -H "Content-Type: application/json" \
+  -d '{"message": "테스트", "emotion": "happy"}'
+```
+
+## 🔧 문제 해결
+
+### 일반적인 문제들
+
+#### 1. Node.js 버전 문제
+```bash
+# 올바른 버전 사용
+nvm use 18.19.0
+```
+
+#### 2. 의존성 설치 문제
+```bash
+# node_modules 삭제 후 재설치
+rm -rf node_modules package-lock.json
+npm install
+```
+
+#### 3. Workers 로컬 실행 문제
+```bash
+# Wrangler 업데이트
+cd workers
+npm install wrangler@latest
+
+# 또는 프로덕션 API 사용
+# 프론트엔드에서 프로덕션 API URL 사용
+```
+
+#### 4. Material-UI 아이콘 문제
+```bash
+# 아이콘 패키지 설치
+npm install @mui/icons-material@^5.15.10 --legacy-peer-deps
+```
+
+### 디버깅 팁
+- **브라우저 개발자 도구** 활용
+- **React Developer Tools** 설치
+- **Network 탭**에서 API 호출 확인
+- **Console 로그** 확인
+
+## 📚 추가 리소스
+
+### 문서
+- [React 공식 문서](https://react.dev/)
+- [Material-UI 문서](https://mui.com/)
+- [Cloudflare Workers 문서](https://developers.cloudflare.com/workers/)
+- [Cloudflare Pages 문서](https://developers.cloudflare.com/pages/)
+
+### 도구
+- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
+- [Cloudflare Dashboard](https://dash.cloudflare.com/)
+
+## 🤝 기여하기
+
+### 개발 워크플로우
+1. **이슈 생성** 또는 **기존 이슈 확인**
+2. **브랜치 생성**: `feature/기능명` 또는 `fix/버그명`
+3. **개발 및 테스트**
+4. **커밋**: 의미있는 커밋 메시지 작성
+5. **Pull Request 생성**
+6. **코드 리뷰 및 머지**
+
+### 커밋 메시지 규칙
+```
+feat: 새로운 기능 추가
+fix: 버그 수정
+docs: 문서 수정
+style: 코드 스타일 변경
+refactor: 코드 리팩토링
+test: 테스트 추가/수정
+chore: 빌드 프로세스 또는 보조 도구 변경
+```
+
+---
+
+**단단이 개발팀**  
+마지막 업데이트: 2025-06-21 
