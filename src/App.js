@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab } from '@mui/material';
+import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ChatInterface from './components/ChatInterface';
 
@@ -89,27 +89,54 @@ function App() {
           단단이
         </Typography>
         <Typography variant="subtitle1" align="center" color="text.secondary" gutterBottom>
-          감정적으로 단단해지는 연습
+          감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
         </Typography>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange} centered>
-            <Tab label="오늘의 연습" />
+            <Tab label="오늘의 이야기" />
             <Tab label="대화하기" />
           </Tabs>
         </Box>
 
         {activeTab === 0 && (
           <StyledPaper elevation={3}>
-            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 'bold' }}>
-              오늘의 단단이가 되는 법
-            </Typography>
             <Typography variant="h6" color="primary" gutterBottom>
               {practice?.title}
             </Typography>
             <Typography variant="body1" paragraph sx={{ mt: 3 }}>
               {practice?.description}
             </Typography>
+            
+            {/* 실천 가이드 질문 유도 섹션 */}
+            <Box sx={{ 
+              mt: 4, 
+              p: 2, 
+              bgcolor: 'grey.50', 
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'grey.200'
+            }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                💭 궁금한 점이 있나요?{' '}
+                <Button 
+                  variant="text" 
+                  size="small"
+                  onClick={() => setActiveTab(1)}
+                  sx={{ 
+                    textTransform: 'none',
+                    fontWeight: 'normal',
+                    p: 0,
+                    minWidth: 'auto',
+                    color: 'primary.main',
+                    textDecoration: 'underline',
+                    ml: 1
+                  }}
+                >
+                  단단이와 이야기하기
+                </Button>
+              </Typography>
+            </Box>
           </StyledPaper>
         )}
 

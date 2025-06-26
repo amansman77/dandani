@@ -18,9 +18,10 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
 import PersonIcon from '@mui/icons-material/Person';
-import PsychologyIcon from '@mui/icons-material/Psychology';
+
+// 단단이 캐릭터 이미지 URL
+const DANDANI_CHARACTER_URL = '/assets/images/dandani-character/단단이-32x32.png';
 
 const BUDDY_API_URL = 'https://buddy.yetimates.com';
 
@@ -116,7 +117,7 @@ const ChatInterface = () => {
     setMessages([
       {
         id: 1,
-        content: '안녕하세요! 단단이 AI 친구입니다. 오늘 어떤 감정을 느끼고 계신가요? 함께 이야기해보세요. 😊',
+        content: '안녕! 나는 단단이야. 감정적으로 힘들 때 함께 이야기하면서 중심을 잃지 않도록 도와줄게. 오늘은 어떤 기분이야? 😊',
         isUser: false,
         timestamp: new Date(),
         emotion: null,
@@ -206,16 +207,6 @@ const ChatInterface = () => {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto' }}>
-      <Box sx={{ mb: 2, textAlign: 'center' }}>
-        <Typography variant="h6" gutterBottom>
-          <PsychologyIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-          단단이
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          감정적으로 단단해지는 연습을 도와드립니다
-        </Typography>
-      </Box>
-
       <ChatContainer>
         <MessagesContainer>
           <List>
@@ -224,9 +215,11 @@ const ChatInterface = () => {
                 <MessageBubble isUser={message.isUser}>
                   <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
                     {!message.isUser && (
-                      <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                        <SmartToyIcon />
-                      </Avatar>
+                      <Avatar 
+                        src={DANDANI_CHARACTER_URL}
+                        alt="단단이"
+                        sx={{ width: 32, height: 32 }}
+                      />
                     )}
                     <Box>
                       <MessageContent isUser={message.isUser} elevation={1}>
@@ -260,9 +253,11 @@ const ChatInterface = () => {
               <ListItem sx={{ px: 0, py: 0.5 }}>
                 <MessageBubble isUser={false}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>
-                      <SmartToyIcon />
-                    </Avatar>
+                    <Avatar 
+                      src={DANDANI_CHARACTER_URL}
+                      alt="단단이"
+                      sx={{ width: 32, height: 32 }}
+                    />
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CircularProgress size={20} />
                       <Typography variant="body2" color="text.secondary">
