@@ -141,7 +141,7 @@ function App() {
         )}
 
         {activeTab === 1 && (
-          <ChatInterface />
+          <ChatInterface practice={practice} />
         )}
       </Box>
     </Container>

@@ -82,13 +82,21 @@ const EmotionChip = styled(Chip)(({ theme }) => ({
     backgroundColor: theme.palette.warning.light,
     color: theme.palette.warning.contrastText,
   },
+  '&.frustrated': {
+    backgroundColor: theme.palette.grey[400],
+    color: theme.palette.grey[800],
+  },
+  '&.tired': {
+    backgroundColor: theme.palette.grey[500],
+    color: theme.palette.grey[100],
+  },
   '&.neutral': {
     backgroundColor: theme.palette.grey[300],
     color: theme.palette.grey[700],
   },
 }));
 
-const ChatInterface = () => {
+const ChatInterface = ({ practice }) => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -101,6 +109,8 @@ const ChatInterface = () => {
     { label: '슬픔', value: 'sad', color: 'info' },
     { label: '화남', value: 'angry', color: 'error' },
     { label: '불안', value: 'anxious', color: 'warning' },
+    { label: '좌절', value: 'frustrated', color: 'default' },
+    { label: '피로', value: 'tired', color: 'default' },
     { label: '보통', value: 'neutral', color: 'default' },
   ];
 
@@ -152,6 +162,7 @@ const ChatInterface = () => {
           emotion: emotion?.value || null,
           sessionId: sessionId,
           service: 'dandani',
+          practice: practice,
         }),
       });
 
@@ -261,7 +272,7 @@ const ChatInterface = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <CircularProgress size={20} />
                       <Typography variant="body2" color="text.secondary">
-                        AI가 응답을 생성하고 있습니다...
+                        단단이가 생각하고 있어요...
                       </Typography>
                     </Box>
                   </Box>
