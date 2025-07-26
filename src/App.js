@@ -18,6 +18,10 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  
+  // 채팅 관련 상태를 App.js에서 관리
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatSessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     const fetchPractice = async () => {
@@ -141,7 +145,12 @@ function App() {
         )}
 
         {activeTab === 1 && (
-          <ChatInterface practice={practice} />
+          <ChatInterface 
+            practice={practice} 
+            messages={chatMessages}
+            setMessages={setChatMessages}
+            sessionId={chatSessionId}
+          />
         )}
       </Box>
     </Container>

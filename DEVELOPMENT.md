@@ -24,18 +24,28 @@
 ## 🛠️ 개발 환경 설정
 
 ### 필수 요구사항
-- **Node.js**: 18.19.0 (nvm 사용 권장)
+- **Node.js**: 20.0.0 이상 (Wrangler CLI 요구사항)
 - **npm**: 10.2.3 이상
-- **Wrangler CLI**: Cloudflare Workers 개발용
+- **Wrangler CLI**: Cloudflare Workers/Pages 개발용 (v4.26.0 이상)
 
 ### Node.js 설정
 ```bash
-# nvm으로 Node.js 버전 설정
-nvm use 18.19.0
+# nvm으로 Node.js 버전 설정 (Wrangler CLI 호환성을 위해 20.x 사용)
+nvm install 20
+nvm use 20
 
 # 버전 확인
-node --version  # v18.19.0
-npm --version   # v10.2.3
+node --version  # v20.x.x
+npm --version   # v10.x.x
+```
+
+### nvm 설치 (필요시)
+```bash
+# nvm이 설치되어 있지 않은 경우
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# 터미널 재시작 또는 설정 로드
+source ~/.zshrc
 ```
 
 ### 프로젝트 클론 및 설정
@@ -59,8 +69,8 @@ cd ..
 dandani/
 ├── src/                    # React 프론트엔드
 │   ├── components/         # 재사용 가능한 컴포넌트
-│   │   └── ChatInterface.js # AI 상담사 채팅 컴포넌트
-│   ├── App.js             # 메인 앱 컴포넌트
+│   │   └── ChatInterface.js # AI 상담사 채팅 컴포넌트 (제어 컴포넌트)
+│   ├── App.js             # 메인 앱 컴포넌트 (상태 관리)
 │   └── index.js           # 앱 진입점
 ├── workers/               # Cloudflare Workers 백엔드
 │   ├── src/               # Workers 소스 코드
@@ -122,7 +132,7 @@ GET /api/practice/today
 ### Buddy AI API 연동
 - **URL**: `https://buddy.yetimates.com/api/chat/dandani`
 - **서비스**: 단단이 전용 AI 상담사
-- **감정**: happy, sad, angry, anxious, neutral
+- **감정**: happy, sad, angry, anxious, frustrated, tired, neutral
 
 ```javascript
 // AI 상담사 API 호출 예시
@@ -131,7 +141,8 @@ POST /api/chat/dandani
   "message": "오늘 기분이 좋아요",
   "emotion": "happy",
   "sessionId": "dandani-123456789",
-  "service": "dandani"
+  "service": "dandani",
+  "practice": practice
 }
 ```
 
@@ -142,12 +153,15 @@ POST /api/chat/dandani
 # 프로덕션 빌드
 npm run build
 
-# Cloudflare Pages 배포
+# Cloudflare Pages 배포 (Preview 환경)
 npx wrangler pages deploy build --project-name dandani
+
+# 프로덕션 환경 배포 (main 브랜치)
+npx wrangler pages deploy build --project-name dandani --branch=main
 
 # 배포 확인
 # https://dandani.pages.dev
-# https://dandani.yetimates.com
+# https://dandani.yetimates.com (프로덕션)
 ```
 
 ### 백엔드 배포 (Cloudflare Workers)
@@ -165,10 +179,19 @@ npm run deploy
 # Pages 프로젝트 목록
 npx wrangler pages project list
 
+# Pages 배포 목록
+npx wrangler pages deployment list --project-name dandani
+
 # Workers 배포 목록
 cd workers
 npx wrangler deployments list
 ```
+
+### 배포 워크플로우
+1. **개발 브랜치에서 작업**
+2. **변경사항 커밋 및 푸시**
+3. **main 브랜치로 머지**
+4. **main 브랜치에서 프로덕션 배포**
 
 ## 🏗️ 아키텍처
 
@@ -177,6 +200,7 @@ npx wrangler deployments list
 - **UI 라이브러리**: Material-UI 5.15.10
 - **아이콘**: @mui/icons-material 5.17.1
 - **스타일링**: @emotion/react, @emotion/styled
+- **상태 관리**: App.js에서 통합 상태 관리 (채팅 메시지, 세션 ID)
 
 ### 백엔드 (Cloudflare Workers)
 - **런타임**: Cloudflare Workers
@@ -189,6 +213,21 @@ npx wrangler deployments list
 - **백엔드**: Cloudflare Workers
 - **CDN**: Cloudflare 전역 네트워크
 
+### 상태 관리 구조
+```javascript
+// App.js에서 관리하는 상태
+const [chatMessages, setChatMessages] = useState([]);
+const [chatSessionId] = useState(`dandani-${Date.now()}-${random}`);
+
+// ChatInterface에 props로 전달
+<ChatInterface 
+  practice={practice} 
+  messages={chatMessages}
+  setMessages={setChatMessages}
+  sessionId={chatSessionId}
+/>
+```
+
 ## 📝 코딩 스타일
 
 ### JavaScript/React 규칙
@@ -196,6 +235,7 @@ npx wrangler deployments list
 - **Hooks** 활용 (useState, useEffect, useRef)
 - **ES6+ 문법** 사용
 - **const/let** 사용 (var 금지)
+- **제어 컴포넌트 패턴** 활용 (상태를 상위 컴포넌트에서 관리)
 
 ### 컴포넌트 구조
 ```javascript
@@ -203,8 +243,8 @@ npx wrangler deployments list
 import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 
-const ComponentName = () => {
-  const [state, setState] = useState(null);
+const ComponentName = ({ prop1, prop2, setProp1 }) => {
+  const [localState, setLocalState] = useState(null);
 
   useEffect(() => {
     // 초기화 로직
@@ -254,18 +294,28 @@ curl -X POST https://buddy.yetimates.com/api/chat/dandani \
 
 #### 1. Node.js 버전 문제
 ```bash
-# 올바른 버전 사용
-nvm use 18.19.0
+# Wrangler CLI 호환성을 위해 Node.js 20.x 사용
+nvm install 20
+nvm use 20
 ```
 
-#### 2. 의존성 설치 문제
+#### 2. Wrangler CLI 설치 문제
+```bash
+# Wrangler CLI 버전 확인
+npx wrangler --version
+
+# 최신 버전으로 업데이트
+npm install -g wrangler@latest
+```
+
+#### 3. 의존성 설치 문제
 ```bash
 # node_modules 삭제 후 재설치
 rm -rf node_modules package-lock.json
 npm install
 ```
 
-#### 3. Workers 로컬 실행 문제
+#### 4. Workers 로컬 실행 문제
 ```bash
 # Wrangler 업데이트
 cd workers
@@ -275,10 +325,21 @@ npm install wrangler@latest
 # 프론트엔드에서 프로덕션 API URL 사용
 ```
 
-#### 4. Material-UI 아이콘 문제
+#### 5. Material-UI 아이콘 문제
 ```bash
 # 아이콘 패키지 설치
 npm install @mui/icons-material@^5.15.10 --legacy-peer-deps
+```
+
+#### 6. 배포 시 git 변경사항 경고
+```bash
+# 변경사항 커밋 후 배포
+git add .
+git commit -m "feat: 새로운 기능 추가"
+npx wrangler pages deploy build --project-name dandani
+
+# 또는 경고 무시하고 배포
+npx wrangler pages deploy build --project-name dandani --commit-dirty=true
 ```
 
 ### 디버깅 팁
@@ -286,6 +347,7 @@ npm install @mui/icons-material@^5.15.10 --legacy-peer-deps
 - **React Developer Tools** 설치
 - **Network 탭**에서 API 호출 확인
 - **Console 로그** 확인
+- **상태 관리**: App.js에서 관리하는 상태 확인
 
 ## 📚 추가 리소스
 
@@ -323,4 +385,4 @@ chore: 빌드 프로세스 또는 보조 도구 변경
 ---
 
 **단단이 개발팀**  
-마지막 업데이트: 2025-06-21 
+마지막 업데이트: 2025-07-26 
