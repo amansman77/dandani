@@ -96,12 +96,10 @@ const EmotionChip = styled(Chip)(({ theme }) => ({
   },
 }));
 
-const ChatInterface = ({ practice }) => {
-  const [messages, setMessages] = useState([]);
+const ChatInterface = ({ practice, messages, setMessages, sessionId }) => {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [sessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const messagesEndRef = useRef(null);
 
   const emotions = [
@@ -123,17 +121,19 @@ const ChatInterface = ({ practice }) => {
   }, [messages]);
 
   useEffect(() => {
-    // 초기 환영 메시지
-    setMessages([
-      {
-        id: 1,
-        content: '안녕! 나는 단단이야. 감정적으로 힘들 때 함께 이야기하면서 중심을 잃지 않도록 도와줄게. 오늘은 어떤 기분이야? 😊',
-        isUser: false,
-        timestamp: new Date(),
-        emotion: null,
-      }
-    ]);
-  }, []);
+    // 초기 환영 메시지 (메시지가 비어있을 때만)
+    if (messages.length === 0) {
+      setMessages([
+        {
+          id: 1,
+          content: '안녕! 나는 단단이야. 감정적으로 힘들 때 함께 이야기하면서 중심을 잃지 않도록 도와줄게. 오늘은 어떤 기분이야? 😊',
+          isUser: false,
+          timestamp: new Date(),
+          emotion: null,
+        }
+      ]);
+    }
+  }, [messages.length, setMessages]);
 
   const handleSendMessage = async (emotion = null) => {
     if (!inputMessage.trim() && !emotion) return;
