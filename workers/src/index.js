@@ -85,6 +85,119 @@ async function getTodayPractice(env, request) {
   return allPractices;
 }
 
+// 챌린지 목록 가져오기
+async function getChallenges(env, request) {
+  // 클라이언트의 시간대 정보 받기
+  const clientTimezone = request.headers.get('X-Client-Timezone');
+  const clientTime = request.headers.get('X-Client-Time');
+  
+  // 클라이언트 시간이 있으면 사용, 없으면 UTC 사용
+  const now = clientTime ? new Date(clientTime) : new Date();
+  
+  // UTC 기준으로 날짜 계산
+  const utcDate = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  ));
+  
+  // 클라이언트 시간대에 따라 날짜 조정
+  let currentDate = utcDate;
+  if (clientTimezone) {
+    // UTC+9인 경우, UTC 15:00 이후에는 다음날 실천 과제 표시
+    const utcHour = now.getUTCHours();
+    if (clientTimezone.includes('+9') && utcHour >= 15) {
+      currentDate = new Date(currentDate);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    }
+  }
+
+  const currentDateStr = currentDate.toISOString().split('T')[0];
+
+  // 모든 챌린지 조회
+  const allChallenges = await env.DB.prepare(`
+    SELECT * FROM challenges 
+    ORDER BY start_date ASC
+  `).all();
+
+  const result = {
+    current: null,
+    completed: [],
+    upcoming: []
+  };
+
+  for (const challenge of allChallenges.results) {
+    const startDate = new Date(challenge.start_date);
+    const endDate = new Date(challenge.end_date);
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+    // 현재 진행 중인 챌린지
+    if (currentDate >= startDate && currentDate <= endDate) {
+      const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+      const currentDay = dayDiff + 1;
+      const progressPercentage = Math.round((currentDay / totalDays) * 100);
+
+      // 오늘의 실천 과제 조회
+      const todayPractice = await env.DB.prepare(
+        'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
+      ).bind(challenge.id, currentDay).first();
+
+      result.current = {
+        id: challenge.id,
+        name: challenge.name,
+        description: challenge.description,
+        start_date: challenge.start_date,
+        end_date: challenge.end_date,
+        current_day: currentDay,
+        total_days: totalDays,
+        progress_percentage: progressPercentage,
+        today_practice: todayPractice ? {
+          title: todayPractice.title,
+          description: todayPractice.description
+        } : null
+      };
+    }
+    // 완료된 챌린지
+    else if (currentDate > endDate) {
+      // 마지막 실천 과제 조회
+      const lastPractice = await env.DB.prepare(
+        'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
+      ).bind(challenge.id, totalDays).first();
+
+      result.completed.push({
+        id: challenge.id,
+        name: challenge.name,
+        description: challenge.description,
+        start_date: challenge.start_date,
+        end_date: challenge.end_date,
+        total_days: totalDays,
+        completed_days: totalDays,
+        progress_percentage: 100,
+        last_practice: lastPractice ? {
+          title: lastPractice.title,
+          description: lastPractice.description
+        } : null
+      });
+    }
+    // 예정된 챌린지
+    else if (currentDate < startDate) {
+      const daysUntilStart = Math.ceil((startDate - currentDate) / (1000 * 60 * 60 * 24));
+      
+      result.upcoming.push({
+        id: challenge.id,
+        name: challenge.name,
+        description: challenge.description,
+        start_date: challenge.start_date,
+        end_date: challenge.end_date,
+        total_days: totalDays,
+        days_until_start: daysUntilStart
+      });
+    }
+  }
+
+  return result;
+}
+
 // API 요청 처리
 async function handleRequest(request, env) {
   // OPTIONS 요청 처리 (CORS preflight)
@@ -103,6 +216,17 @@ async function handleRequest(request, env) {
       if (url.pathname === '/api/practice/today') {
         const practice = await getTodayPractice(env, request);
         return new Response(JSON.stringify(practice), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 챌린지 목록 엔드포인트
+      if (url.pathname === '/api/challenges') {
+        const challenges = await getChallenges(env, request);
+        return new Response(JSON.stringify(challenges), {
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders
