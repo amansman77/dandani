@@ -4,6 +4,7 @@ import { styled } from '@mui/material/styles';
 import ChatInterface from './components/ChatInterface';
 import ChallengeList from './components/ChallengeList';
 import ChallengeContext from './components/ChallengeContext';
+import FeedbackModal from './components/FeedbackModal';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -25,6 +26,7 @@ function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatSessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentChallenge, setCurrentChallenge] = useState(null);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchPracticeAndChallenge = async () => {
@@ -149,6 +151,8 @@ function App() {
                 {practice?.description}
               </Typography>
               
+
+              
               {/* 실천 가이드 질문 유도 섹션 */}
               <Box sx={{ 
                 mt: 4, 
@@ -156,9 +160,10 @@ function App() {
                 bgcolor: 'grey.50', 
                 borderRadius: 1,
                 border: '1px solid',
-                borderColor: 'grey.200'
+                borderColor: 'grey.200',
+                textAlign: 'center'
               }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   💭 궁금한 점이 있나요?{' '}
                   <Button 
                     variant="text" 
@@ -178,6 +183,53 @@ function App() {
                   </Button>
                 </Typography>
               </Box>
+              
+              {/* 실천 완료/확인 버튼 */}
+              <Box sx={{ mt: 4, textAlign: 'center' }}>
+                {practice?.isRecorded ? (
+                  <>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      오늘의 실천을 기록했습니다
+                    </Typography>
+                    <Button 
+                      variant="outlined" 
+                      size="large"
+                      onClick={() => setFeedbackModalOpen(true)}
+                      sx={{ 
+                        borderRadius: 2,
+                        px: 4,
+                        py: 1.5,
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        color: 'success.main',
+                        borderColor: 'success.main'
+                      }}
+                    >
+                      기록 확인하기 👀
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      실천을 마치셨나요?
+                    </Typography>
+                    <Button 
+                      variant="outlined" 
+                      size="large"
+                      onClick={() => setFeedbackModalOpen(true)}
+                      sx={{ 
+                        borderRadius: 2,
+                        px: 4,
+                        py: 1.5,
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      실천 기록하기 ✨
+                    </Button>
+                  </>
+                )}
+              </Box>
             </StyledPaper>
           </>
         )}
@@ -194,6 +246,49 @@ function App() {
         {activeTab === 2 && (
           <ChallengeList />
         )}
+
+        {/* 피드백 모달 */}
+        <FeedbackModal
+          open={feedbackModalOpen}
+          onClose={() => setFeedbackModalOpen(false)}
+          practice={practice}
+          challenge={currentChallenge}
+          onSubmit={async (feedback) => {
+            try {
+              const response = await fetch(`${API_URL}/api/feedback/submit`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(feedback)
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                alert('실천을 기록했습니다! 📝');
+                console.log('Feedback submitted:', result);
+                
+                // 기록 완료 후 실천 데이터 다시 가져오기
+                const practiceResponse = await fetch(`${API_URL}/api/practice/today`, {
+                  headers: {
+                    'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    'X-Client-Time': new Date().toISOString()
+                  }
+                });
+                
+                if (practiceResponse.ok) {
+                  const updatedPractice = await practiceResponse.json();
+                  setPractice(updatedPractice);
+                }
+              } else {
+                throw new Error('피드백 제출에 실패했습니다.');
+              }
+            } catch (error) {
+              console.error('Feedback submission error:', error);
+              alert('피드백 제출 중 오류가 발생했습니다.');
+            }
+          }}
+        />
       </Box>
     </Container>
   );

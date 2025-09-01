@@ -8,12 +8,8 @@ import {
   Avatar,
   List,
   ListItem,
-  ListItemText,
-  ListItemAvatar,
   CircularProgress,
   Chip,
-  Divider,
-  Fade,
   Alert
 } from '@mui/material';
 import { styled } from '@mui/material/styles';

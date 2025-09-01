@@ -18,12 +18,12 @@ const PRACTICES = [
 // CORS 헤더 설정
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time',
   'Access-Control-Max-Age': '86400',
 };
 
-// 오늘의 실천 과제 가져오기
+// 오늘의 실천 과제와 기록 상태 가져오기
 async function getTodayPractice(env, request) {
   // 클라이언트의 시간대 정보 받기
   const clientTimezone = request.headers.get('X-Client-Timezone');
@@ -50,6 +50,9 @@ async function getTodayPractice(env, request) {
     }
   }
 
+  // 사용자 ID (임시로 고정값 사용)
+  const userId = 'user123';
+
   // 현재 날짜에 해당하는 챌린지 찾기
   const challenge = await env.DB.prepare(`
     SELECT * FROM challenges 
@@ -68,7 +71,16 @@ async function getTodayPractice(env, request) {
     ).bind(challenge.id, day).first();
 
     if (practice) {
-      return practice;
+      // 오늘 실천 기록 여부 확인
+      const feedback = await env.DB.prepare(`
+        SELECT id FROM practice_feedback 
+        WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
+      `).bind(userId, challenge.id, day).first();
+
+      return {
+        ...practice,
+        isRecorded: !!feedback
+      };
     }
   }
 
@@ -82,7 +94,10 @@ async function getTodayPractice(env, request) {
     throw new Error('No practices found in database');
   }
 
-  return allPractices;
+  return {
+    ...allPractices,
+    isRecorded: false
+  };
 }
 
 // 챌린지 목록 가져오기
@@ -270,6 +285,31 @@ async function getChallengeDetail(env, challengeId) {
   };
 }
 
+// 피드백 제출 처리
+async function submitFeedback(env, request) {
+  const body = await request.json();
+  const { challengeId, practiceDay, moodChange, wasHelpful, practiceDescription } = body;
+  
+  // 사용자 ID (임시로 고정값 사용, 실제로는 인증 시스템 필요)
+  const userId = 'user123';
+  
+  try {
+    // 피드백 저장 (피드백 = 실천 완료)
+    const result = await env.DB.prepare(`
+      INSERT OR REPLACE INTO practice_feedback 
+      (user_id, challenge_id, practice_day, mood_change, was_helpful, practice_description)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(userId, challengeId, practiceDay, moodChange, wasHelpful, practiceDescription).run();
+    
+    return {
+      success: true,
+      message: '피드백이 성공적으로 제출되었습니다.'
+    };
+  } catch (error) {
+    throw new Error(`피드백 제출 실패: ${error.message}`);
+  }
+}
+
 // API 요청 처리
 async function handleRequest(request, env) {
   // OPTIONS 요청 처리 (CORS preflight)
@@ -279,10 +319,10 @@ async function handleRequest(request, env) {
     });
   }
 
+  const url = new URL(request.url);
+  
   // GET 요청 처리
   if (request.method === 'GET') {
-    const url = new URL(request.url);
-    
     try {
       // 오늘의 실천 과제 엔드포인트
       if (url.pathname === '/api/practice/today') {
@@ -311,6 +351,39 @@ async function handleRequest(request, env) {
         const challengeId = url.pathname.split('/')[3];
         const challengeDetail = await getChallengeDetail(env, challengeId);
         return new Response(JSON.stringify(challengeDetail), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 404 처리
+      return new Response(JSON.stringify({ error: 'Not Found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
+      });
+    }
+  }
+
+  // POST 요청 처리
+  if (request.method === 'POST') {
+    try {
+      // 피드백 제출 엔드포인트
+      if (url.pathname === '/api/feedback/submit') {
+        const result = await submitFeedback(env, request);
+        return new Response(JSON.stringify(result), {
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders
