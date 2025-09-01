@@ -198,6 +198,78 @@ async function getChallenges(env, request) {
   return result;
 }
 
+// 챌린지 상세 정보 가져오기
+async function getChallengeDetail(env, challengeId) {
+  // 챌린지 기본 정보 조회
+  const challenge = await env.DB.prepare(`
+    SELECT * FROM challenges WHERE id = ?
+  `).bind(challengeId).first();
+
+  if (!challenge) {
+    throw new Error('Challenge not found');
+  }
+
+  // 해당 챌린지의 모든 실천 과제 조회
+  const practices = await env.DB.prepare(`
+    SELECT * FROM practices 
+    WHERE challenge_id = ? 
+    ORDER BY day ASC
+  `).bind(challengeId).all();
+
+  // 클라이언트의 시간대 정보를 고려한 현재 날짜 계산
+  const now = new Date();
+  const currentDate = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  ));
+
+  const startDate = new Date(challenge.start_date);
+  const endDate = new Date(challenge.end_date);
+  const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+  // 현재 진행 상황 계산
+  let currentDay = 0;
+  let progressPercentage = 0;
+  let status = 'upcoming';
+
+  if (currentDate >= startDate && currentDate <= endDate) {
+    // 현재 진행 중
+    const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+    currentDay = dayDiff + 1;
+    progressPercentage = Math.round((currentDay / totalDays) * 100);
+    status = 'current';
+  } else if (currentDate > endDate) {
+    // 완료됨
+    currentDay = totalDays;
+    progressPercentage = 100;
+    status = 'completed';
+  } else {
+    // 예정됨
+    status = 'upcoming';
+  }
+
+  // 실천 과제에 완료 상태 추가
+  const practicesWithStatus = practices.results.map(practice => ({
+    ...practice,
+    completed: practice.day <= currentDay,
+    is_today: practice.day === currentDay && status === 'current'
+  }));
+
+  return {
+    id: challenge.id,
+    name: challenge.name,
+    description: challenge.description,
+    start_date: challenge.start_date,
+    end_date: challenge.end_date,
+    total_days: totalDays,
+    current_day: currentDay,
+    progress_percentage: progressPercentage,
+    status: status,
+    practices: practicesWithStatus
+  };
+}
+
 // API 요청 처리
 async function handleRequest(request, env) {
   // OPTIONS 요청 처리 (CORS preflight)
@@ -227,6 +299,18 @@ async function handleRequest(request, env) {
       if (url.pathname === '/api/challenges') {
         const challenges = await getChallenges(env, request);
         return new Response(JSON.stringify(challenges), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 챌린지 상세 조회 엔드포인트
+      if (url.pathname.startsWith('/api/challenges/')) {
+        const challengeId = url.pathname.split('/')[3];
+        const challengeDetail = await getChallengeDetail(env, challengeId);
+        return new Response(JSON.stringify(challengeDetail), {
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders

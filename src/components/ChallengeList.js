@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ChallengeCard from './ChallengeCard';
+import ChallengeDetail from './ChallengeDetail';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -33,6 +34,7 @@ const ChallengeList = () => {
   const [challenges, setChallenges] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedChallengeId, setSelectedChallengeId] = useState(null);
 
   useEffect(() => {
     fetchChallenges();
@@ -98,6 +100,16 @@ const ChallengeList = () => {
     );
   }
 
+  // 챌린지 상세 보기 모드
+  if (selectedChallengeId) {
+    return (
+      <ChallengeDetail 
+        challengeId={selectedChallengeId}
+        onBack={() => setSelectedChallengeId(null)}
+      />
+    );
+  }
+
   return (
     <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto' }}>
       {/* 현재 진행 중인 챌린지 */}
@@ -106,7 +118,11 @@ const ChallengeList = () => {
           <SectionTitle variant="h5">
             🎯 현재 진행 중인 챌린지
           </SectionTitle>
-          <ChallengeCard challenge={challenges.current} type="current" />
+          <ChallengeCard 
+            challenge={challenges.current} 
+            type="current"
+            onClick={() => setSelectedChallengeId(challenges.current.id)}
+          />
         </SectionContainer>
       )}
 
@@ -120,7 +136,8 @@ const ChallengeList = () => {
             <ChallengeCard 
               key={challenge.id} 
               challenge={challenge} 
-              type="completed" 
+              type="completed"
+              onClick={() => setSelectedChallengeId(challenge.id)}
             />
           ))}
         </SectionContainer>
@@ -136,7 +153,8 @@ const ChallengeList = () => {
             <ChallengeCard 
               key={challenge.id} 
               challenge={challenge} 
-              type="upcoming" 
+              type="upcoming"
+              onClick={() => setSelectedChallengeId(challenge.id)}
             />
           ))}
         </SectionContainer>

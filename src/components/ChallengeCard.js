@@ -35,7 +35,7 @@ const PracticeBox = styled(Box)(({ theme }) => ({
   marginTop: theme.spacing(2),
 }));
 
-const ChallengeCard = ({ challenge, type }) => {
+const ChallengeCard = ({ challenge, type, onClick }) => {
   const getStatusIcon = () => {
     switch (type) {
       case 'current':
@@ -118,7 +118,20 @@ const ChallengeCard = ({ challenge, type }) => {
   };
 
   return (
-    <StyledPaper elevation={2} type={type}>
+    <StyledPaper 
+      elevation={2} 
+      type={type}
+      onClick={onClick}
+      sx={{ 
+        cursor: onClick ? 'pointer' : 'default',
+        ...(onClick && {
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 6px 25px rgba(0, 0, 0, 0.15)',
+          }
+        })
+      }}
+    >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Avatar sx={{ width: 24, height: 24, bgcolor: 'transparent' }}>
