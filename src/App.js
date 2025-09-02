@@ -199,9 +199,6 @@ function App() {
               <Box sx={{ mt: 4, textAlign: 'center' }}>
                 {practice?.isRecorded ? (
                   <>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      오늘의 실천을 기록했습니다
-                    </Typography>
                     <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                       <Button 
                         variant="outlined" 
