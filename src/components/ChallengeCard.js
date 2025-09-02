@@ -89,7 +89,7 @@ const ChallengeCard = ({ challenge, type, onClick }) => {
       return `시작까지 ${challenge.days_until_start}일 남음`;
     }
     
-    const currentDays = challenge.current_day || challenge.completed_days || 0;
+    const currentDays = challenge.current_day || 0;
     const totalDays = challenge.total_days;
     const percentage = challenge.progress_percentage || 0;
     

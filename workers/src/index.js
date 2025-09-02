@@ -216,7 +216,7 @@ async function getChallenges(env, request) {
 }
 
 // 챌린지 상세 정보 가져오기
-async function getChallengeDetail(env, challengeId) {
+async function getChallengeDetail(env, challengeId, request) {
   // 챌린지 기본 정보 조회
   const challenge = await env.DB.prepare(`
     SELECT * FROM challenges WHERE id = ?
@@ -234,12 +234,29 @@ async function getChallengeDetail(env, challengeId) {
   `).bind(challengeId).all();
 
   // 클라이언트의 시간대 정보를 고려한 현재 날짜 계산
-  const now = new Date();
-  const currentDate = new Date(Date.UTC(
+  const clientTimezone = request.headers.get('X-Client-Timezone');
+  const clientTime = request.headers.get('X-Client-Time');
+  
+  // 클라이언트 시간이 있으면 사용, 없으면 UTC 사용
+  const now = clientTime ? new Date(clientTime) : new Date();
+  
+  // UTC 기준으로 날짜 계산
+  const utcDate = new Date(Date.UTC(
     now.getUTCFullYear(),
     now.getUTCMonth(),
     now.getUTCDate()
   ));
+  
+  // 클라이언트 시간대에 따라 날짜 조정
+  let currentDate = utcDate;
+  if (clientTimezone) {
+    // UTC+9인 경우, UTC 15:00 이후에는 다음날 실천 과제 표시
+    const utcHour = now.getUTCHours();
+    if (clientTimezone.includes('+9') && utcHour >= 15) {
+      currentDate = new Date(currentDate);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    }
+  }
 
   const startDate = new Date(challenge.start_date);
   const endDate = new Date(challenge.end_date);
@@ -250,28 +267,55 @@ async function getChallengeDetail(env, challengeId) {
   let progressPercentage = 0;
   let status = 'upcoming';
 
+  console.log('Challenge detail date calculation:', {
+    challengeId,
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+    currentDate: currentDate.toISOString(),
+    clientTimezone,
+    clientTime
+  });
+
   if (currentDate >= startDate && currentDate <= endDate) {
     // 현재 진행 중
     const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
     currentDay = dayDiff + 1;
     progressPercentage = Math.round((currentDay / totalDays) * 100);
     status = 'current';
+    console.log('Challenge is current:', { dayDiff, currentDay, totalDays });
   } else if (currentDate > endDate) {
     // 완료됨
     currentDay = totalDays;
     progressPercentage = 100;
     status = 'completed';
+    console.log('Challenge is completed');
   } else {
     // 예정됨
     status = 'upcoming';
+    console.log('Challenge is upcoming');
   }
 
-  // 실천 과제에 완료 상태 추가
+  // 사용자 ID 가져오기
+  const userId = request.headers.get('X-User-ID') || 'user123';
+  
+  // 사용자의 실천 기록 조회
+  const userFeedback = await env.DB.prepare(`
+    SELECT practice_day FROM practice_feedback 
+    WHERE user_id = ? AND challenge_id = ?
+  `).bind(userId, challengeId).all();
+  
+  const completedDays = new Set(userFeedback.results.map(feedback => feedback.practice_day));
+  
+  // 실천 과제에 완료 상태 추가 (사용자 기록 기준)
   const practicesWithStatus = practices.results.map(practice => ({
     ...practice,
-    completed: practice.day <= currentDay,
+    completed: completedDays.has(practice.day),
     is_today: practice.day === currentDay && status === 'current'
   }));
+  
+  // 실제 완료된 일수로 진행률 재계산
+  const actualCompletedDays = completedDays.size;
+  const actualProgressPercentage = Math.round((actualCompletedDays / totalDays) * 100);
 
   return {
     id: challenge.id,
@@ -281,7 +325,8 @@ async function getChallengeDetail(env, challengeId) {
     end_date: challenge.end_date,
     total_days: totalDays,
     current_day: currentDay,
-    progress_percentage: progressPercentage,
+    progress_percentage: actualProgressPercentage,
+    completed_days: actualCompletedDays,
     status: status,
     practices: practicesWithStatus
   };
@@ -417,7 +462,7 @@ async function handleRequest(request, env) {
       // 챌린지 상세 조회 엔드포인트
       if (url.pathname.startsWith('/api/challenges/')) {
         const challengeId = url.pathname.split('/')[3];
-        const challengeDetail = await getChallengeDetail(env, challengeId);
+        const challengeDetail = await getChallengeDetail(env, challengeId, request);
         return new Response(JSON.stringify(challengeDetail), {
           headers: {
             'Content-Type': 'application/json',

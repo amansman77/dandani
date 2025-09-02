@@ -18,6 +18,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import TodayIcon from '@mui/icons-material/Today';
+import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -36,7 +37,9 @@ const HeaderContainer = styled(Paper)(({ theme }) => ({
   border: `1px solid ${theme.palette.primary.main}`,
 }));
 
-const PracticeItem = styled(ListItem)(({ theme, completed, isToday }) => ({
+const PracticeItem = styled(ListItem, {
+  shouldForwardProp: (prop) => prop !== 'completed' && prop !== 'isToday'
+})(({ theme, completed, isToday }) => ({
   padding: theme.spacing(2),
   marginBottom: theme.spacing(1),
   borderRadius: theme.spacing(1),
@@ -71,19 +74,55 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_URL}/api/challenges/${challengeId}`, {
-        headers: {
-          'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-          'X-Client-Time': new Date().toISOString()
-        }
-      });
+      const userId = getUserId();
+      
+      // 챌린지 상세 정보와 사용자의 실천 기록을 함께 가져오기
+      const [challengeResponse, feedbackResponse] = await Promise.allSettled([
+        fetch(`${API_URL}/api/challenges/${challengeId}`, {
+          headers: {
+            'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+            'X-Client-Time': new Date().toISOString(),
+            'X-User-ID': userId
+          }
+        }),
+        fetch(`${API_URL}/api/feedback/history?challengeId=${challengeId}`, {
+          headers: {
+            'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+            'X-Client-Time': new Date().toISOString(),
+            'X-User-ID': userId
+          }
+        })
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch challenge detail: ${response.status}`);
+      if (challengeResponse.status === 'rejected' || !challengeResponse.value.ok) {
+        throw new Error(`Failed to fetch challenge detail: ${challengeResponse.value?.status || 'Network error'}`);
       }
 
-      const data = await response.json();
-      setChallenge(data);
+      const challengeData = await challengeResponse.value.json();
+      
+      console.log('Challenge detail data:', challengeData);
+      
+      // 사용자의 실천 기록이 있으면 완료 상태 업데이트
+      if (feedbackResponse.status === 'fulfilled' && feedbackResponse.value.ok) {
+        const feedbackData = await feedbackResponse.value.json();
+        const completedDays = new Set(feedbackData.map(feedback => feedback.practice_day));
+        
+        console.log('User feedback data:', feedbackData);
+        console.log('Completed days:', Array.from(completedDays));
+        
+        // 실천 과제에 완료 상태 추가
+        challengeData.practices = challengeData.practices.map(practice => ({
+          ...practice,
+          completed: completedDays.has(practice.day)
+        }));
+        
+        // 진행률 재계산
+        const completedCount = completedDays.size;
+        challengeData.progress_percentage = Math.round((completedCount / challengeData.total_days) * 100);
+        challengeData.completed_days = completedCount;
+      }
+
+      setChallenge(challengeData);
     } catch (err) {
       console.error('Failed to fetch challenge detail:', err);
       setError(err.message);
@@ -179,6 +218,14 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
               <Typography variant="body2">
                 {challenge.current_day}일차 / {challenge.total_days}일
               </Typography>
+              {challenge.completed_days && (
+                <Chip 
+                  label={`${challenge.completed_days}일 완료`}
+                  color="success"
+                  size="small"
+                  variant="outlined"
+                />
+              )}
             </Box>
           </Box>
         </Box>
@@ -230,8 +277,8 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography 
                       variant="body1" 
-                      fontWeight={practice.is_today ? 'bold' : 'normal'}
-                      color={practice.is_today ? 'primary.main' : 'text.primary'}
+                      fontWeight={practice.is_today ? 'bold' : practice.completed ? 'bold' : 'normal'}
+                      color={practice.is_today ? 'primary.main' : practice.completed ? 'success.main' : 'text.primary'}
                     >
                       {practice.title}
                     </Typography>
@@ -243,6 +290,14 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
                         variant="outlined"
                       />
                     )}
+                    {practice.completed && !practice.is_today && (
+                      <Chip 
+                        label="완료" 
+                        size="small" 
+                        color="success" 
+                        variant="outlined"
+                      />
+                    )}
                   </Box>
                 }
                 secondary={
@@ -251,12 +306,22 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
                   </Typography>
                 }
               />
-              <Chip 
-                label={`${practice.day}일차`}
-                size="small"
-                variant="outlined"
-                sx={{ ml: 1 }}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Chip 
+                  label={`${practice.day}일차`}
+                  size="small"
+                  variant="outlined"
+                  color={practice.completed ? 'success' : 'default'}
+                />
+                {practice.completed && (
+                  <Chip 
+                    label="✓" 
+                    size="small" 
+                    color="success" 
+                    sx={{ minWidth: 'auto', width: 24, height: 24 }}
+                  />
+                )}
+              </Box>
             </PracticeItem>
           ))}
         </List>
