@@ -48,9 +48,18 @@ const FeedbackModal = ({
       return;
     }
 
+    // practice.day가 없으면 현재 챌린지의 현재 일차를 계산
+    let practiceDay = practice.day;
+    if (!practiceDay && challenge) {
+      const now = new Date();
+      const startDate = new Date(challenge.start_date);
+      const dayDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+      practiceDay = dayDiff + 1;
+    }
+
     const feedback = {
       challengeId: challenge.id,
-      practiceDay: practice.day,
+      practiceDay: practiceDay,
       moodChange,
       wasHelpful,
       practiceDescription: practiceDescription.trim()

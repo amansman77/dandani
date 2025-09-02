@@ -18,8 +18,8 @@ const PRACTICES = [
 // CORS 헤더 설정
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -50,8 +50,8 @@ async function getTodayPractice(env, request) {
     }
   }
 
-  // 사용자 ID (임시로 고정값 사용)
-  const userId = 'user123';
+  // 사용자 ID를 헤더에서 받기
+  const userId = request.headers.get('X-User-ID') || 'user123';
 
   // 현재 날짜에 해당하는 챌린지 찾기
   const challenge = await env.DB.prepare(`
@@ -79,6 +79,7 @@ async function getTodayPractice(env, request) {
 
       return {
         ...practice,
+        day: day, // 현재 일차 추가
         isRecorded: !!feedback
       };
     }
@@ -96,6 +97,7 @@ async function getTodayPractice(env, request) {
 
   return {
     ...allPractices,
+    day: 1, // Fallback의 경우 1일차로 설정
     isRecorded: false
   };
 }
@@ -290,8 +292,10 @@ async function submitFeedback(env, request) {
   const body = await request.json();
   const { challengeId, practiceDay, moodChange, wasHelpful, practiceDescription } = body;
   
-  // 사용자 ID (임시로 고정값 사용, 실제로는 인증 시스템 필요)
-  const userId = 'user123';
+  // 사용자 ID를 헤더에서 받기
+  const userId = request.headers.get('X-User-ID') || 'user123';
+  
+  console.log('Submitting feedback:', { userId, challengeId, practiceDay, moodChange, wasHelpful, practiceDescription });
   
   try {
     // 피드백 저장 (피드백 = 실천 완료)
@@ -301,12 +305,76 @@ async function submitFeedback(env, request) {
       VALUES (?, ?, ?, ?, ?, ?)
     `).bind(userId, challengeId, practiceDay, moodChange, wasHelpful, practiceDescription).run();
     
+    console.log('Feedback submitted successfully:', result);
+    
     return {
       success: true,
       message: '피드백이 성공적으로 제출되었습니다.'
     };
   } catch (error) {
+    console.error('Feedback submission error:', error);
     throw new Error(`피드백 제출 실패: ${error.message}`);
+  }
+}
+
+// 특정 실천 기록 조회
+async function getPracticeRecord(env, challengeId, practiceDay, request) {
+  const userId = request.headers.get('X-User-ID') || 'user123';
+  
+  // practiceDay가 null이거나 undefined인 경우 처리
+  if (!practiceDay) {
+    console.log('Practice day is null or undefined');
+    return null;
+  }
+  
+  console.log('Looking for record:', { userId, challengeId, practiceDay });
+  
+  const record = await env.DB.prepare(`
+    SELECT * FROM practice_feedback 
+    WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
+  `).bind(userId, challengeId, practiceDay).first();
+  
+  console.log('Found record:', record);
+  
+  return record;
+}
+
+// 실천 기록 히스토리 조회
+async function getPracticeHistory(env, challengeId, request) {
+  const userId = request.headers.get('X-User-ID') || 'user123';
+  
+  const records = await env.DB.prepare(`
+    SELECT * FROM practice_feedback 
+    WHERE user_id = ? AND challenge_id = ?
+    ORDER BY practice_day ASC
+  `).bind(userId, challengeId).all();
+  
+  return records.results;
+}
+
+// 실천 기록 수정
+async function updatePracticeRecord(env, request) {
+  const body = await request.json();
+  const { challengeId, practiceDay, moodChange, wasHelpful, practiceDescription } = body;
+  
+  const userId = request.headers.get('X-User-ID') || 'user123';
+  
+  try {
+    const result = await env.DB.prepare(`
+      UPDATE practice_feedback 
+      SET mood_change = ?, was_helpful = ?, practice_description = ?
+      WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
+    `).bind(moodChange, wasHelpful, practiceDescription, userId, challengeId, practiceDay).run();
+    
+    if (result.changes === 0) {
+      throw new Error('수정할 기록을 찾을 수 없습니다.');
+    }
+    
+    // 수정된 기록 반환
+    const updatedRecord = await getPracticeRecord(env, challengeId, practiceDay, request);
+    return updatedRecord;
+  } catch (error) {
+    throw new Error(`기록 수정 실패: ${error.message}`);
   }
 }
 
@@ -358,6 +426,55 @@ async function handleRequest(request, env) {
         });
       }
 
+      // 실천 기록 조회 엔드포인트
+      if (url.pathname === '/api/feedback/record') {
+        const challengeId = url.searchParams.get('challengeId');
+        const practiceDay = url.searchParams.get('practiceDay');
+        
+        if (!challengeId || !practiceDay) {
+          return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          });
+        }
+        
+        const record = await getPracticeRecord(env, challengeId, practiceDay, request);
+        
+        // 기록이 없는 경우 null 반환 (에러가 아님)
+        return new Response(JSON.stringify(record), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 실천 기록 히스토리 조회 엔드포인트
+      if (url.pathname === '/api/feedback/history') {
+        const challengeId = url.searchParams.get('challengeId');
+        
+        if (!challengeId) {
+          return new Response(JSON.stringify({ error: 'Missing challengeId parameter' }), {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              ...corsHeaders
+            }
+          });
+        }
+        
+        const history = await getPracticeHistory(env, challengeId, request);
+        return new Response(JSON.stringify(history), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
       // 404 처리
       return new Response(JSON.stringify({ error: 'Not Found' }), {
         status: 404,
@@ -383,6 +500,39 @@ async function handleRequest(request, env) {
       // 피드백 제출 엔드포인트
       if (url.pathname === '/api/feedback/submit') {
         const result = await submitFeedback(env, request);
+        return new Response(JSON.stringify(result), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 404 처리
+      return new Response(JSON.stringify({ error: 'Not Found' }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
+      });
+    }
+  }
+
+  // PUT 요청 처리
+  if (request.method === 'PUT') {
+    try {
+      // 실천 기록 수정 엔드포인트
+      if (url.pathname === '/api/feedback/update') {
+        const result = await updatePracticeRecord(env, request);
         return new Response(JSON.stringify(result), {
           headers: {
             'Content-Type': 'application/json',

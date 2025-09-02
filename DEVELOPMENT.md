@@ -97,6 +97,10 @@ npm start
 ```bash
 # Workers 개발 서버 시작 (포트 8787)
 cd workers
+
+# use nvm
+nvm use 20
+
 npm run dev
 
 # API 테스트
@@ -168,6 +172,8 @@ npx wrangler pages deploy build --project-name dandani --branch=main
 ```bash
 # Workers 배포
 cd workers
+
+nvm use 20
 npm run deploy
 
 # 배포 확인
