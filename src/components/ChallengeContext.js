@@ -26,7 +26,7 @@ const ProgressInfo = styled(Box)(({ theme }) => ({
   marginTop: theme.spacing(1),
 }));
 
-const ChallengeContext = ({ challenge, onViewAllChallenges }) => {
+const ChallengeContext = ({ challenge, onViewCurrentChallenge }) => {
   if (!challenge) return null;
 
   return (
@@ -74,7 +74,7 @@ const ChallengeContext = ({ challenge, onViewAllChallenges }) => {
         </Typography>
       </ProgressInfo>
       
-      {/* 챌린지 전체 보기 버튼 */}
+      {/* 현재 챌린지 실천 목록 보기 버튼 */}
       <Box sx={{ 
         mt: 2, 
         pt: 2, 
@@ -84,7 +84,7 @@ const ChallengeContext = ({ challenge, onViewAllChallenges }) => {
         <Button 
           variant="outlined" 
           size="small"
-          onClick={onViewAllChallenges}
+          onClick={() => onViewCurrentChallenge(challenge.id)}
           sx={{ 
             textTransform: 'none',
             color: 'white',
@@ -104,7 +104,7 @@ const ChallengeContext = ({ challenge, onViewAllChallenges }) => {
             transition: 'all 0.2s ease-in-out'
           }}
         >
-          📋 전체 챌린지 보기
+          📝 실천 목록 보기
         </Button>
       </Box>
     </ContextContainer>

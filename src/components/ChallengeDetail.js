@@ -18,6 +18,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import TodayIcon from '@mui/icons-material/Today';
+import PracticeRecordModal from './PracticeRecordModal';
 import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -64,6 +65,10 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // 기록 모달 관련 상태
+  const [recordModalOpen, setRecordModalOpen] = useState(false);
+  const [selectedPractice, setSelectedPractice] = useState(null);
 
   useEffect(() => {
     fetchChallengeDetail();
@@ -164,6 +169,14 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
         return 'default';
       default:
         return 'default';
+    }
+  };
+
+  // 실천 과제 클릭 핸들러
+  const handlePracticeClick = (practice) => {
+    if (practice.completed) {
+      setSelectedPractice(practice);
+      setRecordModalOpen(true);
     }
   };
 
@@ -268,6 +281,15 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
               key={practice.id}
               completed={practice.completed}
               isToday={practice.is_today}
+              onClick={() => handlePracticeClick(practice)}
+              sx={{ 
+                cursor: practice.completed ? 'pointer' : 'default',
+                '&:hover': practice.completed ? {
+                  backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                } : {}
+              }}
             >
               <ListItemIcon>
                 {getStatusIcon(practice)}
@@ -326,6 +348,18 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
           ))}
         </List>
       </Paper>
+
+      {/* 실천 기록 모달 */}
+      <PracticeRecordModal
+        open={recordModalOpen}
+        onClose={() => setRecordModalOpen(false)}
+        practice={selectedPractice}
+        challenge={challenge}
+        onUpdate={() => {
+          // 기록 업데이트 후 챌린지 정보 다시 가져오기
+          fetchChallengeDetail();
+        }}
+      />
     </DetailContainer>
   );
 };

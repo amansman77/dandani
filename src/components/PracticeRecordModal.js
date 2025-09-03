@@ -53,6 +53,15 @@ const PracticeRecordModal = ({
     wasHelpful: ''
   });
 
+  // 과거 기록인지 확인하는 함수
+  const isPastRecord = (recordDate) => {
+    if (!recordDate) return false;
+    const recordTime = new Date(recordDate).getTime();
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    return recordTime < todayStart;
+  };
+
   // 기록 데이터 가져오기
   useEffect(() => {
     if (open && practice && challenge) {
@@ -227,9 +236,20 @@ const PracticeRecordModal = ({
           {challenge?.name} - {practice?.day}일차
         </Typography>
         {record && (
-          <Typography variant="caption" color="text.secondary">
-            기록일: {new Date(record.created_at).toLocaleDateString('ko-KR')}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              기록일: {new Date(record.created_at).toLocaleDateString('ko-KR')}
+            </Typography>
+            {isPastRecord(record.created_at) && (
+              <Chip 
+                label="과거 기록" 
+                size="small" 
+                color="default" 
+                variant="outlined"
+                sx={{ fontSize: '0.6rem', height: '20px' }}
+              />
+            )}
+          </Box>
         )}
       </DialogTitle>
       
@@ -241,10 +261,19 @@ const PracticeRecordModal = ({
                 <Typography variant="subtitle1" fontWeight="bold">
                   실천한 내용
                 </Typography>
-                {!isEditing && (
+                {!isEditing && !isPastRecord(record.created_at) && (
                   <IconButton onClick={handleEdit} size="small" color="primary">
                     <Edit />
                   </IconButton>
+                )}
+                {!isEditing && isPastRecord(record.created_at) && (
+                  <Chip 
+                    label="과거 기록" 
+                    size="small" 
+                    color="default" 
+                    variant="outlined"
+                    sx={{ fontSize: '0.75rem' }}
+                  />
                 )}
               </Box>
               

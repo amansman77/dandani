@@ -154,14 +154,14 @@ POST /api/chat/dandani
 
 ### 프론트엔드 배포 (Cloudflare Pages)
 ```bash
+# use nvm
+nvm use 20
+
 # 프로덕션 빌드
 npm run build
 
-# Cloudflare Pages 배포 (Preview 환경)
+# Cloudflare Pages 배포
 npx wrangler pages deploy build --project-name dandani
-
-# 프로덕션 환경 배포 (main 브랜치)
-npx wrangler pages deploy build --project-name dandani --branch=main
 
 # 배포 확인
 # https://dandani.pages.dev

@@ -4,6 +4,7 @@ import { styled } from '@mui/material/styles';
 import ChatInterface from './components/ChatInterface';
 import ChallengeList from './components/ChallengeList';
 import ChallengeContext from './components/ChallengeContext';
+import ChallengeDetail from './components/ChallengeDetail';
 import FeedbackModal from './components/FeedbackModal';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeHistory from './components/PracticeHistory';
@@ -32,6 +33,9 @@ function App() {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [historyTabOpen, setHistoryTabOpen] = useState(false);
+  
+  // 현재 챌린지 상세보기 상태
+  const [showCurrentChallengeDetail, setShowCurrentChallengeDetail] = useState(false);
 
   const fetchPracticeAndChallenge = async () => {
     setLoading(true);
@@ -105,6 +109,16 @@ function App() {
     setActiveTab(newValue);
   };
 
+  // 현재 챌린지 상세보기 핸들러
+  const handleViewCurrentChallenge = (challengeId) => {
+    setShowCurrentChallengeDetail(true);
+  };
+
+  // 현재 챌린지 상세보기에서 뒤로가기 핸들러
+  const handleBackFromChallengeDetail = () => {
+    setShowCurrentChallengeDetail(false);
+  };
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -146,12 +160,12 @@ function App() {
           </Tabs>
         </Box>
 
-        {activeTab === 0 && (
+        {activeTab === 0 && !showCurrentChallengeDetail && (
           <>
             {/* 현재 챌린지 컨텍스트 */}
             <ChallengeContext 
               challenge={currentChallenge} 
-              onViewAllChallenges={() => setActiveTab(2)}
+              onViewCurrentChallenge={handleViewCurrentChallenge}
             />
             
             <StyledPaper elevation={3}>
@@ -279,6 +293,14 @@ function App() {
               // 기록 상세 보기 기능 (필요시 구현)
               console.log('View record:', record);
             }}
+          />
+        )}
+
+        {/* 현재 챌린지 상세보기 */}
+        {activeTab === 0 && showCurrentChallengeDetail && currentChallenge && (
+          <ChallengeDetail 
+            challengeId={currentChallenge.id}
+            onBack={handleBackFromChallengeDetail}
           />
         )}
 
