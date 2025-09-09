@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button } from '@mui/material';
+import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { Help as HelpIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import ChatInterface from './components/ChatInterface';
 import ChallengeList from './components/ChallengeList';
 import ChallengeContext from './components/ChallengeContext';
@@ -8,7 +9,8 @@ import ChallengeDetail from './components/ChallengeDetail';
 import FeedbackModal from './components/FeedbackModal';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeHistory from './components/PracticeHistory';
-import { getUserId } from './utils/userId';
+import OnboardingModal from './components/OnboardingModal';
+import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -36,6 +38,9 @@ function App() {
   
   // 현재 챌린지 상세보기 상태
   const [showCurrentChallengeDetail, setShowCurrentChallengeDetail] = useState(false);
+  
+  // 온보딩 상태
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const fetchPracticeAndChallenge = async () => {
     setLoading(true);
@@ -103,6 +108,12 @@ function App() {
 
   useEffect(() => {
     fetchPracticeAndChallenge();
+    
+    // 새 사용자 온보딩 체크
+    const { isNew } = getUserIdInfo();
+    if (isNew) {
+      setShowOnboarding(true);
+    }
   }, []);
 
   const handleTabChange = (event, newValue) => {
@@ -118,6 +129,31 @@ function App() {
   const handleBackFromChallengeDetail = () => {
     setShowCurrentChallengeDetail(false);
   };
+
+  // 온보딩 완료 핸들러
+  const handleOnboardingComplete = () => {
+    markUserInitialized();
+    setShowOnboarding(false);
+  };
+
+  // 온보딩 다시 시작 핸들러
+  const handleRestartOnboarding = () => {
+    setShowOnboarding(true);
+  };
+
+  // 키보드 단축키 처리
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      // Ctrl/Cmd + Shift + H로 온보딩 재시작
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'H') {
+        event.preventDefault();
+        handleRestartOnboarding();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   if (loading) {
     return (
@@ -144,12 +180,32 @@ function App() {
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ fontWeight: 'bold' }}>
-          단단이
-        </Typography>
-        <Typography variant="subtitle1" align="center" color="text.secondary" gutterBottom>
-          감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
-        </Typography>
+        <Box sx={{ position: 'relative', textAlign: 'center' }}>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+            단단이
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+            감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
+          </Typography>
+          
+          {/* 도움말 버튼 */}
+          <Tooltip title="온보딩 다시 보기 (Ctrl+Shift+H)">
+            <IconButton
+              onClick={handleRestartOnboarding}
+              sx={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                color: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.50'
+                }
+              }}
+            >
+              <HelpIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange} centered>
@@ -372,6 +428,13 @@ function App() {
             // 기록 업데이트 후 실천 데이터 다시 가져오기
             fetchPracticeAndChallenge();
           }}
+        />
+
+        {/* 온보딩 모달 */}
+        <OnboardingModal
+          open={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          onComplete={handleOnboardingComplete}
         />
       </Box>
     </Container>

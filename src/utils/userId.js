@@ -25,12 +25,36 @@ export const isUserIdSet = () => {
 
 export const getUserIdInfo = () => {
   const userId = getUserId();
+  const isInitialized = localStorage.getItem('dandani_user_initialized') === 'true';
   return {
     userId,
-    isNew: !localStorage.getItem('dandani_user_initialized')
+    isNew: !isInitialized,
+    isInitialized
   };
 };
 
 export const markUserInitialized = () => {
   localStorage.setItem('dandani_user_initialized', 'true');
+  console.log('User marked as initialized');
+};
+
+export const resetUserOnboarding = () => {
+  localStorage.removeItem('dandani_user_initialized');
+  console.log('User onboarding reset');
+};
+
+export const getOnboardingStatus = () => {
+  return {
+    isInitialized: localStorage.getItem('dandani_user_initialized') === 'true',
+    userId: getUserId(),
+    timestamp: localStorage.getItem('dandani_user_initialized_timestamp')
+  };
+};
+
+export const canRestartOnboarding = () => {
+  // 온보딩을 재시작할 수 있는 조건들
+  return {
+    hasUserId: !!localStorage.getItem(USER_ID_KEY),
+    isInitialized: localStorage.getItem('dandani_user_initialized') === 'true'
+  };
 };
