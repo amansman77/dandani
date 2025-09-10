@@ -423,6 +423,89 @@ async function updatePracticeRecord(env, request) {
   }
 }
 
+// timefold 봉투 생성 프록시
+async function createTimefoldEnvelope(env, request) {
+  const body = await request.json();
+  const { challengeId, message, unlockDate } = body;
+  
+  const userId = request.headers.get('X-User-ID') || 'user123';
+  
+  try {
+    // timefold API 호출
+    const timefoldResponse = await fetch('https://timefold.amansman77.workers.dev/api/envelopes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Token': userId
+      },
+      body: JSON.stringify({
+        unlockAt: new Date(unlockDate).getTime(),
+        passwordProtected: true,
+        encryptedMessage: message,
+        userToken: userId
+      })
+    });
+
+    if (!timefoldResponse.ok) {
+      throw new Error(`Timefold API error: ${timefoldResponse.status}`);
+    }
+
+    const timefoldData = await timefoldResponse.json();
+    
+    // dandani DB에 봉투 정보 저장 (선택사항)
+    try {
+      await env.DB.prepare(`
+        INSERT INTO timefold_envelopes (id, challenge_id, user_id, created_at, unlock_at, timefold_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).bind(
+        crypto.randomUUID(),
+        challengeId,
+        userId,
+        Date.now(),
+        new Date(unlockDate).getTime(),
+        timefoldData.id
+      ).run();
+    } catch (dbError) {
+      console.warn('Failed to save envelope to dandani DB:', dbError);
+      // DB 저장 실패는 치명적이지 않으므로 계속 진행
+    }
+
+    return {
+      success: true,
+      envelopeId: timefoldData.id,
+      shareUrl: `https://timefold.yetimates.com/?v=3.0&id=${timefoldData.id}`,
+      message: '봉투가 성공적으로 생성되었습니다.'
+    };
+  } catch (error) {
+    console.error('Timefold envelope creation error:', error);
+    throw new Error(`봉투 생성 실패: ${error.message}`);
+  }
+}
+
+// timefold 봉투 조회 프록시
+async function getTimefoldEnvelope(env, request) {
+  const url = new URL(request.url);
+  const envelopeId = url.pathname.split('/').pop();
+  
+  try {
+    const timefoldResponse = await fetch(`https://timefold.amansman77.workers.dev/api/envelopes/${envelopeId}`, {
+      headers: {
+        'X-User-Token': 'anonymous'
+      }
+    });
+
+    if (!timefoldResponse.ok) {
+      throw new Error(`Timefold API error: ${timefoldResponse.status}`);
+    }
+
+    const timefoldData = await timefoldResponse.json();
+    return timefoldData;
+  } catch (error) {
+    console.error('Timefold envelope fetch error:', error);
+    throw new Error(`봉투 조회 실패: ${error.message}`);
+  }
+}
+
 // API 요청 처리
 async function handleRequest(request, env) {
   // OPTIONS 요청 처리 (CORS preflight)
@@ -520,6 +603,17 @@ async function handleRequest(request, env) {
         });
       }
 
+      // timefold 봉투 조회 엔드포인트
+      if (url.pathname.startsWith('/api/timefold/envelope/')) {
+        const envelopeData = await getTimefoldEnvelope(env, request);
+        return new Response(JSON.stringify(envelopeData), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
       // 404 처리
       return new Response(JSON.stringify({ error: 'Not Found' }), {
         status: 404,
@@ -545,6 +639,17 @@ async function handleRequest(request, env) {
       // 피드백 제출 엔드포인트
       if (url.pathname === '/api/feedback/submit') {
         const result = await submitFeedback(env, request);
+        return new Response(JSON.stringify(result), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // timefold 봉투 생성 엔드포인트
+      if (url.pathname === '/api/timefold/envelope') {
+        const result = await createTimefoldEnvelope(env, request);
         return new Response(JSON.stringify(result), {
           headers: {
             'Content-Type': 'application/json',

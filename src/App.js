@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { Help as HelpIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import { Help as HelpIcon } from '@mui/icons-material';
 import ChatInterface from './components/ChatInterface';
 import ChallengeList from './components/ChallengeList';
 import ChallengeContext from './components/ChallengeContext';
@@ -10,6 +10,8 @@ import FeedbackModal from './components/FeedbackModal';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeHistory from './components/PracticeHistory';
 import OnboardingModal from './components/OnboardingModal';
+import EnvelopeModal from './components/EnvelopeModal';
+import EnvelopeList from './components/EnvelopeList';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -34,13 +36,17 @@ function App() {
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
-  const [historyTabOpen, setHistoryTabOpen] = useState(false);
   
   // 현재 챌린지 상세보기 상태
   const [showCurrentChallengeDetail, setShowCurrentChallengeDetail] = useState(false);
   
   // 온보딩 상태
   const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // 편지 모달 상태
+  const [envelopeModalOpen, setEnvelopeModalOpen] = useState(false);
+  const [selectedChallengeForEnvelope, setSelectedChallengeForEnvelope] = useState(null);
+  const [envelopeListOpen, setEnvelopeListOpen] = useState(false);
 
   const fetchPracticeAndChallenge = async () => {
     setLoading(true);
@@ -141,6 +147,35 @@ function App() {
     setShowOnboarding(true);
   };
 
+  // 편지 생성 핸들러
+  const handleCreateEnvelope = (challengeId) => {
+    const challenge = currentChallenge;
+    if (challenge) {
+      setSelectedChallengeForEnvelope({
+        id: challengeId,
+        name: challenge.name,
+        endDate: challenge.end_date
+      });
+      setEnvelopeModalOpen(true);
+    }
+  };
+
+  // 편지 모달 닫기 핸들러
+  const handleCloseEnvelopeModal = () => {
+    setEnvelopeModalOpen(false);
+    setSelectedChallengeForEnvelope(null);
+  };
+
+  // 편지 목록 보기 핸들러
+  const handleViewEnvelopeList = () => {
+    setEnvelopeListOpen(true);
+  };
+
+  // 편지 목록 모달 닫기 핸들러
+  const handleCloseEnvelopeList = () => {
+    setEnvelopeListOpen(false);
+  };
+
   // 키보드 단축키 처리
   useEffect(() => {
     const handleKeyPress = (event) => {
@@ -222,6 +257,8 @@ function App() {
             <ChallengeContext 
               challenge={currentChallenge} 
               onViewCurrentChallenge={handleViewCurrentChallenge}
+              onCreateEnvelope={handleCreateEnvelope}
+              onViewEnvelopeList={handleViewEnvelopeList}
             />
             
             <StyledPaper elevation={3}>
@@ -435,6 +472,21 @@ function App() {
           open={showOnboarding}
           onClose={() => setShowOnboarding(false)}
           onComplete={handleOnboardingComplete}
+        />
+
+        {/* 편지 생성 모달 */}
+        <EnvelopeModal
+          open={envelopeModalOpen}
+          onClose={handleCloseEnvelopeModal}
+          challengeId={selectedChallengeForEnvelope?.id}
+          challengeName={selectedChallengeForEnvelope?.name}
+          challengeEndDate={selectedChallengeForEnvelope?.endDate}
+        />
+
+        {/* 편지 목록 모달 */}
+        <EnvelopeList
+          open={envelopeListOpen}
+          onClose={handleCloseEnvelopeList}
         />
       </Box>
     </Container>
