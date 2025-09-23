@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -70,11 +70,7 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [selectedPractice, setSelectedPractice] = useState(null);
 
-  useEffect(() => {
-    fetchChallengeDetail();
-  }, [challengeId]);
-
-  const fetchChallengeDetail = async () => {
+  const fetchChallengeDetail = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -134,7 +130,11 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [challengeId]);
+
+  useEffect(() => {
+    fetchChallengeDetail();
+  }, [challengeId, fetchChallengeDetail]);
 
   const getStatusIcon = (practice) => {
     if (practice.is_today) {

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
   Paper,
   List,
   ListItem,
-  ListItemText,
   ListItemIcon,
   Chip,
   CircularProgress,
@@ -20,7 +19,6 @@ import {
 import { styled } from '@mui/material/styles';
 import { 
   CheckCircle, 
-  RadioButtonUnchecked, 
   CalendarToday,
   Visibility,
   TrendingUp,
@@ -55,13 +53,7 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [recordDetailOpen, setRecordDetailOpen] = useState(false);
 
-  useEffect(() => {
-    if (challengeId) {
-      fetchHistory();
-    }
-  }, [challengeId]);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!challengeId) {
       setLoading(false);
       return;
@@ -93,7 +85,13 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [challengeId]);
+
+  useEffect(() => {
+    if (challengeId) {
+      fetchHistory();
+    }
+  }, [challengeId, fetchHistory]);
 
   const handleViewRecord = async (record) => {
     setSelectedRecord(record);
@@ -298,12 +296,14 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
         fullWidth
       >
         <DialogTitle>
-          <Typography variant="h6">
-            실천 기록 상세보기
-          </Typography>
-          <Typography variant="body2" color="text.secondary" component="span">
-            {selectedRecord && `${selectedRecord.practice_day}일차 - ${formatDate(selectedRecord.created_at)}`}
-          </Typography>
+          <Box>
+            <Typography variant="h6" component="div">
+              실천 기록 상세보기
+            </Typography>
+            <Typography variant="body2" color="text.secondary" component="div">
+              {selectedRecord && `${selectedRecord.practice_day}일차 - ${formatDate(selectedRecord.created_at)}`}
+            </Typography>
+          </Box>
         </DialogTitle>
         
         <DialogContent>
