@@ -19,12 +19,125 @@ const PRACTICES = [
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID, X-Session-ID, User-Agent, CF-Connecting-IP',
   'Access-Control-Max-Age': '86400',
 };
 
+// 이벤트 로깅 유틸리티 함수
+async function logUserEvent(env, request, eventType, eventData = {}) {
+  try {
+    const userId = request.headers.get('X-User-ID') || 'anonymous';
+    const sessionId = request.headers.get('X-Session-ID') || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const userAgent = request.headers.get('User-Agent') || '';
+    const ipAddress = request.headers.get('CF-Connecting-IP') || 'unknown';
+    
+    // IP 주소 마스킹 (개인정보 보호)
+    const maskedIp = ipAddress.replace(/\d+\.\d+\.\d+\.\d+/, (match) => {
+      const parts = match.split('.');
+      return `${parts[0]}.${parts[1]}.xxx.xxx`;
+    });
+
+    await env.DB.prepare(`
+      INSERT INTO user_events (user_id, event_type, event_data, session_id, user_agent, ip_address)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).bind(
+      userId,
+      eventType,
+      JSON.stringify(eventData),
+      sessionId,
+      userAgent,
+      maskedIp
+    ).run();
+
+    // 사용자 세션 업데이트
+    await updateUserSession(env, userId, sessionId);
+    
+    // 일별 활동 요약 업데이트
+    await updateDailyActivity(env, userId, eventType);
+    
+  } catch (error) {
+    console.error('Event logging error:', error);
+    // 이벤트 로깅 실패는 서비스에 영향을 주지 않도록 조용히 처리
+  }
+}
+
+// 사용자 세션 업데이트
+async function updateUserSession(env, userId, sessionId) {
+  try {
+    const now = new Date().toISOString();
+    
+    // 기존 세션 확인
+    const existingSession = await env.DB.prepare(`
+      SELECT * FROM user_sessions WHERE session_id = ?
+    `).bind(sessionId).first();
+    
+    if (existingSession) {
+      // 세션 업데이트
+      await env.DB.prepare(`
+        UPDATE user_sessions 
+        SET last_visit_at = ?, total_visits = total_visits + 1, total_events = total_events + 1, updated_at = ?
+        WHERE session_id = ?
+      `).bind(now, now, sessionId).run();
+    } else {
+      // 새 세션 생성
+      await env.DB.prepare(`
+        INSERT INTO user_sessions (user_id, session_id, first_visit_at, last_visit_at, total_visits, total_events)
+        VALUES (?, ?, ?, ?, 1, 1)
+      `).bind(userId, sessionId, now, now).run();
+    }
+  } catch (error) {
+    console.error('Session update error:', error);
+  }
+}
+
+// 일별 활동 요약 업데이트
+async function updateDailyActivity(env, userId, eventType) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 오늘 활동 확인
+    const existingActivity = await env.DB.prepare(`
+      SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = ?
+    `).bind(userId, today).first();
+    
+    const isActive = true;
+    const practiceCompleted = eventType === 'practice_complete';
+    const feedbackSubmitted = eventType === 'feedback_submit';
+    const aiChatUsed = eventType === 'ai_chat_start' || eventType === 'ai_chat_message';
+    
+    if (existingActivity) {
+      // 기존 활동 업데이트
+      await env.DB.prepare(`
+        UPDATE user_daily_activity 
+        SET is_active = ?, 
+            practice_completed = CASE WHEN ? = 1 THEN 1 ELSE practice_completed END,
+            feedback_submitted = CASE WHEN ? = 1 THEN 1 ELSE feedback_submitted END,
+            ai_chat_used = CASE WHEN ? = 1 THEN 1 ELSE ai_chat_used END,
+            total_events = total_events + 1,
+            updated_at = ?
+        WHERE user_id = ? AND activity_date = ?
+      `).bind(
+        isActive, practiceCompleted, feedbackSubmitted, aiChatUsed, 
+        new Date().toISOString(), userId, today
+      ).run();
+    } else {
+      // 새 활동 생성
+      await env.DB.prepare(`
+        INSERT INTO user_daily_activity 
+        (user_id, activity_date, is_active, practice_completed, feedback_submitted, ai_chat_used, total_events)
+        VALUES (?, ?, ?, ?, ?, ?, 1)
+      `).bind(userId, today, isActive, practiceCompleted, feedbackSubmitted, aiChatUsed).run();
+    }
+  } catch (error) {
+    console.error('Daily activity update error:', error);
+  }
+}
+
 // 오늘의 실천 과제와 기록 상태 가져오기
 async function getTodayPractice(env, request) {
+  // 이벤트 로깅: 페이지 방문
+  await logUserEvent(env, request, 'page_visit', { page: 'today_practice' });
+  
   // 클라이언트의 시간대 정보 받기
   const clientTimezone = request.headers.get('X-Client-Timezone');
   const clientTime = request.headers.get('X-Client-Time');
@@ -71,6 +184,13 @@ async function getTodayPractice(env, request) {
     ).bind(challenge.id, day).first();
 
     if (practice) {
+      // 이벤트 로깅: 실천 과제 조회
+      await logUserEvent(env, request, 'practice_view', { 
+        challenge_id: challenge.id, 
+        practice_id: practice.id, 
+        day: day 
+      });
+      
       // 오늘 실천 기록 여부 확인
       const feedback = await env.DB.prepare(`
         SELECT id FROM practice_feedback 
@@ -350,6 +470,21 @@ async function submitFeedback(env, request) {
       VALUES (?, ?, ?, ?, ?, ?)
     `).bind(userId, challengeId, practiceDay, moodChange, wasHelpful, practiceDescription).run();
     
+    // 이벤트 로깅: 실천 완료 및 피드백 제출
+    await logUserEvent(env, request, 'practice_complete', { 
+      challenge_id: challengeId, 
+      practice_day: practiceDay,
+      mood_change: moodChange,
+      was_helpful: wasHelpful
+    });
+    
+    await logUserEvent(env, request, 'feedback_submit', { 
+      challenge_id: challengeId, 
+      practice_day: practiceDay,
+      mood_change: moodChange,
+      was_helpful: wasHelpful
+    });
+    
     console.log('Feedback submitted successfully:', result);
     
     return {
@@ -506,6 +641,195 @@ async function getTimefoldEnvelope(env, request) {
   }
 }
 
+// 리텐션 지표 계산
+async function calculateRetentionMetrics(env, request) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    // Day1 리텐션 계산
+    const day1Retention = await env.DB.prepare(`
+      SELECT 
+        COUNT(DISTINCT ue1.user_id) as total_users,
+        COUNT(DISTINCT ue2.user_id) as returning_users
+      FROM user_events ue1
+      LEFT JOIN user_events ue2 ON ue1.user_id = ue2.user_id 
+        AND ue2.event_type = 'page_visit' 
+        AND date(ue2.created_at) = date(ue1.created_at, '+1 day')
+      WHERE ue1.event_type = 'page_visit' 
+        AND date(ue1.created_at) >= ?
+        AND date(ue1.created_at) < ?
+    `).bind(thirtyDaysAgo, today).first();
+    
+    // Week1 챌린지 완료율 계산
+    const week1Completion = await env.DB.prepare(`
+      SELECT 
+        COUNT(DISTINCT user_id) as total_users,
+        COUNT(DISTINCT CASE WHEN practice_completed = 1 THEN user_id END) as completed_users
+      FROM user_daily_activity
+      WHERE activity_date >= ? AND activity_date < ?
+    `).bind(thirtyDaysAgo, today).first();
+    
+    // Day7 리텐션 계산
+    const day7Retention = await env.DB.prepare(`
+      SELECT 
+        COUNT(DISTINCT ue1.user_id) as total_users,
+        COUNT(DISTINCT ue2.user_id) as returning_users
+      FROM user_events ue1
+      LEFT JOIN user_events ue2 ON ue1.user_id = ue2.user_id 
+        AND ue2.event_type = 'page_visit' 
+        AND date(ue2.created_at) = date(ue1.created_at, '+7 days')
+      WHERE ue1.event_type = 'page_visit' 
+        AND date(ue1.created_at) >= ?
+        AND date(ue1.created_at) < ?
+    `).bind(thirtyDaysAgo, today).first();
+    
+    // Day30 완주율 계산
+    const day30Completion = await env.DB.prepare(`
+      SELECT 
+        COUNT(DISTINCT user_id) as total_users,
+        COUNT(DISTINCT CASE WHEN active_days >= 30 THEN user_id END) as completed_users
+      FROM user_activity_summary
+    `).first();
+    
+    // 긍정 후기 비율 계산
+    const positiveFeedback = await env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total_feedback,
+        COUNT(CASE WHEN mood_change = 'improved' OR was_helpful = 'yes' THEN 1 END) as positive_feedback
+      FROM practice_feedback
+      WHERE created_at >= ?
+    `).bind(thirtyDaysAgo).first();
+    
+    // 지표 계산
+    const day1Rate = day1Retention.total_users > 0 ? 
+      (day1Retention.returning_users / day1Retention.total_users * 100).toFixed(2) : 0;
+    
+    const week1Rate = week1Completion.total_users > 0 ? 
+      (week1Completion.completed_users / week1Completion.total_users * 100).toFixed(2) : 0;
+    
+    const day7Rate = day7Retention.total_users > 0 ? 
+      (day7Retention.returning_users / day7Retention.total_users * 100).toFixed(2) : 0;
+    
+    const day30Rate = day30Completion.total_users > 0 ? 
+      (day30Completion.completed_users / day30Completion.total_users * 100).toFixed(2) : 0;
+    
+    const positiveRate = positiveFeedback.total_feedback > 0 ? 
+      (positiveFeedback.positive_feedback / positiveFeedback.total_feedback * 100).toFixed(2) : 0;
+    
+    return {
+      metrics: {
+        day1_retention: {
+          value: parseFloat(day1Rate),
+          target: 40,
+          status: parseFloat(day1Rate) >= 40 ? 'good' : 'needs_improvement',
+          total_users: day1Retention.total_users,
+          returning_users: day1Retention.returning_users
+        },
+        week1_completion: {
+          value: parseFloat(week1Rate),
+          target: 50,
+          status: parseFloat(week1Rate) >= 50 ? 'good' : 'needs_improvement',
+          total_users: week1Completion.total_users,
+          completed_users: week1Completion.completed_users
+        },
+        day7_retention: {
+          value: parseFloat(day7Rate),
+          target: 25,
+          status: parseFloat(day7Rate) >= 25 ? 'good' : 'needs_improvement',
+          total_users: day7Retention.total_users,
+          returning_users: day7Retention.returning_users
+        },
+        day30_completion: {
+          value: parseFloat(day30Rate),
+          target: 10,
+          status: parseFloat(day30Rate) >= 10 ? 'good' : 'needs_improvement',
+          total_users: day30Completion.total_users,
+          completed_users: day30Completion.completed_users
+        },
+        positive_feedback: {
+          value: parseFloat(positiveRate),
+          target: 70,
+          status: parseFloat(positiveRate) >= 70 ? 'good' : 'needs_improvement',
+          total_feedback: positiveFeedback.total_feedback,
+          positive_feedback: positiveFeedback.positive_feedback
+        }
+      },
+      calculated_at: new Date().toISOString(),
+      period: {
+        start: thirtyDaysAgo,
+        end: today
+      }
+    };
+    
+  } catch (error) {
+    console.error('Retention metrics calculation error:', error);
+    throw new Error(`리텐션 지표 계산 실패: ${error.message}`);
+  }
+}
+
+// 사용자 활동 통계 조회
+async function getUserActivityStats(env, request) {
+  try {
+    const url = new URL(request.url);
+    const days = parseInt(url.searchParams.get('days')) || 30;
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    // 일별 활성 사용자 수
+    const dailyActiveUsers = await env.DB.prepare(`
+      SELECT 
+        activity_date,
+        COUNT(DISTINCT user_id) as active_users,
+        COUNT(CASE WHEN practice_completed = 1 THEN user_id END) as practice_users,
+        COUNT(CASE WHEN feedback_submitted = 1 THEN user_id END) as feedback_users,
+        COUNT(CASE WHEN ai_chat_used = 1 THEN user_id END) as ai_chat_users
+      FROM user_daily_activity
+      WHERE activity_date >= ?
+      GROUP BY activity_date
+      ORDER BY activity_date DESC
+    `).bind(startDate).all();
+    
+    // 이벤트 타입별 통계
+    const eventStats = await env.DB.prepare(`
+      SELECT 
+        event_type,
+        COUNT(*) as count,
+        COUNT(DISTINCT user_id) as unique_users
+      FROM user_events
+      WHERE date(created_at) >= ?
+      GROUP BY event_type
+      ORDER BY count DESC
+    `).bind(startDate).all();
+    
+    // 사용자 세션 통계
+    const sessionStats = await env.DB.prepare(`
+      SELECT 
+        COUNT(*) as total_sessions,
+        COUNT(DISTINCT user_id) as unique_users,
+        AVG(total_visits) as avg_visits_per_session,
+        AVG(total_events) as avg_events_per_session
+      FROM user_sessions
+      WHERE first_visit_at >= ?
+    `).bind(startDate).first();
+    
+    return {
+      period: {
+        days: days,
+        start_date: startDate,
+        end_date: new Date().toISOString().split('T')[0]
+      },
+      daily_active_users: dailyActiveUsers.results,
+      event_statistics: eventStats.results,
+      session_statistics: sessionStats,
+      generated_at: new Date().toISOString()
+    };
+    
+  } catch (error) {
+    console.error('User activity stats error:', error);
+    throw new Error(`사용자 활동 통계 조회 실패: ${error.message}`);
+  }
+}
+
 // API 요청 처리
 async function handleRequest(request, env) {
   // OPTIONS 요청 처리 (CORS preflight)
@@ -614,6 +938,44 @@ async function handleRequest(request, env) {
         });
       }
 
+      // 리텐션 지표 조회 엔드포인트
+      if (url.pathname === '/api/analytics/retention') {
+        const retentionMetrics = await calculateRetentionMetrics(env, request);
+        return new Response(JSON.stringify(retentionMetrics), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 사용자 활동 통계 조회 엔드포인트
+      if (url.pathname === '/api/analytics/activity') {
+        const activityStats = await getUserActivityStats(env, request);
+        return new Response(JSON.stringify(activityStats), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 클라이언트 이벤트 로깅 엔드포인트
+      if (url.pathname === '/api/analytics/event') {
+        const body = await request.json();
+        const { event_type, event_data, timestamp } = body;
+        
+        // 이벤트 로깅
+        await logUserEvent(env, request, event_type, event_data);
+        
+        return new Response(JSON.stringify({ success: true }), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
       // 404 처리
       return new Response(JSON.stringify({ error: 'Not Found' }), {
         status: 404,
@@ -651,6 +1013,22 @@ async function handleRequest(request, env) {
       if (url.pathname === '/api/timefold/envelope') {
         const result = await createTimefoldEnvelope(env, request);
         return new Response(JSON.stringify(result), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 클라이언트 이벤트 로깅 엔드포인트
+      if (url.pathname === '/api/analytics/event') {
+        const body = await request.json();
+        const { event_type, event_data, timestamp } = body;
+        
+        // 이벤트 로깅
+        await logUserEvent(env, request, event_type, event_data);
+        
+        return new Response(JSON.stringify({ success: true }), {
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders
