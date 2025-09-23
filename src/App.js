@@ -6,7 +6,6 @@ import ChatInterface from './components/ChatInterface';
 import ChallengeList from './components/ChallengeList';
 import ChallengeContext from './components/ChallengeContext';
 import ChallengeDetail from './components/ChallengeDetail';
-import FeedbackModal from './components/FeedbackModal';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeHistory from './components/PracticeHistory';
 import OnboardingModal from './components/OnboardingModal';
@@ -36,7 +35,6 @@ function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatSessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentChallenge, setCurrentChallenge] = useState(null);
-  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   
   // 현재 챌린지 상세보기 상태
@@ -215,6 +213,78 @@ function App() {
   const handleCloseEnvelopeList = () => {
     setEnvelopeListOpen(false);
   };
+
+  // 빠른 완료 핸들러 (빈 값으로 저장)
+  const handleQuickComplete = async () => {
+    try {
+      const userId = getUserId();
+      
+      // practice.day가 없으면 현재 챌린지의 현재 일차를 계산
+      let practiceDay = practice.day;
+      if (!practiceDay && currentChallenge) {
+        const now = new Date();
+        const startDate = new Date(currentChallenge.start_date);
+        const dayDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+        practiceDay = dayDiff + 1;
+      }
+
+      // 빈 값으로 빠른 완료 데이터 생성
+      const quickCompleteData = {
+        challengeId: currentChallenge?.id,
+        practiceDay: practiceDay,
+        moodChange: null, // 빈 값
+        wasHelpful: null, // 빈 값
+        practiceDescription: null // 빈 값
+      };
+
+      const response = await fetch(`${API_URL}/api/feedback/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-ID': userId
+        },
+        body: JSON.stringify(quickCompleteData)
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert('실천을 완료했습니다! 🎉');
+        console.log('Quick complete submitted:', result);
+        
+        // 실천 기록이 성공적으로 제출되었으므로 기록된 상태로 표현
+        if (practice) {
+          setPractice({
+            ...practice,
+            isRecorded: true
+          });
+        }
+        
+        // 백엔드에서도 다시 가져오기 시도
+        try {
+          const practiceResponse = await fetch(`${API_URL}/api/practice/today`, {
+            headers: {
+              'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+              'X-Client-Time': new Date().toISOString(),
+              'X-User-ID': userId
+            }
+          });
+          
+          if (practiceResponse.ok) {
+            const updatedPractice = await practiceResponse.json();
+            setPractice(updatedPractice);
+          }
+        } catch (error) {
+          console.log('Backend refresh failed, using local state update');
+        }
+      } else {
+        throw new Error('빠른 완료 제출에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Quick complete error:', error);
+      alert('빠른 완료 중 오류가 발생했습니다.');
+    }
+  };
+
 
   // 키보드 단축키 처리
   useEffect(() => {
@@ -413,7 +483,7 @@ function App() {
                     <Button 
                       variant="outlined" 
                       size="large"
-                      onClick={() => setFeedbackModalOpen(true)}
+                      onClick={handleQuickComplete}
                       sx={{ 
                         borderRadius: 2,
                         px: 4,
@@ -466,63 +536,6 @@ function App() {
           />
         )}
 
-        {/* 피드백 모달 */}
-        <FeedbackModal
-          open={feedbackModalOpen}
-          onClose={() => setFeedbackModalOpen(false)}
-          practice={practice}
-          challenge={currentChallenge}
-          onSubmit={async (feedback) => {
-            try {
-              const userId = getUserId();
-              const response = await fetch(`${API_URL}/api/feedback/submit`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-User-ID': userId
-                },
-                body: JSON.stringify(feedback)
-              });
-              
-              if (response.ok) {
-                const result = await response.json();
-                alert('실천을 기록했습니다! 📝');
-                console.log('Feedback submitted:', result);
-                
-                // 실천 기록이 성공적으로 제출되었으므로 기록된 상태로 표현
-                if (practice) {
-                  setPractice({
-                    ...practice,
-                    isRecorded: true  // 실제 기록이 있으므로 true로 설정
-                  });
-                }
-                
-                // 백엔드에서도 다시 가져오기 시도 (임시 해결책)
-                try {
-                  const practiceResponse = await fetch(`${API_URL}/api/practice/today`, {
-                    headers: {
-                      'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-                      'X-Client-Time': new Date().toISOString(),
-                      'X-User-ID': userId
-                    }
-                  });
-                  
-                  if (practiceResponse.ok) {
-                    const updatedPractice = await practiceResponse.json();
-                    setPractice(updatedPractice);
-                  }
-                } catch (error) {
-                  console.log('Backend refresh failed, using local state update');
-                }
-              } else {
-                throw new Error('피드백 제출에 실패했습니다.');
-              }
-            } catch (error) {
-              console.error('Feedback submission error:', error);
-              alert('피드백 제출 중 오류가 발생했습니다.');
-            }
-          }}
-        />
 
         {/* 실천 기록 확인 모달 */}
         <PracticeRecordModal
