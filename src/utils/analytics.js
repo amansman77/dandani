@@ -1,6 +1,7 @@
 // 클라이언트 사이드 이벤트 로깅 유틸리티
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8787';
+// Production API URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 // 세션 ID 생성 및 관리
 const getSessionId = () => {
@@ -116,19 +117,19 @@ export const initAnalytics = () => {
   // 페이지 로드 시 자동으로 페이지 방문 이벤트 로깅
   logPageVisit('app_load');
   
-  // 페이지 언로드 시 세션 종료 이벤트 로깅
-  window.addEventListener('beforeunload', () => {
-    logEvent('session_end', {});
-  });
+  // 페이지 언로드 시는 별도 이벤트 로깅하지 않음 (허용되지 않는 event_type)
+  // window.addEventListener('beforeunload', () => {
+  //   logEvent('session_end', {});
+  // });
   
-  // 페이지 가시성 변경 시 이벤트 로깅
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      logEvent('page_hidden', {});
-    } else {
-      logEvent('page_visible', {});
-    }
-  });
+  // 페이지 가시성 변경 시도 별도 이벤트 로깅하지 않음 (허용되지 않는 event_type)
+  // document.addEventListener('visibilitychange', () => {
+  //   if (document.hidden) {
+  //     logEvent('page_hidden', {});
+  //   } else {
+  //     logEvent('page_visible', {});
+  //   }
+  // });
 };
 
 const analytics = {

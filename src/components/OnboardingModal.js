@@ -92,6 +92,9 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
       maxWidth="sm"
       fullWidth
       disableEscapeKeyDown
+      disableEnforceFocus
+      disableAutoFocus
+      disableRestoreFocus
     >
       <DialogContent sx={{ p: 0 }}>
         {/* 닫기 버튼 */}

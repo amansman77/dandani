@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -11,11 +11,8 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
-  FormControl,
-  FormLabel,
   Chip,
-  IconButton,
-  Divider
+  IconButton
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Edit, Check, Close } from '@mui/icons-material';
@@ -62,14 +59,7 @@ const PracticeRecordModal = ({
     return recordTime < todayStart;
   };
 
-  // 기록 데이터 가져오기
-  useEffect(() => {
-    if (open && practice && challenge) {
-      fetchRecord();
-    }
-  }, [open, practice, challenge]);
-
-  const fetchRecord = async () => {
+  const fetchRecord = useCallback(async () => {
     setLoading(true);
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -111,7 +101,14 @@ const PracticeRecordModal = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [practice, challenge]);
+
+  // 기록 데이터 가져오기
+  useEffect(() => {
+    if (open && practice && challenge) {
+      fetchRecord();
+    }
+  }, [open, practice, challenge, fetchRecord]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -211,7 +208,15 @@ const PracticeRecordModal = ({
 
   if (loading) {
     return (
-      <StyledDialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <StyledDialog 
+        open={open} 
+        onClose={onClose} 
+        maxWidth="sm" 
+        fullWidth
+        disableEnforceFocus
+        disableAutoFocus
+        disableRestoreFocus
+      >
         <DialogContent>
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <Typography>기록을 불러오는 중...</Typography>
@@ -222,7 +227,15 @@ const PracticeRecordModal = ({
   }
 
   return (
-    <StyledDialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <StyledDialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      disableEnforceFocus
+      disableAutoFocus
+      disableRestoreFocus
+    >
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6" component="div">

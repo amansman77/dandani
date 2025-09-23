@@ -62,6 +62,11 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
   }, [challengeId]);
 
   const fetchHistory = async () => {
+    if (!challengeId) {
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
@@ -156,6 +161,21 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
     });
   };
 
+  if (!challengeId) {
+    return (
+      <StyledPaper>
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            챌린지를 선택해주세요
+          </Typography>
+          <Typography variant="body2" color="text.secondary" component="span">
+            기록을 보려면 먼저 챌린지를 선택해주세요.
+          </Typography>
+        </Box>
+      </StyledPaper>
+    );
+  }
+
   if (loading) {
     return (
       <StyledPaper>
@@ -188,7 +208,7 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
           <Typography variant="h6" color="text.secondary" gutterBottom>
             아직 실천 기록이 없습니다
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" component="span">
             첫 번째 실천을 기록해보세요!
           </Typography>
         </Box>
@@ -211,54 +231,49 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
                   <CheckCircle color="success" />
                 </ListItemIcon>
                 
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        {record.practice_day}일차
-                      </Typography>
-                      <Chip 
-                        icon={<CalendarToday />}
-                        label={formatDate(record.created_at)}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Box>
-                  }
-                  secondary={
-                    <Box>
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary" 
-                        sx={{ 
-                          mb: 2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {record.practice_description}
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Chip 
-                          icon={getMoodChangeIcon(record.mood_change)}
-                          label={getMoodChangeText(record.mood_change)}
-                          color={getMoodChangeColor(record.mood_change)}
-                          size="small"
-                          variant="outlined"
-                        />
-                        <Chip 
-                          label={getHelpfulText(record.was_helpful)}
-                          color={getHelpfulColor(record.was_helpful)}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </Box>
-                    </Box>
-                  }
-                />
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {record.practice_day}일차
+                    </Typography>
+                    <Chip 
+                      icon={<CalendarToday />}
+                      label={formatDate(record.created_at)}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
+                  
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mb: 2,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {record.practice_description}
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip 
+                      icon={getMoodChangeIcon(record.mood_change)}
+                      label={getMoodChangeText(record.mood_change)}
+                      color={getMoodChangeColor(record.mood_change)}
+                      size="small"
+                      variant="outlined"
+                    />
+                    <Chip 
+                      label={getHelpfulText(record.was_helpful)}
+                      color={getHelpfulColor(record.was_helpful)}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Box>
+                </Box>
                 
                 <IconButton 
                   onClick={() => handleViewRecord(record)}
@@ -286,7 +301,7 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
           <Typography variant="h6">
             실천 기록 상세보기
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" component="span">
             {selectedRecord && `${selectedRecord.practice_day}일차 - ${formatDate(selectedRecord.created_at)}`}
           </Typography>
         </DialogTitle>
@@ -297,7 +312,7 @@ const PracticeHistory = ({ challengeId, onViewRecord }) => {
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 실천한 내용
               </Typography>
-              <Typography variant="body1" paragraph sx={{ whiteSpace: 'pre-wrap' }}>
+              <Typography variant="body1" component="span" paragraph sx={{ whiteSpace: 'pre-wrap' }}>
                 {selectedRecord.practice_description}
               </Typography>
               

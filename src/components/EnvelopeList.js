@@ -121,6 +121,9 @@ const EnvelopeList = ({ open, onClose }) => {
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      disableEnforceFocus
+      disableAutoFocus
+      disableRestoreFocus
     >
       <DialogTitle>
         <Typography variant="h6" component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -217,6 +220,9 @@ const EnvelopeList = ({ open, onClose }) => {
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
+        disableEnforceFocus
+        disableAutoFocus
+        disableRestoreFocus
       >
         <DialogTitle>편지 삭제</DialogTitle>
         <DialogContent>

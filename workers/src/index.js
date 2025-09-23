@@ -23,9 +23,29 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+// 허용된 이벤트 타입 목록
+const ALLOWED_EVENT_TYPES = [
+  'page_visit',
+  'practice_view', 
+  'practice_complete',
+  'feedback_submit',
+  'challenge_start',
+  'challenge_complete',
+  'ai_chat_start',
+  'ai_chat_message',
+  'timefold_envelope_create',
+  'onboarding_complete'
+];
+
 // 이벤트 로깅 유틸리티 함수
 async function logUserEvent(env, request, eventType, eventData = {}) {
   try {
+    // 이벤트 타입 검증
+    if (!ALLOWED_EVENT_TYPES.includes(eventType)) {
+      console.warn(`Invalid event type: ${eventType}. Skipping event logging.`);
+      return;
+    }
+
     const userId = request.headers.get('X-User-ID') || 'anonymous';
     const sessionId = request.headers.get('X-Session-ID') || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const userAgent = request.headers.get('User-Agent') || '';

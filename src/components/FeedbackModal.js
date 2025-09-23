@@ -77,7 +77,15 @@ const FeedbackModal = ({
   };
 
   return (
-    <StyledDialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <StyledDialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="sm" 
+      fullWidth
+      disableEnforceFocus
+      disableAutoFocus
+      disableRestoreFocus
+    >
       <DialogTitle>
         <Typography variant="h6" component="div">
           오늘의 실천 기록하기 📝

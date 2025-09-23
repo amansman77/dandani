@@ -153,6 +153,9 @@ const EnvelopeModal = ({ open, onClose, challengeId, challengeName, challengeEnd
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
+      disableEnforceFocus
+      disableAutoFocus
+      disableRestoreFocus
     >
       {!success && (
         <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>

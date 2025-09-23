@@ -38,13 +38,17 @@ const MessagesContainer = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.grey[50],
 }));
 
-const MessageBubble = styled(Box)(({ theme, isUser }) => ({
+const MessageBubble = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'isUser',
+})(({ theme, isUser }) => ({
   display: 'flex',
   justifyContent: isUser ? 'flex-end' : 'flex-start',
   marginBottom: theme.spacing(2),
 }));
 
-const MessageContent = styled(Paper)(({ theme, isUser }) => ({
+const MessageContent = styled(Paper, {
+  shouldForwardProp: (prop) => prop !== 'isUser',
+})(({ theme, isUser }) => ({
   maxWidth: '70%',
   padding: theme.spacing(1.5, 2),
   backgroundColor: isUser ? theme.palette.primary.main : theme.palette.background.paper,
