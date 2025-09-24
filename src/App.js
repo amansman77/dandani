@@ -138,7 +138,7 @@ function App() {
           const newMode = !prev;
           // 관리자 모드가 활성화되면 관리자 탭으로 이동
           if (newMode) {
-            setActiveTab(4);
+            setActiveTab(3);
           }
           console.log('Admin mode toggled:', newMode);
           return newMode;
@@ -160,7 +160,7 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('admin') === 'true') {
       setIsAdminMode(true);
-      setActiveTab(4); // 관리자 탭으로 이동
+      setActiveTab(3); // 관리자 탭으로 이동
     }
   }, []);
 
@@ -378,10 +378,9 @@ function App() {
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange} centered>
-            <Tab label="오늘의 이야기" />
-            <Tab label="대화하기" />
-            <Tab label="챌린지" />
-            <Tab label="기록 보기" />
+            <Tab label="오늘의 챌린지" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
+            <Tab label="나와 대화하기" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
+            <Tab label="내 기록" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
             {isAdminMode && <Tab label="관리자" />}
           </Tabs>
         </Box>
@@ -397,10 +396,18 @@ function App() {
             />
             
             <StyledPaper elevation={3}>
-              <Typography variant="h6" color="primary" gutterBottom>
+              <Typography variant="h6" color="primary" gutterBottom sx={{
+                fontSize: { xs: '1.4rem', sm: '1.6rem' },
+                fontWeight: 'bold',
+                lineHeight: 1.3
+              }}>
                 {practice?.title}
               </Typography>
-              <Typography variant="body1" paragraph sx={{ mt: 3 }}>
+              <Typography variant="body1" paragraph sx={{ 
+                mt: 3,
+                fontSize: { xs: '1.1rem', sm: '1.2rem' },
+                lineHeight: 1.6
+              }}>
                 {practice?.description}
               </Typography>
               
@@ -447,13 +454,19 @@ function App() {
                         size="large"
                         onClick={() => setRecordModalOpen(true)}
                         sx={{ 
-                          borderRadius: 2,
-                          px: 4,
-                          py: 1.5,
-                          fontSize: '1.1rem',
+                          borderRadius: 3,
+                          px: 6,
+                          py: 2,
+                          fontSize: { xs: '1.2rem', sm: '1.3rem' },
                           fontWeight: 'bold',
                           color: 'success.main',
-                          borderColor: 'success.main'
+                          borderColor: 'success.main',
+                          borderWidth: 2,
+                          minHeight: '56px',
+                          '&:hover': {
+                            borderWidth: 2,
+                            backgroundColor: 'success.50'
+                          }
                         }}
                       >
                         기록 확인하기 👀
@@ -461,7 +474,7 @@ function App() {
                       <Button 
                         variant="text" 
                         size="large"
-                        onClick={() => setActiveTab(3)}
+                        onClick={() => setActiveTab(2)}
                         sx={{ 
                           borderRadius: 2,
                           px: 4,
@@ -481,14 +494,14 @@ function App() {
                       실천을 마치셨나요?
                     </Typography>
                     <Button 
-                      variant="outlined" 
+                      variant="contained" 
                       size="large"
                       onClick={handleQuickComplete}
                       sx={{ 
-                        borderRadius: 2,
-                        px: 4,
-                        py: 1.5,
-                        fontSize: '1.1rem',
+                        borderRadius: 3,
+                        px: 6,
+                        py: 2,
+                        fontSize: { xs: '1.3rem', sm: '1.4rem' },
                         fontWeight: 'bold'
                       }}
                     >
@@ -511,10 +524,6 @@ function App() {
         )}
 
         {activeTab === 2 && (
-          <ChallengeList />
-        )}
-
-        {activeTab === 3 && (
           <PracticeHistory 
             challengeId={currentChallenge?.id}
             onViewRecord={(record) => {
@@ -524,7 +533,7 @@ function App() {
           />
         )}
 
-        {activeTab === 4 && isAdminMode && (
+        {activeTab === 3 && isAdminMode && (
           <AdminDashboard />
         )}
 

@@ -103,13 +103,13 @@ const ChatInterface = ({ practice, messages, setMessages, sessionId }) => {
   const messagesEndRef = useRef(null);
 
   const emotions = [
-    { label: '행복', value: 'happy', color: 'success' },
-    { label: '슬픔', value: 'sad', color: 'info' },
-    { label: '화남', value: 'angry', color: 'error' },
-    { label: '불안', value: 'anxious', color: 'warning' },
-    { label: '좌절', value: 'frustrated', color: 'default' },
-    { label: '피로', value: 'tired', color: 'default' },
-    { label: '보통', value: 'neutral', color: 'default' },
+    { label: '기분 좋아요', value: 'happy', color: 'success' },
+    { label: '슬퍼요', value: 'sad', color: 'info' },
+    { label: '화나요', value: 'angry', color: 'error' },
+    { label: '불안해요', value: 'anxious', color: 'warning' },
+    { label: '답답해요', value: 'frustrated', color: 'default' },
+    { label: '지쳐요', value: 'tired', color: 'default' },
+    { label: '그냥 그래요', value: 'neutral', color: 'default' },
   ];
 
   const scrollToBottom = () => {
@@ -126,7 +126,7 @@ const ChatInterface = ({ practice, messages, setMessages, sessionId }) => {
       setMessages([
         {
           id: 1,
-          content: '안녕! 나는 단단이야. 감정적으로 힘들 때 함께 이야기하면서 중심을 잃지 않도록 도와줄게. 오늘은 어떤 기분이야? 😊',
+          content: '안녕하세요, 소중한 분 🌸 오늘 하루 어떠셨나요? 힘든 일이 있으셨다면 함께 이야기해보아요. 괜찮아요, 여기서는 안전해요.',
           isUser: false,
           timestamp: new Date(),
           emotion: null,

@@ -179,9 +179,9 @@ const PracticeRecordModal = ({
 
   const getMoodChangeText = (moodChange) => {
     const moodMap = {
-      'improved': '좋아졌어요',
-      'same': '그대로예요',
-      'worse': '나빠졌어요',
+      'improved': '마음이 좀 나아졌어요',
+      'same': '그냥 그런 것 같아요',
+      'worse': '오히려 더 힘들어졌어요',
       'unknown': '잘 모르겠다'
     };
     return moodMap[moodChange] || moodChange;
@@ -189,9 +189,9 @@ const PracticeRecordModal = ({
 
   const getHelpfulText = (wasHelpful) => {
     const helpfulMap = {
-      'yes': '네',
-      'no': '아니오',
-      'unknown': '잘 모르겠다'
+      'yes': '네, 도움이 되었어요',
+      'no': '아니요, 별로였어요',
+      'unknown': '잘 모르겠어요'
     };
     return helpfulMap[wasHelpful] || wasHelpful;
   };
@@ -239,7 +239,7 @@ const PracticeRecordModal = ({
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h6" component="div">
-            실천 기록 확인 📝
+            오늘의 따뜻한 기록 📝
           </Typography>
           <IconButton onClick={onClose} size="small">
             <Close />
@@ -309,7 +309,7 @@ const PracticeRecordModal = ({
 
             <RecordBox>
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                실천 후 기분 변화
+                실천 후 마음은 어떠셨나요?
               </Typography>
               
               {isEditing ? (
@@ -317,9 +317,9 @@ const PracticeRecordModal = ({
                   value={editData.moodChange}
                   onChange={(e) => setEditData({...editData, moodChange: e.target.value})}
                 >
-                  <FormControlLabel value="improved" control={<Radio />} label="좋아졌어요" />
-                  <FormControlLabel value="same" control={<Radio />} label="그대로예요" />
-                  <FormControlLabel value="worse" control={<Radio />} label="나빠졌어요" />
+                  <FormControlLabel value="improved" control={<Radio />} label="마음이 좀 나아졌어요" />
+                  <FormControlLabel value="same" control={<Radio />} label="그냥 그런 것 같아요" />
+                  <FormControlLabel value="worse" control={<Radio />} label="오히려 더 힘들어졌어요" />
                   <FormControlLabel value="unknown" control={<Radio />} label="잘 모르겠다" />
                 </RadioGroup>
               ) : (
@@ -334,7 +334,7 @@ const PracticeRecordModal = ({
 
             <RecordBox>
               <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-                실천의 도움 여부
+                이 실천이 도움이 되었나요?
               </Typography>
               
               {isEditing ? (
@@ -342,9 +342,9 @@ const PracticeRecordModal = ({
                   value={editData.wasHelpful}
                   onChange={(e) => setEditData({...editData, wasHelpful: e.target.value})}
                 >
-                  <FormControlLabel value="yes" control={<Radio />} label="네" />
-                  <FormControlLabel value="no" control={<Radio />} label="아니오" />
-                  <FormControlLabel value="unknown" control={<Radio />} label="잘 모르겠다" />
+                  <FormControlLabel value="yes" control={<Radio />} label="네, 도움이 되었어요" />
+                  <FormControlLabel value="no" control={<Radio />} label="아니요, 별로였어요" />
+                  <FormControlLabel value="unknown" control={<Radio />} label="잘 모르겠어요" />
                 </RadioGroup>
               ) : (
                 <Chip 
@@ -359,7 +359,7 @@ const PracticeRecordModal = ({
         ) : (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="body1" color="text.secondary">
-              아직 실천 기록이 없습니다.
+              아직 기록이 없어요. 오늘의 따뜻한 순간을 기록해보세요.
             </Typography>
           </Box>
         )}
