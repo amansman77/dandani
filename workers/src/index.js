@@ -850,6 +850,181 @@ async function getUserActivityStats(env, request) {
   }
 }
 
+// 일일 보고서 데이터 수집
+async function getDailyReportData(env, request) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    
+    // 어제의 리텐션 지표
+    const retentionMetrics = await calculateRetentionMetrics(env, request);
+    
+    // 어제의 활동 통계
+    const activityStats = await getUserActivityStats(env, request);
+    
+    // 어제의 주요 지표
+    const yesterdayStats = activityStats.daily_active_users.find(day => day.activity_date === yesterday);
+    
+    // 30일간 일별 활성 사용자 트렌드 계산
+    const dailyActiveUsers = activityStats.daily_active_users;
+    const last7Days = dailyActiveUsers.slice(0, 7);
+    const last30Days = dailyActiveUsers.slice(0, 30);
+    
+    const last7DaysAvg = last7Days.length > 0 ? 
+      (last7Days.reduce((sum, day) => sum + day.active_users, 0) / last7Days.length).toFixed(1) : 0;
+    const last30DaysAvg = last30Days.length > 0 ? 
+      (last30Days.reduce((sum, day) => sum + day.active_users, 0) / last30Days.length).toFixed(1) : 0;
+    
+    // 최고/최저 활성일 찾기
+    const peakDay = dailyActiveUsers.reduce((max, day) => 
+      day.active_users > max.active_users ? day : max, dailyActiveUsers[0] || { active_users: 0, activity_date: 'N/A' });
+    const lowestDay = dailyActiveUsers.reduce((min, day) => 
+      day.active_users < min.active_users ? day : min, dailyActiveUsers[0] || { active_users: 0, activity_date: 'N/A' });
+    
+    // 이벤트 통계에서 주요 이벤트 추출
+    const practiceCompletes = activityStats.event_statistics.find(event => event.event_type === 'practice_complete');
+    const aiChatStarts = activityStats.event_statistics.find(event => event.event_type === 'ai_chat_start');
+    const feedbackSubmits = activityStats.event_statistics.find(event => event.event_type === 'feedback_submit');
+    const pageVisits = activityStats.event_statistics.find(event => event.event_type === 'page_visit');
+    const onboardingCompletes = activityStats.event_statistics.find(event => event.event_type === 'onboarding_complete');
+    const challengeStarts = activityStats.event_statistics.find(event => event.event_type === 'challenge_start');
+    const challengeCompletes = activityStats.event_statistics.find(event => event.event_type === 'challenge_complete');
+    
+    return {
+      date: yesterday,
+      retention_metrics: retentionMetrics,
+      daily_stats: yesterdayStats || {
+        activity_date: yesterday,
+        active_users: 0,
+        practice_users: 0,
+        feedback_users: 0,
+        ai_chat_users: 0
+      },
+      event_stats: {
+        practice_completes: practiceCompletes || { count: 0, unique_users: 0 },
+        ai_chat_starts: aiChatStarts || { count: 0, unique_users: 0 },
+        feedback_submits: feedbackSubmits || { count: 0, unique_users: 0 },
+        page_visits: pageVisits || { count: 0, unique_users: 0 },
+        onboarding_completes: onboardingCompletes || { count: 0, unique_users: 0 },
+        challenge_starts: challengeStarts || { count: 0, unique_users: 0 },
+        challenge_completes: challengeCompletes || { count: 0, unique_users: 0 }
+      },
+      session_stats: activityStats.session_statistics,
+      daily_trend: {
+        last_7_days_avg: parseFloat(last7DaysAvg),
+        last_30_days_avg: parseFloat(last30DaysAvg),
+        peak_day: peakDay.activity_date,
+        peak_users: peakDay.active_users,
+        lowest_day: lowestDay.activity_date,
+        lowest_users: lowestDay.active_users
+      },
+      generated_at: new Date().toISOString()
+    };
+    
+  } catch (error) {
+    console.error('Daily report data error:', error);
+    throw new Error(`일일 보고서 데이터 수집 실패: ${error.message}`);
+  }
+}
+
+// 디스코드 메시지 포맷팅
+function formatDiscordMessage(reportData) {
+  const { date, retention_metrics, daily_stats, event_stats, session_stats } = reportData;
+  
+  // 상태 이모지 결정
+  const getStatusEmoji = (status) => {
+    switch (status) {
+      case 'good': return '✅';
+      case 'needs_improvement': return '⚠️';
+      default: return '❌';
+    }
+  };
+  
+  // 리텐션 지표 요약
+  const retentionSummary = Object.entries(retention_metrics.metrics)
+    .map(([key, metric]) => {
+      const emoji = getStatusEmoji(metric.status);
+      const target = metric.target;
+      const value = metric.value.toFixed(1);
+      return `${emoji} ${key.replace(/_/g, ' ').toUpperCase()}: ${value}% (목표: ${target}%)`;
+    })
+    .join('\n');
+  
+  // 디스코드 임베드 메시지 생성
+  const embed = {
+    title: `📊 단단이 일일 보고서 - ${date}`,
+    color: 0x00ff00, // 초록색
+    fields: [
+      {
+        name: "📈 리텐션 지표 (30일 기준)",
+        value: retentionSummary,
+        inline: false
+      },
+      {
+        name: `📊 일일 활동 통계 (${date})`,
+        value: `• 활성 사용자: ${daily_stats.active_users}명\n• 실천 완료: ${daily_stats.practice_users}명\n• 피드백 제출: ${daily_stats.feedback_users}명\n• AI 상담 이용: ${daily_stats.ai_chat_users}명`,
+        inline: true
+      },
+      {
+        name: `📈 이벤트 통계 (${date})`,
+        value: `• 실천 완료: ${event_stats.practice_completes.count}회 (${event_stats.practice_completes.unique_users}명)\n• AI 상담 시작: ${event_stats.ai_chat_starts.count}회 (${event_stats.ai_chat_starts.unique_users}명)\n• 피드백 제출: ${event_stats.feedback_submits.count}회 (${event_stats.feedback_submits.unique_users}명)\n• 페이지 방문: ${event_stats.page_visits?.count || 0}회 (${event_stats.page_visits?.unique_users || 0}명)\n• 온보딩 완료: ${event_stats.onboarding_completes?.count || 0}회 (${event_stats.onboarding_completes?.unique_users || 0}명)`,
+        inline: true
+      },
+      {
+        name: "🔗 세션 통계 (30일 기준)",
+        value: `• 총 세션: ${session_stats.total_sessions}개\n• 고유 사용자: ${session_stats.unique_users}명\n• 평균 방문/세션: ${session_stats.avg_visits_per_session?.toFixed(1) || 0}회\n• 평균 이벤트/세션: ${session_stats.avg_events_per_session?.toFixed(1) || 0}회\n• 세션당 평균 체류시간: ${session_stats.avg_session_duration?.toFixed(1) || 0}분`,
+        inline: true
+      },
+      {
+        name: "📈 30일간 일별 활성 사용자 트렌드",
+        value: `• 최근 7일 평균: ${reportData.daily_trend?.last_7_days_avg || 0}명\n• 최근 30일 평균: ${reportData.daily_trend?.last_30_days_avg || 0}명\n• 최고 활성일: ${reportData.daily_trend?.peak_day || 'N/A'} (${reportData.daily_trend?.peak_users || 0}명)\n• 최저 활성일: ${reportData.daily_trend?.lowest_day || 'N/A'} (${reportData.daily_trend?.lowest_users || 0}명)`,
+        inline: false
+      }
+    ],
+    footer: {
+      text: `📅 생성 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`
+    },
+    timestamp: new Date().toISOString()
+  };
+  
+  return {
+    content: `📊 **단단이 일일 보고서** - ${date}`,
+    embeds: [embed]
+  };
+}
+
+// 디스코드 메시지 전송
+async function sendDiscordMessage(env, message) {
+  try {
+    const discordWebhookUrl = env.DISCORD_WEBHOOK_URL;
+    
+    if (!discordWebhookUrl) {
+      throw new Error('DISCORD_WEBHOOK_URL 환경변수가 설정되지 않았습니다.');
+    }
+    
+    const response = await fetch(discordWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Discord API error: ${response.status} ${response.statusText}`);
+    }
+    
+    return {
+      success: true,
+      message: '디스코드 메시지가 성공적으로 전송되었습니다.'
+    };
+    
+  } catch (error) {
+    console.error('Discord message send error:', error);
+    throw new Error(`디스코드 메시지 전송 실패: ${error.message}`);
+  }
+}
+
 // API 요청 처리
 async function handleRequest(request, env) {
   // OPTIONS 요청 처리 (CORS preflight)
@@ -980,6 +1155,17 @@ async function handleRequest(request, env) {
         });
       }
 
+      // 일일 보고서 데이터 조회 엔드포인트
+      if (url.pathname === '/api/analytics/daily-report') {
+        const reportData = await getDailyReportData(env, request);
+        return new Response(JSON.stringify(reportData), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
       // 클라이언트 이벤트 로깅 엔드포인트
       if (url.pathname === '/api/analytics/event') {
         const body = await request.json();
@@ -989,6 +1175,20 @@ async function handleRequest(request, env) {
         await logUserEvent(env, request, event_type, event_data);
         
         return new Response(JSON.stringify({ success: true }), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 디스코드 일일 보고서 전송 엔드포인트
+      if (url.pathname === '/api/discord/daily-report') {
+        const reportData = await getDailyReportData(env, request);
+        const discordMessage = formatDiscordMessage(reportData);
+        const result = await sendDiscordMessage(env, discordMessage);
+        
+        return new Response(JSON.stringify(result), {
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders
@@ -1121,5 +1321,56 @@ async function handleRequest(request, env) {
 export default {
   async fetch(request, env, ctx) {
     return handleRequest(request, env);
+  },
+  
+  // Cron Job 처리 (매일 오전 9시에 실행)
+  async scheduled(event, env, ctx) {
+    try {
+      console.log('일일 보고서 Cron Job 시작:', new Date().toISOString());
+      
+      // 일일 보고서 데이터 수집
+      const reportData = await getDailyReportData(env, { headers: new Headers() });
+      
+      // 디스코드 메시지 포맷팅
+      const discordMessage = formatDiscordMessage(reportData);
+      
+      // 디스코드 메시지 전송
+      const result = await sendDiscordMessage(env, discordMessage);
+      
+      console.log('일일 보고서 전송 완료:', result);
+      
+    } catch (error) {
+      console.error('일일 보고서 Cron Job 실패:', error);
+      
+      // 에러 발생 시 디스코드에 에러 메시지 전송
+      try {
+        const errorMessage = {
+          content: `❌ **단단이 일일 보고서 전송 실패**`,
+          embeds: [
+            {
+              title: "❌ 단단이 일일 보고서 전송 실패",
+              color: 0xff0000, // 빨간색
+              fields: [
+                {
+                  name: "에러 메시지",
+                  value: `\`\`\`${error.message}\`\`\``,
+                  inline: false
+                },
+                {
+                  name: "발생 시간",
+                  value: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+                  inline: false
+                }
+              ],
+              timestamp: new Date().toISOString()
+            }
+          ]
+        };
+        
+        await sendDiscordMessage(env, errorMessage);
+      } catch (discordError) {
+        console.error('에러 메시지 전송도 실패:', discordError);
+      }
+    }
   }
 }; 

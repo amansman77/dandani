@@ -11,7 +11,6 @@ import PracticeHistory from './components/PracticeHistory';
 import OnboardingModal from './components/OnboardingModal';
 import EnvelopeModal from './components/EnvelopeModal';
 import EnvelopeList from './components/EnvelopeList';
-import AdminDashboard from './components/AdminDashboard';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 import { initAnalytics } from './utils/analytics';
 
@@ -48,8 +47,6 @@ function App() {
   const [selectedChallengeForEnvelope, setSelectedChallengeForEnvelope] = useState(null);
   const [envelopeListOpen, setEnvelopeListOpen] = useState(false);
   
-  // 관리자 모드 상태
-  const [isAdminMode, setIsAdminMode] = useState(false);
 
   const fetchPracticeAndChallenge = async () => {
     setLoading(true);
@@ -129,39 +126,9 @@ function App() {
     setActiveTab(newValue);
   };
 
-  // 관리자 모드 토글 (Cmd+Shift+A 또는 Ctrl+Shift+A)
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'A') {
-        event.preventDefault();
-        setIsAdminMode(prev => {
-          const newMode = !prev;
-          // 관리자 모드가 활성화되면 관리자 탭으로 이동
-          if (newMode) {
-            setActiveTab(3);
-          }
-          console.log('Admin mode toggled:', newMode);
-          return newMode;
-        });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // 분석 도구 초기화
   useEffect(() => {
     initAnalytics();
-  }, []);
-
-  // URL 파라미터로 관리자 모드 활성화
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true') {
-      setIsAdminMode(true);
-      setActiveTab(3); // 관리자 탭으로 이동
-    }
   }, []);
 
   // 현재 챌린지 상세보기 핸들러
@@ -328,34 +295,11 @@ function App() {
         <Box sx={{ position: 'relative', textAlign: 'center' }}>
           <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
             단단이
-            {isAdminMode && (
-              <Typography component="span" variant="caption" sx={{ ml: 1, color: 'warning.main' }}>
-                [관리자 모드]
-              </Typography>
-            )}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary" gutterBottom>
             감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
           </Typography>
           
-          {/* 관리자 모드 종료 버튼 */}
-          {isAdminMode && (
-            <Tooltip title="관리자 모드 종료 (Ctrl+Shift+A)">
-              <Button 
-                size="small" 
-                variant="outlined" 
-                color="warning"
-                onClick={() => setIsAdminMode(false)}
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0
-                }}
-              >
-                관리자 모드 종료
-              </Button>
-            </Tooltip>
-          )}
           
           {/* 도움말 버튼 */}
           <Tooltip title="온보딩 다시 보기 (Ctrl+Shift+H)">
@@ -364,7 +308,7 @@ function App() {
               sx={{
                 position: 'absolute',
                 top: 0,
-                right: isAdminMode ? 120 : 0,
+                right: 0,
                 color: 'primary.main',
                 '&:hover': {
                   backgroundColor: 'primary.50'
@@ -381,7 +325,6 @@ function App() {
             <Tab label="오늘의 챌린지" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
             <Tab label="나와 대화하기" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
             <Tab label="내 기록" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
-            {isAdminMode && <Tab label="관리자" />}
           </Tabs>
         </Box>
 
@@ -533,9 +476,6 @@ function App() {
           />
         )}
 
-        {activeTab === 3 && isAdminMode && (
-          <AdminDashboard />
-        )}
 
         {/* 현재 챌린지 상세보기 */}
         {activeTab === 0 && showCurrentChallengeDetail && currentChallenge && (

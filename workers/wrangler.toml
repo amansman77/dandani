@@ -6,3 +6,12 @@ compatibility_date = "2024-03-18"
 binding = "DB"
 database_name = "dandani-db"
 database_id = "89375d23-da59-4753-8cc7-56e23cf53294"
+
+# 환경변수 설정
+[vars]
+# 디스코드 웹훅 URL (실제 값은 wrangler secret으로 설정)
+# DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR/DISCORD/WEBHOOK"
+
+# Cron Job 설정 (매일 오전 9시에 일일 보고서 전송)
+[[triggers]]
+crons = ["0 9 * * *"]
