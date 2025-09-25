@@ -662,7 +662,7 @@ async function getTimefoldEnvelope(env, request) {
 }
 
 // 리텐션 지표 계산
-async function calculateRetentionMetrics(env, request) {
+async function calculateRetentionMetrics(env) {
   try {
     const today = new Date().toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -789,10 +789,8 @@ async function calculateRetentionMetrics(env, request) {
 }
 
 // 사용자 활동 통계 조회
-async function getUserActivityStats(env, request) {
+async function getUserActivityStats(env, days = 30) {
   try {
-    const url = new URL(request.url);
-    const days = parseInt(url.searchParams.get('days')) || 30;
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     // 일별 활성 사용자 수
@@ -851,16 +849,16 @@ async function getUserActivityStats(env, request) {
 }
 
 // 일일 보고서 데이터 수집
-async function getDailyReportData(env, request) {
+async function getDailyReportData(env) {
   try {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     // 어제의 리텐션 지표
-    const retentionMetrics = await calculateRetentionMetrics(env, request);
+    const retentionMetrics = await calculateRetentionMetrics(env);
     
     // 어제의 활동 통계
-    const activityStats = await getUserActivityStats(env, request);
+    const activityStats = await getUserActivityStats(env);
     
     // 어제의 주요 지표
     const yesterdayStats = activityStats.daily_active_users.find(day => day.activity_date === yesterday);
@@ -1146,7 +1144,8 @@ async function handleRequest(request, env) {
 
       // 사용자 활동 통계 조회 엔드포인트
       if (url.pathname === '/api/analytics/activity') {
-        const activityStats = await getUserActivityStats(env, request);
+        const days = parseInt(url.searchParams.get('days')) || 30;
+        const activityStats = await getUserActivityStats(env, days);
         return new Response(JSON.stringify(activityStats), {
           headers: {
             'Content-Type': 'application/json',
@@ -1329,7 +1328,7 @@ export default {
       console.log('일일 보고서 Cron Job 시작:', new Date().toISOString());
       
       // 일일 보고서 데이터 수집
-      const reportData = await getDailyReportData(env, { headers: new Headers() });
+      const reportData = await getDailyReportData(env);
       
       // 디스코드 메시지 포맷팅
       const discordMessage = formatDiscordMessage(reportData);
