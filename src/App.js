@@ -494,9 +494,6 @@ function App() {
                   </>
                 ) : (
                   <>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      실천을 마치셨나요?
-                    </Typography>
                     <Button 
                       variant="contained" 
                       size="large"
@@ -530,7 +527,7 @@ function App() {
                         }
                       }}
                     >
-                      실천 기록하기 ✨
+                      실천 기록하기
                     </Button>
                   </>
                 )}
