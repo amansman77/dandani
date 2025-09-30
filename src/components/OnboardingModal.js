@@ -11,8 +11,7 @@ import {
   StepLabel,
   Paper,
   IconButton,
-  Fade,
-  Zoom
+  Fade
 } from '@mui/material';
 import { Close as CloseIcon, CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';

@@ -11,12 +11,14 @@ import { styled } from '@mui/material/styles';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 
 const ContextContainer = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2),
+  padding: theme.spacing(3),
   marginBottom: theme.spacing(3),
-  borderRadius: theme.spacing(2),
-  backgroundColor: theme.palette.primary.light,
-  color: theme.palette.primary.contrastText,
-  border: `1px solid ${theme.palette.primary.main}`,
+  borderRadius: theme.shape.borderRadius,
+  backgroundColor: theme.palette.background.paper,
+  color: theme.palette.text.primary,
+  boxShadow: theme.shadows[2],
+  position: 'relative',
+  overflow: 'hidden',
 }));
 
 const ProgressInfo = styled(Box)(({ theme }) => ({
@@ -46,16 +48,35 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
     <ContextContainer elevation={1}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <PlayCircleIcon sx={{ fontSize: 20 }} />
-        <Typography variant="subtitle1" fontWeight="bold">
-          {challenge.name}
-        </Typography>
+        <Box sx={{ flex: 1 }}>
+          <Box sx={{
+            backgroundColor: 'primary.light',
+            color: 'white',
+            px: 1.5,
+            py: 0.5,
+            borderRadius: 1,
+            mb: 1,
+            display: 'inline-block'
+          }}>
+            <Typography variant="body2" sx={{ 
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>
+              9월 진행중인 실천
+            </Typography>
+          </Box>
+          <Typography variant="subtitle1" fontWeight="bold">
+            {challenge.name}
+          </Typography>
+        </Box>
         <Chip 
           label={`${challenge.current_day}일차`}
           size="small"
           sx={{ 
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            color: 'inherit',
-            fontWeight: 'bold'
+            backgroundColor: 'success.main',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '0.75rem'
           }}
         />
         {/* 편지 칩 추가 */}
@@ -63,14 +84,16 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
           label="편지"
           size="small"
           sx={{
-            backgroundColor: 'rgba(255,255,255,0.3)',
-            color: 'inherit',
-            fontWeight: 'bold',
+            backgroundColor: 'warning.main',
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '0.75rem',
             cursor: 'pointer',
             '&:hover': {
-              backgroundColor: 'rgba(255,255,255,0.5)',
+              backgroundColor: 'warning.dark',
               transform: 'scale(1.05)'
-            }
+            },
+            transition: 'all 0.2s ease-in-out'
           }}
           onClick={handleCreateEnvelope}
         />
@@ -84,15 +107,15 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
         variant="determinate" 
         value={challenge.progress_percentage || 0}
         sx={{ 
-          height: 6, 
-          borderRadius: 3,
-          backgroundColor: 'rgba(255,255,255,0.3)',
+          height: 8, 
+          borderRadius: 4,
+          backgroundColor: 'divider',
           '& .MuiLinearProgress-bar': {
-            borderRadius: 3,
-            backgroundColor: 'white',
+            borderRadius: 4,
+            backgroundColor: 'success.main',
             // 진행률 50% 이상 시 편지 힌트 표시
             ...(challenge.progress_percentage >= 50 && {
-              background: 'linear-gradient(90deg, white 0%, #ffd700 100%)',
+              background: 'linear-gradient(90deg, success.main 0%, warning.main 100%)',
               '&::after': {
                 content: '"✉"',
                 position: 'absolute',
@@ -118,7 +141,8 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
       <Box sx={{ 
         mt: 2, 
         pt: 2, 
-        borderTop: '1px solid rgba(255,255,255,0.2)',
+        borderTop: '1px solid',
+        borderColor: 'divider',
         textAlign: 'center',
         display: 'flex',
         gap: 1,
@@ -130,19 +154,19 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
           onClick={() => onViewCurrentChallenge(challenge.id)}
           sx={{ 
             textTransform: 'none',
-            color: 'white',
-            borderColor: 'rgba(255,255,255,0.4)',
-            backgroundColor: 'rgba(255,255,255,0.05)',
+            color: 'secondary.main', // 메인 레드
+            borderColor: 'secondary.main',
+            backgroundColor: 'transparent',
             fontSize: '0.75rem',
-            padding: '6px 16px',
-            borderRadius: '16px',
-            fontWeight: 500,
+            padding: '8px 16px',
+            borderRadius: 2,
+            fontWeight: 600,
             '&:hover': {
-              borderColor: 'white',
-              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderColor: 'secondary.dark',
+              backgroundColor: 'secondary.main',
               color: 'white',
               transform: 'translateY(-1px)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              boxShadow: theme => theme.shadows[2]
             },
             transition: 'all 0.2s ease-in-out'
           }}
@@ -158,19 +182,19 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
           disabled={isCreatingEnvelope}
           sx={{ 
             textTransform: 'none',
-            color: 'white',
-            borderColor: 'rgba(255,255,255,0.4)',
-            backgroundColor: 'rgba(255,255,255,0.05)',
+            color: 'warning.main', // 서브 핑크
+            borderColor: 'warning.main',
+            backgroundColor: 'transparent',
             fontSize: '0.75rem',
-            padding: '6px 16px',
-            borderRadius: '16px',
-            fontWeight: 500,
+            padding: '8px 16px',
+            borderRadius: 2,
+            fontWeight: 600,
             '&:hover': {
-              borderColor: 'white',
-              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderColor: 'warning.dark',
+              backgroundColor: 'warning.main',
               color: 'white',
               transform: 'translateY(-1px)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              boxShadow: theme => theme.shadows[2]
             },
             transition: 'all 0.2s ease-in-out'
           }}
@@ -186,19 +210,19 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
             onClick={onViewEnvelopeList}
             sx={{ 
               textTransform: 'none',
-              color: 'white',
-              borderColor: 'rgba(255,255,255,0.4)',
-              backgroundColor: 'rgba(255,255,255,0.05)',
+              color: 'info.main', // 서브 그레이
+              borderColor: 'info.main',
+              backgroundColor: 'transparent',
               fontSize: '0.75rem',
-              padding: '6px 16px',
-              borderRadius: '16px',
-              fontWeight: 500,
+              padding: '8px 16px',
+              borderRadius: 2,
+              fontWeight: 600,
               '&:hover': {
-                borderColor: 'white',
-                backgroundColor: 'rgba(255,255,255,0.15)',
+                borderColor: 'info.dark',
+                backgroundColor: 'info.main',
                 color: 'white',
                 transform: 'translateY(-1px)',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                boxShadow: theme => theme.shadows[2]
               },
               transition: 'all 0.2s ease-in-out'
             }}
@@ -211,16 +235,18 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
       {/* 챌린지 완료 시 편지 열람 유도 */}
       {challenge.progress_percentage === 100 && (
         <Box sx={{
-          mt: 2,
-          p: 2,
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderRadius: 1,
-          textAlign: 'center'
+          mt: 3,
+          p: 3,
+          backgroundColor: 'success.light',
+          borderRadius: 2,
+          textAlign: 'center',
+          border: '1px solid',
+          borderColor: 'success.main'
         }}>
-          <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+          <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
             챌린지 완료!
           </Typography>
-          <Typography variant="caption" sx={{ mb: 2, display: 'block' }}>
+          <Typography variant="caption" sx={{ mb: 2, display: 'block', color: 'text.secondary' }}>
             과거의 나에게 보낸 편지가 열렸어요
           </Typography>
           <Button
@@ -231,12 +257,17 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
               alert('편지 열람 기능은 곧 추가될 예정입니다!');
             }}
             sx={{
-              backgroundColor: 'white',
-              color: 'primary.main',
+              backgroundColor: 'success.main',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              borderRadius: 2,
               '&:hover': {
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                transform: 'scale(1.05)'
-              }
+                backgroundColor: 'success.dark',
+                transform: 'translateY(-1px)',
+                boxShadow: theme => theme.shadows[2]
+              },
+              transition: 'all 0.2s ease-in-out'
             }}
           >
             편지 열어보기

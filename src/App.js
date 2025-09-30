@@ -3,7 +3,6 @@ import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button,
 import { styled } from '@mui/material/styles';
 import { Help as HelpIcon } from '@mui/icons-material';
 import ChatInterface from './components/ChatInterface';
-import ChallengeList from './components/ChallengeList';
 import ChallengeContext from './components/ChallengeContext';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
@@ -20,8 +19,12 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
   marginTop: theme.spacing(4),
   textAlign: 'center',
-  borderRadius: '16px',
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+  borderRadius: theme.shape.borderRadius,
+  boxShadow: theme.shadows[2],
+  backgroundColor: theme.palette.primary.main, // 메인 블루 배경
+  color: theme.palette.primary.contrastText, // 흰색 텍스트
+  position: 'relative',
+  overflow: 'hidden',
 }));
 
 function App() {
@@ -330,62 +333,25 @@ function App() {
 
         {activeTab === 0 && !showCurrentChallengeDetail && (
           <>
-            {/* 현재 챌린지 컨텍스트 */}
-            <ChallengeContext 
-              challenge={currentChallenge} 
-              onViewCurrentChallenge={handleViewCurrentChallenge}
-              onCreateEnvelope={handleCreateEnvelope}
-              onViewEnvelopeList={handleViewEnvelopeList}
-            />
-            
+            {/* 오늘의 실천 과제 카드 (위로 이동) */}
             <StyledPaper elevation={3}>
-              <Typography variant="h6" color="primary" gutterBottom sx={{
+              <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
                 fontSize: { xs: '1.4rem', sm: '1.6rem' },
-                fontWeight: 'bold',
-                lineHeight: 1.3
+                fontWeight: 700,
+                lineHeight: 1.3,
+                color: 'white'
               }}>
-                {practice?.title}
+                오늘의 추천 실천
               </Typography>
               <Typography variant="body1" paragraph sx={{ 
                 mt: 3,
                 fontSize: { xs: '1.1rem', sm: '1.2rem' },
-                lineHeight: 1.6
+                lineHeight: 1.6,
+                color: 'white',
+                opacity: 0.9
               }}>
                 {practice?.description}
               </Typography>
-              
-
-              
-              {/* 실천 가이드 질문 유도 섹션 */}
-              <Box sx={{ 
-                mt: 4, 
-                p: 2, 
-                bgcolor: 'grey.50', 
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'grey.200',
-                textAlign: 'center'
-              }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  💭 궁금한 점이 있나요?{' '}
-                  <Button 
-                    variant="text" 
-                    size="small"
-                    onClick={() => setActiveTab(1)}
-                    sx={{ 
-                      textTransform: 'none',
-                      fontWeight: 'normal',
-                      p: 0,
-                      minWidth: 'auto',
-                      color: 'primary.main',
-                      textDecoration: 'underline',
-                      ml: 1
-                    }}
-                  >
-                    단단이와 이야기하기
-                  </Button>
-                </Typography>
-              </Box>
               
               {/* 실천 완료/확인 버튼 */}
               <Box sx={{ mt: 4, textAlign: 'center' }}>
@@ -412,7 +378,7 @@ function App() {
                           }
                         }}
                       >
-                        기록 확인하기 👀
+                        기록 확인하기
                       </Button>
                       <Button 
                         variant="text" 
@@ -422,12 +388,18 @@ function App() {
                           borderRadius: 2,
                           px: 4,
                           py: 1.5,
-                          fontSize: '1.1rem',
-                          fontWeight: 'bold',
-                          color: 'primary.main'
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                          border: '1px solid rgba(255, 255, 255, 0.5)'
+                        }
                         }}
                       >
-                        전체 기록 보기 📚
+                        전체 기록 보기
                       </Button>
                     </Box>
                   </>
@@ -441,11 +413,18 @@ function App() {
                       size="large"
                       onClick={handleQuickComplete}
                       sx={{ 
-                        borderRadius: 3,
+                        borderRadius: 2,
                         px: 6,
                         py: 2,
-                        fontSize: { xs: '1.3rem', sm: '1.4rem' },
-                        fontWeight: 'bold'
+                        fontSize: { xs: '1.1rem', sm: '1.2rem' },
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        boxShadow: theme => theme.shadows[2],
+                        '&:hover': {
+                          boxShadow: theme => theme.shadows[4],
+                          transform: 'translateY(-1px)'
+                        },
+                        transition: 'all 0.2s ease-in-out'
                       }}
                     >
                       실천 기록하기 ✨
@@ -454,6 +433,17 @@ function App() {
                 )}
               </Box>
             </StyledPaper>
+            
+            {/* 카드 간격 추가 */}
+            <Box sx={{ mt: 4 }} />
+            
+            {/* 현재 챌린지 컨텍스트 (아래로 이동) */}
+            <ChallengeContext 
+              challenge={currentChallenge} 
+              onViewCurrentChallenge={handleViewCurrentChallenge}
+              onCreateEnvelope={handleCreateEnvelope}
+              onViewEnvelopeList={handleViewEnvelopeList}
+            />
           </>
         )}
 
