@@ -253,49 +253,6 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
           </Button>
         )}
       </Box>
-      
-      {/* 챌린지 완료 시 편지 열람 유도 */}
-      {challenge.progress_percentage === 100 && (
-        <Box sx={{
-          mt: 3,
-          p: 3,
-          backgroundColor: 'success.light',
-          borderRadius: 2,
-          textAlign: 'center',
-          border: '1px solid',
-          borderColor: 'success.main'
-        }}>
-          <Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
-            챌린지 완료!
-          </Typography>
-          <Typography variant="caption" sx={{ mb: 2, display: 'block', color: 'text.secondary' }}>
-            과거의 나에게 보낸 편지가 열렸어요
-          </Typography>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => {
-              // 편지 열람 로직 (향후 구현)
-              alert('편지 열람 기능은 곧 추가될 예정입니다!');
-            }}
-            sx={{
-              backgroundColor: 'success.main',
-              color: 'white',
-              textTransform: 'none',
-              fontWeight: 600,
-              borderRadius: 2,
-              '&:hover': {
-                backgroundColor: 'success.dark',
-                transform: 'translateY(-1px)',
-                boxShadow: theme => theme.shadows[2]
-              },
-              transition: 'all 0.2s ease-in-out'
-            }}
-          >
-            편지 열어보기
-          </Button>
-        </Box>
-      )}
     </ContextContainer>
   );
 };
