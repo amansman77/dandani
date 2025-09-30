@@ -299,7 +299,11 @@ function App() {
           <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
             단단이
           </Typography>
-          <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+          <Typography variant="h6" color="text.primary" gutterBottom sx={{
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            opacity: 0.8
+          }}>
             감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
           </Typography>
           
@@ -325,9 +329,42 @@ function App() {
 
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange} centered>
-            <Tab label="오늘의 챌린지" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
-            <Tab label="나와 대화하기" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
-            <Tab label="내 기록" sx={{ fontSize: '1.1rem', fontWeight: 'bold' }} />
+            <Tab 
+              label="오늘의 챌린지" 
+              sx={{ 
+                fontSize: '1.1rem', 
+                fontWeight: 'bold',
+                color: 'text.primary',
+                '&.Mui-selected': {
+                  color: 'primary.main',
+                  fontWeight: 700
+                }
+              }} 
+            />
+            <Tab 
+              label="나와 대화하기" 
+              sx={{ 
+                fontSize: '1.1rem', 
+                fontWeight: 'bold',
+                color: 'text.primary',
+                '&.Mui-selected': {
+                  color: 'primary.main',
+                  fontWeight: 700
+                }
+              }} 
+            />
+            <Tab 
+              label="내 기록" 
+              sx={{ 
+                fontSize: '1.1rem', 
+                fontWeight: 'bold',
+                color: 'text.primary',
+                '&.Mui-selected': {
+                  color: 'primary.main',
+                  fontWeight: 700
+                }
+              }} 
+            />
           </Tabs>
         </Box>
 

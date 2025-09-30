@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단단이 카드 디자인 테스트</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif KR', serif;
+            background-color: #faf5e9; /* 배경 베이지 */
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #21211c; /* 포인트 블랙 */
+            margin-bottom: 10px;
+        }
+
+        .title p {
+            font-size: 1.1rem;
+            color: #21211c;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        /* 카드 디자인 테스트 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 35px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 디자인 1: 메인 블루 배경 (기존) */
+        .card-blue-bg {
+            background-color: #3f7198; /* 메인 블루 */
+            color: white;
+        }
+
+        .card-blue-bg .card-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+
+        .card-blue-bg .btn-pink {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+
+        .card-blue-bg .btn-gray {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+
+        /* 디자인 2: 메인 블루 테두리 */
+        .card-blue-border {
+            border: 3px solid #3f7198;
+            color: #21211c;
+        }
+
+        /* 디자인 3: 메인 레드 테두리 */
+        .card-red-border {
+            border: 3px solid #df4846; /* 메인 레드 */
+            color: #21211c;
+        }
+
+        /* 디자인 4: 메인 그린 테두리 */
+        .card-green-border {
+            border: 3px solid #579f59; /* 메인 그린 */
+            color: #21211c;
+        }
+
+        /* 디자인 5: 서브 핑크 테두리 */
+        .card-pink-border {
+            border: 3px solid #ee7c6f; /* 서브 핑크 */
+            color: #21211c;
+        }
+
+        /* 디자인 6: 그라데이션 테두리 */
+        .card-gradient-border {
+            border: 3px solid transparent;
+            background: linear-gradient(white, white) padding-box,
+                        linear-gradient(90deg, #3f7198, #579f59) border-box;
+            color: #21211c;
+        }
+
+
+        .card h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        .card-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.1);
+            color: #666;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .card-blue-bg .card-number {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .card p {
+            font-size: 1.4rem;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .card-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 22px 44px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.4rem;
+            transition: all 0.3s ease;
+            border: 3px solid;
+            text-align: center;
+            min-width: 260px;
+            margin: 5px;
+        }
+
+        .card-button .material-icons {
+            font-size: 26px;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .button-group .card-button {
+            flex: 1;
+            min-width: 220px;
+            max-width: 280px;
+        }
+
+        /* 모바일 반응형 디자인 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 10px;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .card-button {
+                padding: 12px 16px;
+                font-size: 0.9rem;
+                min-width: 120px;
+                margin: 3px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 15px;
+            }
+
+            .button-group .card-button {
+                flex: none;
+                width: 100%;
+                min-width: auto;
+                max-width: none;
+            }
+
+            .card-button .material-icons {
+                font-size: 16px;
+            }
+
+            .title h1 {
+                font-size: 2rem;
+            }
+
+            .title p {
+                font-size: 1rem;
+            }
+
+            .card h3 {
+                font-size: 2rem;
+            }
+
+            .card p {
+                font-size: 1.3rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px 8px;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .card-button {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+                min-width: 100px;
+            }
+
+            .button-group {
+                gap: 6px;
+                margin-top: 12px;
+            }
+
+            .title h1 {
+                font-size: 1.8rem;
+            }
+
+            .card h3 {
+                font-size: 1.9rem;
+            }
+
+            .card p {
+                font-size: 1.25rem;
+            }
+        }
+
+        /* 버튼 스타일들 */
+        .btn-blue {
+            color: #3f7198;
+            border-color: #3f7198;
+            background: rgba(63, 113, 152, 0.1);
+            box-shadow: 0px 2px 8px rgba(63, 113, 152, 0.2);
+        }
+
+
+        .btn-red {
+            color: #df4846;
+            border-color: #df4846;
+            background: rgba(223, 72, 70, 0.1);
+            box-shadow: 0px 2px 8px rgba(223, 72, 70, 0.2);
+        }
+
+
+        .btn-green {
+            color: #579f59;
+            border-color: #579f59;
+            background: rgba(87, 159, 89, 0.1);
+            box-shadow: 0px 2px 8px rgba(87, 159, 89, 0.2);
+        }
+
+
+        /* 새로운 버튼 스타일 */
+        .btn-pink {
+            color: #ee7c6f;
+            border-color: #ee7c6f;
+            background: rgba(238, 124, 111, 0.1);
+            box-shadow: 0px 2px 8px rgba(238, 124, 111, 0.2);
+        }
+
+
+        .btn-gray {
+            color: #6b6b6b;
+            border-color: #6b6b6b;
+            background: rgba(107, 107, 107, 0.1);
+            box-shadow: 0px 2px 8px rgba(107, 107, 107, 0.2);
+        }
+
+
+
+        /* 탭 디자인 */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd9cd;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #6b6b6b;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #3f7198;
+            border-bottom-color: #3f7198;
+        }
+
+        .tab:hover {
+            color: #3f7198;
+        }
+
+        /* 설명 섹션 */
+        .description {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .description h2 {
+            color: #3f7198;
+            margin-bottom: 15px;
+        }
+
+        .description ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .description li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .description li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">
+            <h1>단단이</h1>
+            <p>감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자</p>
+        </div>
+
+        <!-- 탭 네비게이션 -->
+        <div class="tabs">
+            <div class="tab active">오늘의 챌린지</div>
+            <div class="tab">나와 대화하기</div>
+            <div class="tab">내 기록</div>
+        </div>
+
+        <!-- 디자인 설명 -->
+        <div class="description">
+            <h2>🎨 단단이 브랜드 색상 카드 디자인 테스트</h2>
+            <ul>
+                <li><strong>메인 블루 (#3f7198)</strong>: 주요 브랜드 컬러</li>
+                <li><strong>메인 레드 (#df4846)</strong>: 강조 및 액션 컬러</li>
+                <li><strong>메인 그린 (#579f59)</strong>: 성공 및 완료 컬러</li>
+                <li><strong>서브 핑크 (#ee7c6f)</strong>: 부드러운 강조 컬러</li>
+                <li><strong>배경 베이지 (#faf5e9)</strong>: 전체 배경색</li>
+            </ul>
+        </div>
+
+        <!-- 카드 디자인 테스트 -->
+        <div class="card-grid">
+            <!-- 디자인 1: 기존 메인 블루 배경 -->
+            <div class="card card-blue-bg">
+                <div class="card-number">1</div>
+                <h3>오늘의 추천 실천</h3>
+                <p>3분 동안 눈을 감고 깊은 호흡을 하며, 현재 순간에 집중해보세요. 생각이 떠오르면 그것을 인정하고 다시 호흡으로 돌아옵니다.</p>
+                <div class="button-group">
+                    <a href="#" class="card-button btn-blue"><span class="material-icons">history</span>전체 기록 보기</a>
+                    <a href="#" class="card-button btn-pink"><span class="material-icons">edit</span>실천 기록하기</a>
+                    <a href="#" class="card-button btn-gray"><span class="material-icons">visibility</span>기록 확인하기</a>
+                </div>
+            </div>
+
+            <!-- 디자인 2: 메인 블루 테두리 -->
+            <div class="card card-blue-border">
+                <div class="card-number">2</div>
+                <h3>오늘의 추천 실천</h3>
+                <p>3분 동안 눈을 감고 깊은 호흡을 하며, 현재 순간에 집중해보세요. 생각이 떠오르면 그것을 인정하고 다시 호흡으로 돌아옵니다.</p>
+                <div class="button-group">
+                    <a href="#" class="card-button btn-blue"><span class="material-icons">history</span>전체 기록 보기</a>
+                    <a href="#" class="card-button btn-pink"><span class="material-icons">edit</span>실천 기록하기</a>
+                    <a href="#" class="card-button btn-gray"><span class="material-icons">visibility</span>기록 확인하기</a>
+                </div>
+            </div>
+
+            <!-- 디자인 3: 메인 레드 테두리 -->
+            <div class="card card-red-border">
+                <div class="card-number">3</div>
+                <h3>오늘의 추천 실천</h3>
+                <p>3분 동안 눈을 감고 깊은 호흡을 하며, 현재 순간에 집중해보세요. 생각이 떠오르면 그것을 인정하고 다시 호흡으로 돌아옵니다.</p>
+                <div class="button-group">
+                    <a href="#" class="card-button btn-red">전체 기록 보기 📚</a>
+                    <a href="#" class="card-button btn-pink">실천 기록하기 ✨</a>
+                    <a href="#" class="card-button btn-gray">기록 확인하기 👀</a>
+                </div>
+            </div>
+
+            <!-- 디자인 4: 메인 그린 테두리 -->
+            <div class="card card-green-border">
+                <div class="card-number">4</div>
+                <h3>오늘의 추천 실천</h3>
+                <p>3분 동안 눈을 감고 깊은 호흡을 하며, 현재 순간에 집중해보세요. 생각이 떠오르면 그것을 인정하고 다시 호흡으로 돌아옵니다.</p>
+                <div class="button-group">
+                    <a href="#" class="card-button btn-green">전체 기록 보기 📚</a>
+                    <a href="#" class="card-button btn-pink">실천 기록하기 ✨</a>
+                    <a href="#" class="card-button btn-gray">기록 확인하기 👀</a>
+                </div>
+            </div>
+
+            <!-- 디자인 5: 서브 핑크 테두리 -->
+            <div class="card card-pink-border">
+                <div class="card-number">5</div>
+                <h3>오늘의 추천 실천</h3>
+                <p>3분 동안 눈을 감고 깊은 호흡을 하며, 현재 순간에 집중해보세요. 생각이 떠오르면 그것을 인정하고 다시 호흡으로 돌아옵니다.</p>
+                <div class="button-group">
+                    <a href="#" class="card-button btn-red">전체 기록 보기 📚</a>
+                    <a href="#" class="card-button btn-pink">실천 기록하기 ✨</a>
+                    <a href="#" class="card-button btn-gray">기록 확인하기 👀</a>
+                </div>
+            </div>
+
+            <!-- 디자인 6: 그라데이션 테두리 -->
+            <div class="card card-gradient-border">
+                <div class="card-number">6</div>
+                <h3>오늘의 추천 실천</h3>
+                <p>3분 동안 눈을 감고 깊은 호흡을 하며, 현재 순간에 집중해보세요. 생각이 떠오르면 그것을 인정하고 다시 호흡으로 돌아옵니다.</p>
+                <div class="button-group">
+                    <a href="#" class="card-button btn-blue"><span class="material-icons">history</span>전체 기록 보기</a>
+                    <a href="#" class="card-button btn-pink"><span class="material-icons">edit</span>실천 기록하기</a>
+                    <a href="#" class="card-button btn-gray"><span class="material-icons">visibility</span>기록 확인하기</a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 추가 디자인 테스트 -->
+        <div class="description">
+            <h2>💡 디자인 분석</h2>
+            <ul>
+                <li><strong>디자인 1 (메인 블루 배경)</strong>: 무거운 느낌, 가독성은 좋음</li>
+                <li><strong>디자인 2 (메인 블루 테두리)</strong>: 브랜드 일관성, 세련된 느낌</li>
+                <li><strong>디자인 3 (메인 레드 테두리)</strong>: 강조 효과, 액션 중심</li>
+                <li><strong>디자인 4 (메인 그린 테두리)</strong>: 성공/완료 느낌, 자연스러움</li>
+                <li><strong>디자인 5 (서브 핑크 테두리)</strong>: 부드러운 강조, 친근함</li>
+                <li><strong>디자인 6 (그라데이션 테두리)</strong>: 가장 세련되고 모던한 느낌</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 탭 클릭 이벤트
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // 카드 호버 효과
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>

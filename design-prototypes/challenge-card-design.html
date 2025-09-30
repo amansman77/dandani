@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단단이 챌린지 카드 디자인</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Serif KR', serif;
+            background-color: #faf5e9; /* 배경 베이지 */
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .title h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #21211c; /* 포인트 블랙 */
+            margin-bottom: 10px;
+        }
+
+        .title p {
+            font-size: 1.1rem;
+            color: #21211c;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        /* 챌린지 카드 디자인 */
+        .challenge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .challenge-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .challenge-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 디자인 1: 메인 블루 테두리 */
+        .challenge-blue-border {
+            border: 3px solid #3f7198;
+            color: #21211c;
+        }
+
+        /* 디자인 2: 메인 레드 테두리 */
+        .challenge-red-border {
+            border: 3px solid #df4846;
+            color: #21211c;
+        }
+
+        /* 디자인 3: 메인 그린 테두리 */
+        .challenge-green-border {
+            border: 3px solid #579f59;
+            color: #21211c;
+        }
+
+        /* 디자인 4: 서브 핑크 테두리 */
+        .challenge-pink-border {
+            border: 3px solid #ee7c6f;
+            color: #21211c;
+        }
+
+        /* 디자인 5: 그라데이션 테두리 */
+        .challenge-gradient-border {
+            border: 3px solid transparent;
+            background: linear-gradient(white, white) padding-box,
+                        linear-gradient(90deg, #3f7198, #579f59) border-box;
+            color: #21211c;
+        }
+
+        /* 디자인 6: 메인 블루 배경 */
+        .challenge-blue-bg {
+            background-color: #3f7198;
+            color: white;
+        }
+
+        .challenge-card h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: inherit;
+        }
+
+        .challenge-card p {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: inherit;
+            opacity: 0.9;
+        }
+
+        /* 진행률 표시 */
+        .progress-section {
+            margin-bottom: 20px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: inherit;
+        }
+
+        .progress-percentage {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: inherit;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-blue .progress-fill {
+            background: linear-gradient(90deg, #3f7198, #5a8bb0);
+        }
+
+        .progress-red .progress-fill {
+            background: linear-gradient(90deg, #df4846, #e66b69);
+        }
+
+        .progress-green .progress-fill {
+            background: linear-gradient(90deg, #579f59, #7bb17d);
+        }
+
+        .progress-pink .progress-fill {
+            background: linear-gradient(90deg, #ee7c6f, #f1998e);
+        }
+
+        .progress-gradient .progress-fill {
+            background: linear-gradient(90deg, #3f7198, #579f59);
+        }
+
+        /* 상태 칩 */
+        .status-chips {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .status-chip {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 2px solid;
+        }
+
+        .chip-current {
+            background: transparent;
+            color: #3f7198;
+            border-color: #3f7198;
+        }
+
+        .chip-completed {
+            background: transparent;
+            color: #579f59;
+            border-color: #579f59;
+        }
+
+        .chip-upcoming {
+            background: transparent;
+            color: #ee7c6f;
+            border-color: #ee7c6f;
+        }
+
+        /* 버튼 그룹 */
+        .challenge-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .challenge-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: 2px solid;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .challenge-button .material-icons {
+            font-size: 16px;
+        }
+
+        /* 버튼 스타일들 */
+        .btn-primary {
+            color: #3f7198;
+            border-color: #3f7198;
+            background: rgba(63, 113, 152, 0.1);
+        }
+
+        .btn-primary:hover {
+            background: #3f7198;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            color: #df4846;
+            border-color: #df4846;
+            background: rgba(223, 72, 70, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: #df4846;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            color: #579f59;
+            border-color: #579f59;
+            background: rgba(87, 159, 89, 0.1);
+        }
+
+        .btn-success:hover {
+            background: #579f59;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-info {
+            color: #ee7c6f;
+            border-color: #ee7c6f;
+            background: rgba(238, 124, 111, 0.1);
+        }
+
+        .btn-info:hover {
+            background: #ee7c6f;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* 메인 블루 배경 카드 특별 처리 */
+        .challenge-blue-bg .challenge-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .challenge-blue-bg .challenge-button:hover {
+            background: white;
+            color: #3f7198;
+            border-color: white;
+        }
+
+        /* 카드 번호 */
+        .card-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.1);
+            color: #666;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .challenge-blue-bg .card-number {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* 설명 섹션 */
+        .description {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .description h2 {
+            color: #3f7198;
+            margin-bottom: 15px;
+        }
+
+        .description ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .description li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .description li:last-child {
+            border-bottom: none;
+        }
+
+        /* 9월 진행중인 실천 강조 표시 */
+        .highlight-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #3f7198, #5a8bb0);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            box-shadow: 0px 3px 10px rgba(63, 113, 152, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        .highlight-icon {
+            font-size: 1.1rem;
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: 'liga';
+        }
+
+        .highlight-text {
+            letter-spacing: 0.3px;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0px 3px 10px rgba(63, 113, 152, 0.3);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0px 4px 15px rgba(63, 113, 152, 0.4);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0px 3px 10px rgba(63, 113, 152, 0.3);
+            }
+        }
+
+        /* 각 디자인별 강조 배지 색상 */
+        .challenge-red-border .highlight-badge {
+            background: linear-gradient(135deg, #df4846, #e66b69);
+            box-shadow: 0px 3px 10px rgba(223, 72, 70, 0.3);
+        }
+
+        .challenge-green-border .highlight-badge {
+            background: linear-gradient(135deg, #579f59, #7bb17d);
+            box-shadow: 0px 3px 10px rgba(87, 159, 89, 0.3);
+        }
+
+        .challenge-pink-border .highlight-badge {
+            background: linear-gradient(135deg, #ee7c6f, #f1998e);
+            box-shadow: 0px 3px 10px rgba(238, 124, 111, 0.3);
+        }
+
+        .challenge-gradient-border .highlight-badge {
+            background: linear-gradient(135deg, #3f7198, #579f59);
+            box-shadow: 0px 3px 10px rgba(63, 113, 152, 0.3);
+        }
+
+        .challenge-blue-bg .highlight-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0px 3px 10px rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">
+            <h1>단단이</h1>
+            <p>오늘의 챌린지 카드 디자인</p>
+        </div>
+
+        <!-- 디자인 설명 -->
+        <div class="description">
+            <h2>🎯 챌린지 카드 디자인 테스트</h2>
+            <ul>
+                <li><strong>진행률 표시</strong>: 시각적 진행률 바와 퍼센트 표시</li>
+                <li><strong>상태 칩</strong>: 현재 진행중, 완료, 예정 상태 구분</li>
+                <li><strong>액션 버튼</strong>: 챌린지 상세보기, 실천하기, 기록보기</li>
+                <li><strong>브랜드 컬러</strong>: 단단이 브랜드 색상 활용</li>
+            </ul>
+        </div>
+
+        <!-- 챌린지 카드 디자인 테스트 -->
+        <div class="challenge-grid">
+            <!-- 디자인 1: 메인 블루 테두리 -->
+            <div class="challenge-card challenge-blue-border">
+                <div class="card-number">1</div>
+                <div class="highlight-badge">
+                    <span class="highlight-icon">event</span>
+                    <span class="highlight-text">9월 진행중인 실천</span>
+                </div>
+                <h3>나를 위로하는 따뜻한 30일</h3>
+                <p>매일 작은 실천을 통해 자신을 돌보고 위로하는 시간을 가져보세요. 감정적으로 힘든 순간에도 중심을 잃지 않을 수 있도록 도와드립니다.</p>
+                
+                <div class="status-chips">
+                    <div class="status-chip chip-current">진행중</div>
+                    <div class="status-chip chip-completed">15일 완료</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-text">진행률</span>
+                        <span class="progress-percentage">50%</span>
+                    </div>
+                    <div class="progress-bar progress-blue">
+                        <div class="progress-fill" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <div class="challenge-buttons">
+                    <a href="#" class="challenge-button btn-primary">
+                        <span class="material-icons">visibility</span>상세보기
+                    </a>
+                    <a href="#" class="challenge-button btn-success">
+                        <span class="material-icons">play_arrow</span>실천하기
+                    </a>
+                </div>
+            </div>
+
+            <!-- 디자인 2: 메인 레드 테두리 -->
+            <div class="challenge-card challenge-red-border">
+                <div class="card-number">2</div>
+                <div class="highlight-badge">
+                    <span class="highlight-icon">event</span>
+                    <span class="highlight-text">9월 진행중인 실천</span>
+                </div>
+                <h3>나를 위로하는 따뜻한 30일</h3>
+                <p>매일 작은 실천을 통해 자신을 돌보고 위로하는 시간을 가져보세요. 감정적으로 힘든 순간에도 중심을 잃지 않을 수 있도록 도와드립니다.</p>
+                
+                <div class="status-chips">
+                    <div class="status-chip chip-current">진행중</div>
+                    <div class="status-chip chip-completed">15일 완료</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-text">진행률</span>
+                        <span class="progress-percentage">50%</span>
+                    </div>
+                    <div class="progress-bar progress-red">
+                        <div class="progress-fill" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <div class="challenge-buttons">
+                    <a href="#" class="challenge-button btn-primary">
+                        <span class="material-icons">visibility</span>상세보기
+                    </a>
+                    <a href="#" class="challenge-button btn-success">
+                        <span class="material-icons">play_arrow</span>실천하기
+                    </a>
+                </div>
+            </div>
+
+            <!-- 디자인 3: 메인 그린 테두리 -->
+            <div class="challenge-card challenge-green-border">
+                <div class="card-number">3</div>
+                <div class="highlight-badge">
+                    <span class="highlight-icon">event</span>
+                    <span class="highlight-text">9월 진행중인 실천</span>
+                </div>
+                <h3>나를 위로하는 따뜻한 30일</h3>
+                <p>매일 작은 실천을 통해 자신을 돌보고 위로하는 시간을 가져보세요. 감정적으로 힘든 순간에도 중심을 잃지 않을 수 있도록 도와드립니다.</p>
+                
+                <div class="status-chips">
+                    <div class="status-chip chip-current">진행중</div>
+                    <div class="status-chip chip-completed">15일 완료</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-text">진행률</span>
+                        <span class="progress-percentage">50%</span>
+                    </div>
+                    <div class="progress-bar progress-green">
+                        <div class="progress-fill" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <div class="challenge-buttons">
+                    <a href="#" class="challenge-button btn-primary">
+                        <span class="material-icons">visibility</span>상세보기
+                    </a>
+                    <a href="#" class="challenge-button btn-success">
+                        <span class="material-icons">play_arrow</span>실천하기
+                    </a>
+                </div>
+            </div>
+
+            <!-- 디자인 4: 서브 핑크 테두리 -->
+            <div class="challenge-card challenge-pink-border">
+                <div class="card-number">4</div>
+                <div class="highlight-badge">
+                    <span class="highlight-icon">event</span>
+                    <span class="highlight-text">9월 진행중인 실천</span>
+                </div>
+                <h3>나를 위로하는 따뜻한 30일</h3>
+                <p>매일 작은 실천을 통해 자신을 돌보고 위로하는 시간을 가져보세요. 감정적으로 힘든 순간에도 중심을 잃지 않을 수 있도록 도와드립니다.</p>
+                
+                <div class="status-chips">
+                    <div class="status-chip chip-current">진행중</div>
+                    <div class="status-chip chip-completed">15일 완료</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-text">진행률</span>
+                        <span class="progress-percentage">50%</span>
+                    </div>
+                    <div class="progress-bar progress-pink">
+                        <div class="progress-fill" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <div class="challenge-buttons">
+                    <a href="#" class="challenge-button btn-primary">
+                        <span class="material-icons">visibility</span>상세보기
+                    </a>
+                    <a href="#" class="challenge-button btn-success">
+                        <span class="material-icons">play_arrow</span>실천하기
+                    </a>
+                </div>
+            </div>
+
+            <!-- 디자인 5: 그라데이션 테두리 -->
+            <div class="challenge-card challenge-gradient-border">
+                <div class="card-number">5</div>
+                <div class="highlight-badge">
+                    <span class="highlight-icon">event</span>
+                    <span class="highlight-text">9월 진행중인 실천</span>
+                </div>
+                <h3>나를 위로하는 따뜻한 30일</h3>
+                <p>매일 작은 실천을 통해 자신을 돌보고 위로하는 시간을 가져보세요. 감정적으로 힘든 순간에도 중심을 잃지 않을 수 있도록 도와드립니다.</p>
+                
+                <div class="status-chips">
+                    <div class="status-chip chip-current">진행중</div>
+                    <div class="status-chip chip-completed">15일 완료</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-text">진행률</span>
+                        <span class="progress-percentage">50%</span>
+                    </div>
+                    <div class="progress-bar progress-gradient">
+                        <div class="progress-fill" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <div class="challenge-buttons">
+                    <a href="#" class="challenge-button btn-primary">
+                        <span class="material-icons">visibility</span>상세보기
+                    </a>
+                    <a href="#" class="challenge-button btn-success">
+                        <span class="material-icons">play_arrow</span>실천하기
+                    </a>
+                </div>
+            </div>
+
+            <!-- 디자인 6: 메인 블루 배경 -->
+            <div class="challenge-card challenge-blue-bg">
+                <div class="card-number">6</div>
+                <div class="highlight-badge">
+                    <span class="highlight-icon">event</span>
+                    <span class="highlight-text">9월 진행중인 실천</span>
+                </div>
+                <h3>나를 위로하는 따뜻한 30일</h3>
+                <p>매일 작은 실천을 통해 자신을 돌보고 위로하는 시간을 가져보세요. 감정적으로 힘든 순간에도 중심을 잃지 않을 수 있도록 도와드립니다.</p>
+                
+                <div class="status-chips">
+                    <div class="status-chip chip-current">진행중</div>
+                    <div class="status-chip chip-completed">15일 완료</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span class="progress-text">진행률</span>
+                        <span class="progress-percentage">50%</span>
+                    </div>
+                    <div class="progress-bar progress-blue">
+                        <div class="progress-fill" style="width: 50%"></div>
+                    </div>
+                </div>
+
+                <div class="challenge-buttons">
+                    <a href="#" class="challenge-button btn-primary">
+                        <span class="material-icons">visibility</span>상세보기
+                    </a>
+                    <a href="#" class="challenge-button btn-success">
+                        <span class="material-icons">play_arrow</span>실천하기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 디자인 분석 -->
+        <div class="description">
+            <h2>💡 챌린지 카드 디자인 분석</h2>
+            <ul>
+                <li><strong>디자인 1 (메인 블루 테두리)</strong>: 브랜드 일관성, 세련된 느낌</li>
+                <li><strong>디자인 2 (메인 레드 테두리)</strong>: 강조 효과, 액션 중심</li>
+                <li><strong>디자인 3 (메인 그린 테두리)</strong>: 성공/완료 느낌, 자연스러움</li>
+                <li><strong>디자인 4 (서브 핑크 테두리)</strong>: 부드러운 강조, 친근함</li>
+                <li><strong>디자인 5 (그라데이션 테두리)</strong>: 가장 세련되고 모던한 느낌</li>
+                <li><strong>디자인 6 (메인 블루 배경)</strong>: 무거운 느낌, 가독성은 좋음</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 카드 호버 효과
+        document.querySelectorAll('.challenge-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-6px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // 진행률 애니메이션
+        const progressBars = document.querySelectorAll('.progress-fill');
+        progressBars.forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.width = width;
+            }, 500);
+        });
+    </script>
+</body>
+</html>

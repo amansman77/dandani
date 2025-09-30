@@ -46,7 +46,7 @@ const theme = createTheme({
     },
     text: {
       primary: '#21211c', // 포인트 블랙
-      secondary: '#a5a498', // 서브 그레이
+      secondary: '#6b6b6b', // 더 진한 서브 그레이
     },
     divider: '#ddd9cd', // 보조 그레이 톤
   },
