@@ -16,15 +16,20 @@ import { initAnalytics } from './utils/analytics';
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
+  padding: '35px',
   marginTop: theme.spacing(4),
   textAlign: 'center',
-  borderRadius: theme.shape.borderRadius,
-  boxShadow: theme.shadows[2],
-  backgroundColor: theme.palette.primary.main, // 메인 블루 배경
-  color: theme.palette.primary.contrastText, // 흰색 텍스트
+  borderRadius: '16px',
+  boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+  backgroundColor: '#3f7198', // 메인 블루 배경
+  color: 'white', // 흰색 텍스트
   position: 'relative',
   overflow: 'hidden',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0px 8px 30px rgba(0, 0, 0, 0.15)',
+  },
 }));
 
 function App() {
@@ -373,19 +378,21 @@ function App() {
             {/* 오늘의 실천 과제 카드 (위로 이동) */}
             <StyledPaper elevation={3}>
               <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
-                fontSize: { xs: '1.4rem', sm: '1.6rem' },
+                fontSize: '2.2rem',
                 fontWeight: 700,
                 lineHeight: 1.3,
-                color: 'white'
+                color: 'white',
+                textAlign: 'center',
+                marginBottom: '20px'
               }}>
                 오늘의 추천 실천
               </Typography>
               <Typography variant="body1" paragraph sx={{ 
-                mt: 3,
-                fontSize: { xs: '1.1rem', sm: '1.2rem' },
+                fontSize: '1.4rem',
                 lineHeight: 1.6,
                 color: 'white',
-                opacity: 0.9
+                textAlign: 'center',
+                marginBottom: '25px'
               }}>
                 {practice?.description}
               </Typography>
@@ -394,24 +401,56 @@ function App() {
               <Box sx={{ mt: 4, textAlign: 'center' }}>
                 {practice?.isRecorded ? (
                   <>
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      gap: '15px', 
+                      justifyContent: 'center', 
+                      flexWrap: 'wrap',
+                      marginTop: '25px',
+                      '& > *': {
+                        flex: '1 1 auto',
+                        minWidth: '160px',
+                        maxWidth: '200px'
+                      },
+                      '@media (max-width: 768px)': {
+                        flexDirection: 'column',
+                        gap: '10px',
+                        '& > *': {
+                          width: '100%',
+                          maxWidth: 'none',
+                          minWidth: 'auto'
+                        }
+                      }
+                    }}>
                       <Button 
                         variant="outlined" 
                         size="large"
                         onClick={() => setRecordModalOpen(true)}
                         sx={{ 
-                          borderRadius: 3,
-                          px: 6,
-                          py: 2,
-                          fontSize: { xs: '1.2rem', sm: '1.3rem' },
-                          fontWeight: 'bold',
-                          color: 'success.main',
-                          borderColor: 'success.main',
-                          borderWidth: 2,
-                          minHeight: '56px',
+                          borderRadius: '10px',
+                          padding: '12px 24px',
+                          fontSize: '1.4rem',
+                          fontWeight: 700,
+                          color: 'white',
+                          borderColor: 'rgba(255, 255, 255, 0.5)',
+                          borderWidth: '3px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                          textAlign: 'center',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '10px',
+                          minWidth: '160px',
+                          margin: '5px',
+                          fontFamily: "'Noto Serif KR', serif",
+                          textTransform: 'none',
+                          boxSizing: 'border-box',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
                           '&:hover': {
-                            borderWidth: 2,
-                            backgroundColor: 'success.50'
+                            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                            borderColor: 'rgba(255, 255, 255, 0.7)'
                           }
                         }}
                       >
@@ -422,18 +461,31 @@ function App() {
                         size="large"
                         onClick={() => setActiveTab(2)}
                         sx={{ 
-                          borderRadius: 2,
-                          px: 4,
-                          py: 1.5,
-                        fontSize: '1.1rem',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                          border: '1px solid rgba(255, 255, 255, 0.5)'
-                        }
+                          borderRadius: '10px',
+                          padding: '12px 24px',
+                          fontSize: '1.4rem',
+                          fontWeight: 700,
+                          color: 'white',
+                          borderColor: 'rgba(255, 255, 255, 0.5)',
+                          borderWidth: '3px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                          textAlign: 'center',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '10px',
+                          minWidth: '160px',
+                          margin: '5px',
+                          fontFamily: "'Noto Serif KR', serif",
+                          textTransform: 'none',
+                          boxSizing: 'border-box',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                            borderColor: 'rgba(255, 255, 255, 0.7)'
+                          }
                         }}
                       >
                         전체 기록 보기
@@ -450,18 +502,32 @@ function App() {
                       size="large"
                       onClick={handleQuickComplete}
                       sx={{ 
-                        borderRadius: 2,
-                        px: 6,
-                        py: 2,
-                        fontSize: { xs: '1.1rem', sm: '1.2rem' },
-                        fontWeight: 600,
+                        borderRadius: '10px',
+                        padding: '22px 44px',
+                        fontSize: '1.4rem',
+                        fontWeight: 700,
                         textTransform: 'none',
-                        boxShadow: theme => theme.shadows[2],
+                        color: 'white',
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                        borderWidth: '3px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        minWidth: '160px',
+                        margin: '5px',
+                        textAlign: 'center',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        fontFamily: "'Noto Serif KR', serif",
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.2)',
+                        transition: 'all 0.3s ease',
                         '&:hover': {
-                          boxShadow: theme => theme.shadows[4],
-                          transform: 'translateY(-1px)'
-                        },
-                        transition: 'all 0.2s ease-in-out'
+                          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                          borderColor: 'rgba(255, 255, 255, 0.7)'
+                        }
                       }}
                     >
                       실천 기록하기 ✨
