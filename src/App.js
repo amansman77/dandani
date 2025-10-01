@@ -401,96 +401,41 @@ function App() {
               <Box sx={{ mt: 4, textAlign: 'center' }}>
                 {practice?.isRecorded ? (
                   <>
-                    <Box sx={{ 
-                      display: 'flex', 
-                      gap: '15px', 
-                      justifyContent: 'center', 
-                      flexWrap: 'wrap',
-                      marginTop: '25px',
-                      '& > *': {
-                        flex: '1 1 auto',
+                    <Button 
+                      variant="contained" 
+                      size="large"
+                      onClick={() => setRecordModalOpen(true)}
+                      sx={{ 
+                        borderRadius: '10px',
+                        padding: '22px 44px',
+                        fontSize: '1.4rem',
+                        fontWeight: 700,
+                        textTransform: 'none',
+                        color: 'white',
+                        borderColor: 'rgba(255, 255, 255, 0.5)',
+                        borderWidth: '3px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
                         minWidth: '160px',
-                        maxWidth: '200px'
-                      },
-                      '@media (max-width: 768px)': {
-                        flexDirection: 'column',
+                        margin: '5px',
+                        textAlign: 'center',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         gap: '10px',
-                        '& > *': {
-                          width: '100%',
-                          maxWidth: 'none',
-                          minWidth: 'auto'
+                        fontFamily: "'Noto Serif KR', serif",
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.2)',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                          borderColor: 'rgba(255, 255, 255, 0.7)'
                         }
-                      }
-                    }}>
-                      <Button 
-                        variant="outlined" 
-                        size="large"
-                        onClick={() => setRecordModalOpen(true)}
-                        sx={{ 
-                          borderRadius: '10px',
-                          padding: '12px 24px',
-                          fontSize: '1.4rem',
-                          fontWeight: 700,
-                          color: 'white',
-                          borderColor: 'rgba(255, 255, 255, 0.5)',
-                          borderWidth: '3px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                          textAlign: 'center',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '10px',
-                          minWidth: '160px',
-                          margin: '5px',
-                          fontFamily: "'Noto Serif KR', serif",
-                          textTransform: 'none',
-                          boxSizing: 'border-box',
-                          outline: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                            borderColor: 'rgba(255, 255, 255, 0.7)'
-                          }
-                        }}
-                      >
-                        기록 확인하기
-                      </Button>
-                      <Button 
-                        variant="text" 
-                        size="large"
-                        onClick={() => setActiveTab(2)}
-                        sx={{ 
-                          borderRadius: '10px',
-                          padding: '12px 24px',
-                          fontSize: '1.4rem',
-                          fontWeight: 700,
-                          color: 'white',
-                          borderColor: 'rgba(255, 255, 255, 0.5)',
-                          borderWidth: '3px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                          textAlign: 'center',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '10px',
-                          minWidth: '160px',
-                          margin: '5px',
-                          fontFamily: "'Noto Serif KR', serif",
-                          textTransform: 'none',
-                          boxSizing: 'border-box',
-                          outline: 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                            borderColor: 'rgba(255, 255, 255, 0.7)'
-                          }
-                        }}
-                      >
-                        전체 기록 보기
-                      </Button>
-                    </Box>
+                      }}
+                    >
+                      실천 기록하기
+                    </Button>
                   </>
                 ) : (
                   <>
@@ -527,7 +472,7 @@ function App() {
                         }
                       }}
                     >
-                      실천 기록하기
+                      실천 완료하기
                     </Button>
                   </>
                 )}
