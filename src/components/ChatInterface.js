@@ -292,24 +292,6 @@ const ChatInterface = ({ practice, messages, setMessages, sessionId }) => {
         )}
 
         <InputContainer>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              현재 감정을 선택하거나 메시지를 입력하세요:
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {emotions.map((emotion) => (
-                <EmotionChip
-                  key={emotion.value}
-                  label={emotion.label}
-                  onClick={() => handleSendMessage(emotion)}
-                  clickable
-                  disabled={isLoading}
-                  className={emotion.value}
-                />
-              ))}
-            </Box>
-          </Box>
-
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
               fullWidth

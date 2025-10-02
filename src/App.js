@@ -347,7 +347,7 @@ function App() {
               }} 
             />
             <Tab 
-              label="나와 대화하기" 
+              label="챌린지 도우미" 
               sx={{ 
                 fontSize: '1.1rem', 
                 fontWeight: 'bold',
