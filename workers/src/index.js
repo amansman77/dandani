@@ -69,11 +69,9 @@ async function logUserEvent(env, request, eventType, eventData = {}) {
       maskedIp
     ).run();
 
-    // 사용자 세션 업데이트
-    await updateUserSession(env, userId, sessionId);
+    // 세션 관리 구조 제거됨
     
-    // 일별 활동 요약 업데이트
-    await updateDailyActivity(env, userId, eventType);
+    // user_daily_activity 사용 중단됨
     
   } catch (error) {
     console.error('Event logging error:', error);
@@ -81,77 +79,9 @@ async function logUserEvent(env, request, eventType, eventData = {}) {
   }
 }
 
-// 사용자 세션 업데이트
-async function updateUserSession(env, userId, sessionId) {
-  try {
-    const now = new Date().toISOString();
-    
-    // 기존 세션 확인
-    const existingSession = await env.DB.prepare(`
-      SELECT * FROM user_sessions WHERE session_id = ?
-    `).bind(sessionId).first();
-    
-    if (existingSession) {
-      // 세션 업데이트
-      await env.DB.prepare(`
-        UPDATE user_sessions 
-        SET last_visit_at = ?, total_visits = total_visits + 1, total_events = total_events + 1, updated_at = ?
-        WHERE session_id = ?
-      `).bind(now, now, sessionId).run();
-    } else {
-      // 새 세션 생성
-      await env.DB.prepare(`
-        INSERT INTO user_sessions (user_id, session_id, first_visit_at, last_visit_at, total_visits, total_events)
-        VALUES (?, ?, ?, ?, 1, 1)
-      `).bind(userId, sessionId, now, now).run();
-    }
-  } catch (error) {
-    console.error('Session update error:', error);
-  }
-}
+// 사용자 세션 업데이트 함수 제거됨 (세션 관리 구조 제거)
 
-// 일별 활동 요약 업데이트
-async function updateDailyActivity(env, userId, eventType) {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    // 오늘 활동 확인
-    const existingActivity = await env.DB.prepare(`
-      SELECT * FROM user_daily_activity WHERE user_id = ? AND activity_date = ?
-    `).bind(userId, today).first();
-    
-    const isActive = true;
-    const practiceCompleted = eventType === 'practice_complete';
-    const feedbackSubmitted = eventType === 'feedback_submit';
-    const aiChatUsed = eventType === 'ai_chat_start' || eventType === 'ai_chat_message';
-    
-    if (existingActivity) {
-      // 기존 활동 업데이트
-      await env.DB.prepare(`
-        UPDATE user_daily_activity 
-        SET is_active = ?, 
-            practice_completed = CASE WHEN ? = 1 THEN 1 ELSE practice_completed END,
-            feedback_submitted = CASE WHEN ? = 1 THEN 1 ELSE feedback_submitted END,
-            ai_chat_used = CASE WHEN ? = 1 THEN 1 ELSE ai_chat_used END,
-            total_events = total_events + 1,
-            updated_at = ?
-        WHERE user_id = ? AND activity_date = ?
-      `).bind(
-        isActive, practiceCompleted, feedbackSubmitted, aiChatUsed, 
-        new Date().toISOString(), userId, today
-      ).run();
-    } else {
-      // 새 활동 생성
-      await env.DB.prepare(`
-        INSERT INTO user_daily_activity 
-        (user_id, activity_date, is_active, practice_completed, feedback_submitted, ai_chat_used, total_events)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
-      `).bind(userId, today, isActive, practiceCompleted, feedbackSubmitted, aiChatUsed).run();
-    }
-  } catch (error) {
-    console.error('Daily activity update error:', error);
-  }
-}
+// user_daily_activity 사용 중단됨
 
 // 오늘의 실천 과제와 기록 상태 가져오기
 async function getTodayPractice(env, request) {
@@ -661,11 +591,11 @@ async function getTimefoldEnvelope(env, request) {
   }
 }
 
-// 리텐션 지표 계산
+// 리텐션 지표 계산 (UTC 기준)
 async function calculateRetentionMetrics(env) {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const today = getUTCDate();
+    const thirtyDaysAgo = getUTCDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
     
     // Day1 리텐션 계산
     const day1Retention = await env.DB.prepare(`
@@ -788,23 +718,23 @@ async function calculateRetentionMetrics(env) {
   }
 }
 
-// 사용자 활동 통계 조회
+// 사용자 활동 통계 조회 (UTC 기준)
 async function getUserActivityStats(env, days = 30) {
   try {
-    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const startDate = getUTCDate(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
     
-    // 일별 활성 사용자 수
+    // 일별 활성 사용자 수 (event_stats와 동일한 방식으로 계산)
     const dailyActiveUsers = await env.DB.prepare(`
       SELECT 
-        activity_date,
-        COUNT(DISTINCT user_id) as active_users,
-        COUNT(CASE WHEN practice_completed = 1 THEN user_id END) as practice_users,
-        COUNT(CASE WHEN feedback_submitted = 1 THEN user_id END) as feedback_users,
-        COUNT(CASE WHEN ai_chat_used = 1 THEN user_id END) as ai_chat_users
-      FROM user_daily_activity
-      WHERE activity_date >= ?
-      GROUP BY activity_date
-      ORDER BY activity_date DESC
+        date(created_at) as activity_date,
+        COUNT(DISTINCT CASE WHEN event_type = 'page_visit' THEN user_id END) as active_users,
+        COUNT(CASE WHEN event_type = 'practice_complete' THEN user_id END) as practice_users,
+        COUNT(CASE WHEN event_type = 'feedback_submit' THEN user_id END) as feedback_users,
+        COUNT(CASE WHEN event_type IN ('ai_chat_start', 'ai_chat_message') THEN user_id END) as ai_chat_users
+      FROM user_events
+      WHERE created_at >= ?
+      GROUP BY date(created_at)
+      ORDER BY date(created_at) DESC
     `).bind(startDate).all();
     
     // 이벤트 타입별 통계
@@ -819,16 +749,7 @@ async function getUserActivityStats(env, days = 30) {
       ORDER BY count DESC
     `).bind(startDate).all();
     
-    // 사용자 세션 통계
-    const sessionStats = await env.DB.prepare(`
-      SELECT 
-        COUNT(*) as total_sessions,
-        COUNT(DISTINCT user_id) as unique_users,
-        AVG(total_visits) as avg_visits_per_session,
-        AVG(total_events) as avg_events_per_session
-      FROM user_sessions
-      WHERE first_visit_at >= ?
-    `).bind(startDate).first();
+    // 세션 통계 제거됨
     
     return {
       period: {
@@ -838,7 +759,6 @@ async function getUserActivityStats(env, days = 30) {
       },
       daily_active_users: dailyActiveUsers.results,
       event_statistics: eventStats.results,
-      session_statistics: sessionStats,
       generated_at: new Date().toISOString()
     };
     
@@ -848,30 +768,117 @@ async function getUserActivityStats(env, days = 30) {
   }
 }
 
-// 일일 보고서 데이터 수집
-async function getDailyReportData(env) {
+// UTC 기준 날짜 계산 함수
+function getUTCDate(date = new Date()) {
+  return date.toISOString().split('T')[0];
+}
+
+// user_events 기준으로 정확한 일일 통계 계산
+async function getDailyStatsFromEvents(env, targetDate) {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // 해당 날짜의 모든 이벤트에서 고유 사용자 수 계산
+    const activeUsers = await env.DB.prepare(`
+      SELECT COUNT(DISTINCT user_id) as active_users
+      FROM user_events 
+      WHERE created_at LIKE ?
+    `).bind(`${targetDate}%`).first();
+    
+    // 실천 완료 사용자 수
+    const practiceUsers = await env.DB.prepare(`
+      SELECT COUNT(DISTINCT user_id) as practice_users
+      FROM user_events 
+      WHERE created_at LIKE ? AND event_type = 'practice_complete'
+    `).bind(`${targetDate}%`).first();
+
+    // 피드백 제출 사용자 수
+    const feedbackUsers = await env.DB.prepare(`
+      SELECT COUNT(DISTINCT user_id) as feedback_users
+      FROM user_events 
+      WHERE created_at LIKE ? AND event_type = 'feedback_submit'
+    `).bind(`${targetDate}%`).first();
+
+    // AI 상담 이용 사용자 수
+    const aiChatUsers = await env.DB.prepare(`
+      SELECT COUNT(DISTINCT user_id) as ai_chat_users
+      FROM user_events 
+      WHERE created_at LIKE ? AND event_type IN ('ai_chat_start', 'ai_chat_message')
+    `).bind(`${targetDate}%`).first();
+
+    return {
+      activity_date: typeof targetDate === 'string' ? targetDate : targetDate.toString(),
+      active_users: activeUsers.active_users || 0,
+      practice_users: practiceUsers.practice_users || 0,
+      feedback_users: feedbackUsers.feedback_users || 0,
+      ai_chat_users: aiChatUsers.ai_chat_users || 0
+    };
+  } catch (error) {
+    console.error('Daily stats from events error:', error);
+    return {
+      activity_date: typeof targetDate === 'string' ? targetDate : targetDate.toString(),
+      active_users: 0,
+      practice_users: 0,
+      feedback_users: 0,
+      ai_chat_users: 0
+    };
+  }
+}
+
+// 데이터 일관성 검증 함수 (user_events 기준으로 수정)
+function validateDataConsistency(dailyStats, eventStats) {
+  const issues = [];
+  
+  // 활성 사용자 수가 페이지 방문 사용자 수보다 많을 수 없음
+  if (dailyStats.active_users > eventStats.page_visits.unique_users) {
+    issues.push(`활성 사용자(${dailyStats.active_users})가 페이지 방문 사용자(${eventStats.page_visits.unique_users})보다 많음`);
+  }
+  
+  // 실천 완료 사용자 수가 활성 사용자 수보다 많을 수 없음
+  if (eventStats.practice_completes.unique_users > dailyStats.active_users) {
+    issues.push(`실천 완료 사용자(${eventStats.practice_completes.unique_users})가 활성 사용자(${dailyStats.active_users})보다 많음`);
+  }
+  
+  // 피드백 제출 사용자 수가 활성 사용자 수보다 많을 수 없음
+  if (eventStats.feedback_submits.unique_users > dailyStats.active_users) {
+    issues.push(`피드백 제출 사용자(${eventStats.feedback_submits.unique_users})가 활성 사용자(${dailyStats.active_users})보다 많음`);
+  }
+  
+  // AI 상담 사용자 수가 활성 사용자 수보다 많을 수 없음
+  if (eventStats.ai_chat_starts.unique_users > dailyStats.active_users) {
+    issues.push(`AI 상담 사용자(${eventStats.ai_chat_starts.unique_users})가 활성 사용자(${dailyStats.active_users})보다 많음`);
+  }
+  
+  return issues;
+}
+
+// 일일 보고서 데이터 수집 (수정된 버전)
+async function getDailyReportData(env, targetDate = null) {
+  try {
+    // 특정 날짜가 지정된 경우 해당 날짜 사용, 아니면 어제 날짜 사용
+    const today = getUTCDate();
+    const yesterday = targetDate || getUTCDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
     
     // 어제의 리텐션 지표
     const retentionMetrics = await calculateRetentionMetrics(env);
     
-    // 어제의 활동 통계
+    // 어제의 활동 통계 (UTC 기준)
     const activityStats = await getUserActivityStats(env);
     
-    // 어제의 주요 지표
-    const yesterdayStats = activityStats.daily_active_users.find(day => day.activity_date === yesterday);
+    // 어제의 주요 지표 (user_events 기준으로 재계산)
+    const yesterdayStats = await getDailyStatsFromEvents(env, yesterday);
     
     // 30일간 일별 활성 사용자 트렌드 계산
     const dailyActiveUsers = activityStats.daily_active_users;
+    
     const last7Days = dailyActiveUsers.slice(0, 7);
     const last30Days = dailyActiveUsers.slice(0, 30);
     
+    const last7DaysSum = last7Days.reduce((sum, day) => sum + day.active_users, 0);
+    const last30DaysSum = last30Days.reduce((sum, day) => sum + day.active_users, 0);
+    
     const last7DaysAvg = last7Days.length > 0 ? 
-      (last7Days.reduce((sum, day) => sum + day.active_users, 0) / last7Days.length).toFixed(1) : 0;
+      (last7DaysSum / last7Days.length).toFixed(1) : 0;
     const last30DaysAvg = last30Days.length > 0 ? 
-      (last30Days.reduce((sum, day) => sum + day.active_users, 0) / last30Days.length).toFixed(1) : 0;
+      (last30DaysSum / last30Days.length).toFixed(1) : 0;
     
     // 최고/최저 활성일 찾기
     const peakDay = dailyActiveUsers.reduce((max, day) => 
@@ -879,35 +886,103 @@ async function getDailyReportData(env) {
     const lowestDay = dailyActiveUsers.reduce((min, day) => 
       day.active_users < min.active_users ? day : min, dailyActiveUsers[0] || { active_users: 0, activity_date: 'N/A' });
     
+    // 이벤트 통계를 특정 날짜(yesterday)로 계산
+    const yesterdayEventStats = await env.DB.prepare(`
+      SELECT 
+        event_type,
+        COUNT(*) as count,
+        COUNT(DISTINCT user_id) as unique_users
+      FROM user_events
+      WHERE created_at LIKE ?
+      GROUP BY event_type
+      ORDER BY count DESC
+    `).bind(`${yesterday}%`).all();
+    
     // 이벤트 통계에서 주요 이벤트 추출
-    const practiceCompletes = activityStats.event_statistics.find(event => event.event_type === 'practice_complete');
-    const aiChatStarts = activityStats.event_statistics.find(event => event.event_type === 'ai_chat_start');
-    const feedbackSubmits = activityStats.event_statistics.find(event => event.event_type === 'feedback_submit');
-    const pageVisits = activityStats.event_statistics.find(event => event.event_type === 'page_visit');
-    const onboardingCompletes = activityStats.event_statistics.find(event => event.event_type === 'onboarding_complete');
-    const challengeStarts = activityStats.event_statistics.find(event => event.event_type === 'challenge_start');
-    const challengeCompletes = activityStats.event_statistics.find(event => event.event_type === 'challenge_complete');
+    const practiceCompletes = yesterdayEventStats.results.find(event => event.event_type === 'practice_complete');
+    const aiChatStarts = yesterdayEventStats.results.find(event => event.event_type === 'ai_chat_start');
+    const feedbackSubmits = yesterdayEventStats.results.find(event => event.event_type === 'feedback_submit');
+    const pageVisits = yesterdayEventStats.results.find(event => event.event_type === 'page_visit');
+    const onboardingCompletes = yesterdayEventStats.results.find(event => event.event_type === 'onboarding_complete');
+    const challengeStarts = yesterdayEventStats.results.find(event => event.event_type === 'challenge_start');
+    const challengeCompletes = yesterdayEventStats.results.find(event => event.event_type === 'challenge_complete');
+    
+    // 기본값 설정
+    const defaultStats = {
+      activity_date: yesterday,
+      active_users: 0,
+      practice_users: 0,
+      feedback_users: 0,
+      ai_chat_users: 0
+    };
+    
+    const eventStats = {
+      practice_completes: practiceCompletes || { count: 0, unique_users: 0 },
+      ai_chat_starts: aiChatStarts || { count: 0, unique_users: 0 },
+      feedback_submits: feedbackSubmits || { count: 0, unique_users: 0 },
+      page_visits: pageVisits || { count: 0, unique_users: 0 },
+      onboarding_completes: onboardingCompletes || { count: 0, unique_users: 0 },
+      challenge_starts: challengeStarts || { count: 0, unique_users: 0 },
+      challenge_completes: challengeCompletes || { count: 0, unique_users: 0 }
+    };
+    
+    // yesterdayStats가 실패한 경우를 대비해 강제로 user_events 데이터 사용
+    let dailyStats;
+    if (yesterdayStats && yesterdayStats.active_users > 0) {
+      dailyStats = yesterdayStats;
+    } else {
+      // user_events에서 직접 계산
+      const activeUsers = await env.DB.prepare(`
+        SELECT COUNT(DISTINCT user_id) as active_users
+        FROM user_events 
+        WHERE created_at LIKE ?
+      `).bind(`${yesterday}%`).first();
+      
+      const practiceUsers = await env.DB.prepare(`
+        SELECT COUNT(DISTINCT user_id) as practice_users
+        FROM user_events 
+        WHERE created_at LIKE ? AND event_type = 'practice_complete'
+      `).bind(`${yesterday}%`).first();
+      
+      const feedbackUsers = await env.DB.prepare(`
+        SELECT COUNT(DISTINCT user_id) as feedback_users
+        FROM user_events 
+        WHERE created_at LIKE ? AND event_type = 'feedback_submit'
+      `).bind(`${yesterday}%`).first();
+      
+      const aiChatUsers = await env.DB.prepare(`
+        SELECT COUNT(DISTINCT user_id) as ai_chat_users
+        FROM user_events 
+        WHERE created_at LIKE ? AND event_type IN ('ai_chat_start', 'ai_chat_message')
+      `).bind(`${yesterday}%`).first();
+      
+      dailyStats = {
+        activity_date: yesterday,
+        active_users: activeUsers.active_users || 0,
+        practice_users: practiceUsers.practice_users || 0,
+        feedback_users: feedbackUsers.feedback_users || 0,
+        ai_chat_users: aiChatUsers.ai_chat_users || 0
+      };
+      console.log('Calculated dailyStats directly:', dailyStats);
+    }
+    
+    // 데이터 일관성 검증 (event_stats 기준으로 통일)
+    const consistencyIssues = validateDataConsistency({
+      active_users: eventStats.page_visits?.unique_users || 0,
+      practice_users: eventStats.practice_completes.unique_users,
+      feedback_users: eventStats.feedback_submits.unique_users,
+      ai_chat_users: eventStats.ai_chat_starts.unique_users
+    }, eventStats);
+    
+    if (consistencyIssues.length > 0) {
+      console.warn('데이터 일관성 문제 발견:', consistencyIssues);
+    }
     
     return {
-      date: yesterday,
+      date: typeof yesterday === 'string' ? yesterday : yesterday.toString(),
       retention_metrics: retentionMetrics,
-      daily_stats: yesterdayStats || {
-        activity_date: yesterday,
-        active_users: 0,
-        practice_users: 0,
-        feedback_users: 0,
-        ai_chat_users: 0
-      },
-      event_stats: {
-        practice_completes: practiceCompletes || { count: 0, unique_users: 0 },
-        ai_chat_starts: aiChatStarts || { count: 0, unique_users: 0 },
-        feedback_submits: feedbackSubmits || { count: 0, unique_users: 0 },
-        page_visits: pageVisits || { count: 0, unique_users: 0 },
-        onboarding_completes: onboardingCompletes || { count: 0, unique_users: 0 },
-        challenge_starts: challengeStarts || { count: 0, unique_users: 0 },
-        challenge_completes: challengeCompletes || { count: 0, unique_users: 0 }
-      },
-      session_stats: activityStats.session_statistics,
+      daily_stats: dailyStats,
+      event_stats: eventStats,
       daily_trend: {
         last_7_days_avg: parseFloat(last7DaysAvg),
         last_30_days_avg: parseFloat(last30DaysAvg),
@@ -915,6 +990,10 @@ async function getDailyReportData(env) {
         peak_users: peakDay.active_users,
         lowest_day: lowestDay.activity_date,
         lowest_users: lowestDay.active_users
+      },
+      data_consistency: {
+        issues: consistencyIssues,
+        is_consistent: consistencyIssues.length === 0
       },
       generated_at: new Date().toISOString()
     };
@@ -925,9 +1004,9 @@ async function getDailyReportData(env) {
   }
 }
 
-// 디스코드 메시지 포맷팅
+// 디스코드 메시지 포맷팅 (수정된 버전)
 function formatDiscordMessage(reportData) {
-  const { date, retention_metrics, daily_stats, event_stats, session_stats } = reportData;
+  const { date, retention_metrics, daily_stats, event_stats, data_consistency } = reportData;
   
   // 상태 이모지 결정
   const getStatusEmoji = (status) => {
@@ -960,7 +1039,7 @@ function formatDiscordMessage(reportData) {
       },
       {
         name: `📊 일일 활동 통계 (${date})`,
-        value: `• 활성 사용자: ${daily_stats.active_users}명\n• 실천 완료: ${daily_stats.practice_users}명\n• 피드백 제출: ${daily_stats.feedback_users}명\n• AI 상담 이용: ${daily_stats.ai_chat_users}명`,
+        value: `• 활성 사용자: ${event_stats.page_visits?.unique_users || 0}명\n• 실천 완료: ${event_stats.practice_completes.unique_users}명\n• 피드백 제출: ${event_stats.feedback_submits.unique_users}명\n• AI 상담 이용: ${event_stats.ai_chat_starts.unique_users}명`,
         inline: true
       },
       {
@@ -968,11 +1047,7 @@ function formatDiscordMessage(reportData) {
         value: `• 실천 완료: ${event_stats.practice_completes.count}회 (${event_stats.practice_completes.unique_users}명)\n• AI 상담 시작: ${event_stats.ai_chat_starts.count}회 (${event_stats.ai_chat_starts.unique_users}명)\n• 피드백 제출: ${event_stats.feedback_submits.count}회 (${event_stats.feedback_submits.unique_users}명)\n• 페이지 방문: ${event_stats.page_visits?.count || 0}회 (${event_stats.page_visits?.unique_users || 0}명)\n• 온보딩 완료: ${event_stats.onboarding_completes?.count || 0}회 (${event_stats.onboarding_completes?.unique_users || 0}명)`,
         inline: true
       },
-      {
-        name: "🔗 세션 통계 (30일 기준)",
-        value: `• 총 세션: ${session_stats.total_sessions}개\n• 고유 사용자: ${session_stats.unique_users}명\n• 평균 방문/세션: ${session_stats.avg_visits_per_session?.toFixed(1) || 0}회\n• 평균 이벤트/세션: ${session_stats.avg_events_per_session?.toFixed(1) || 0}회\n• 세션당 평균 체류시간: ${session_stats.avg_session_duration?.toFixed(1) || 0}분`,
-        inline: true
-      },
+      // 세션 통계 제거됨
       {
         name: "📈 30일간 일별 활성 사용자 트렌드",
         value: `• 최근 7일 평균: ${reportData.daily_trend?.last_7_days_avg || 0}명\n• 최근 30일 평균: ${reportData.daily_trend?.last_30_days_avg || 0}명\n• 최고 활성일: ${reportData.daily_trend?.peak_day || 'N/A'} (${reportData.daily_trend?.peak_users || 0}명)\n• 최저 활성일: ${reportData.daily_trend?.lowest_day || 'N/A'} (${reportData.daily_trend?.lowest_users || 0}명)`,
@@ -980,10 +1055,20 @@ function formatDiscordMessage(reportData) {
       }
     ],
     footer: {
-      text: `📅 생성 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`
+      text: `📅 생성 시간: ${new Date().toISOString()}`
     },
     timestamp: new Date().toISOString()
   };
+  
+  // 데이터 일관성 문제가 있는 경우 경고 필드 추가
+  if (data_consistency && !data_consistency.is_consistent) {
+    embed.fields.push({
+      name: "⚠️ 데이터 일관성 경고",
+      value: `• 문제 발견: ${data_consistency.issues.length}개\n• 상세: ${data_consistency.issues.join(', ')}`,
+      inline: false
+    });
+    embed.color = 0xff9900; // 주황색으로 변경
+  }
   
   return {
     content: `📊 **단단이 일일 보고서** - ${date}`,
@@ -1156,7 +1241,8 @@ async function handleRequest(request, env) {
 
       // 일일 보고서 데이터 조회 엔드포인트
       if (url.pathname === '/api/analytics/daily-report') {
-        const reportData = await getDailyReportData(env, request);
+        const targetDate = url.searchParams.get('date');
+        const reportData = await getDailyReportData(env, targetDate);
         return new Response(JSON.stringify(reportData), {
           headers: {
             'Content-Type': 'application/json',
@@ -1183,7 +1269,22 @@ async function handleRequest(request, env) {
 
       // 디스코드 일일 보고서 전송 엔드포인트
       if (url.pathname === '/api/discord/daily-report') {
-        const reportData = await getDailyReportData(env, request);
+        const targetDate = url.searchParams.get('date');
+        const reportData = await getDailyReportData(env, targetDate);
+        const discordMessage = formatDiscordMessage(reportData);
+        const result = await sendDiscordMessage(env, discordMessage);
+        
+        return new Response(JSON.stringify(result), {
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        });
+      }
+
+      // 특정 날짜 디스코드 보고서 전송 엔드포인트
+      if (url.pathname === '/api/discord/daily-report/2025-09-30') {
+        const reportData = await getDailyReportData(env, '2025-09-30');
         const discordMessage = formatDiscordMessage(reportData);
         const result = await sendDiscordMessage(env, discordMessage);
         
@@ -1357,7 +1458,7 @@ export default {
                 },
                 {
                   name: "발생 시간",
-                  value: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+                  value: new Date().toISOString(),
                   inline: false
                 }
               ],
