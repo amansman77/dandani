@@ -187,10 +187,20 @@ const PracticeCalendar = ({ challengeId, onDateSelect }) => {
   };
 
   const getRecordsForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // 로컬 날짜 기준으로 비교 (년/월/일만 비교)
+    const localYear = date.getFullYear();
+    const localMonth = date.getMonth();
+    const localDay = date.getDate();
+    
     return records.filter(record => {
-      const recordDate = new Date(record.created_at).toISOString().split('T')[0];
-      return recordDate === dateStr;
+      // record.created_at은 UTC로 저장되어 있으므로, 로컬 시간대로 변환
+      const recordDate = new Date(record.created_at);
+      const recordYear = recordDate.getFullYear();
+      const recordMonth = recordDate.getMonth();
+      const recordDay = recordDate.getDate();
+      
+      // 로컬 날짜 기준으로 비교
+      return recordYear === localYear && recordMonth === localMonth && recordDay === localDay;
     });
   };
 

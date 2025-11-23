@@ -82,12 +82,17 @@ const EnvelopeModal = ({ open, onClose, challengeId, challengeName, challengeEnd
       // 챌린지 종료일 기준으로 열람일 설정
       let unlockDate;
       if (challengeEndDate) {
-        // 챌린지 종료일이 있으면 그 날짜로 설정
-        unlockDate = new Date(challengeEndDate);
+        // 챌린지 종료일을 로컬 시간대 기준으로 파싱
+        // end_date는 'YYYY-MM-DD' 형식이므로, 로컬 시간대의 자정으로 설정
+        const [year, month, day] = challengeEndDate.split('-').map(Number);
+        unlockDate = new Date(year, month - 1, day, 0, 0, 0); // 로컬 시간대 자정
+        // 챌린지 종료일 다음날 자정으로 설정 (챌린지 완료 후 열람 가능)
+        unlockDate.setDate(unlockDate.getDate() + 1);
       } else {
         // 챌린지 종료일이 없으면 30일 후로 설정 (fallback)
         unlockDate = new Date();
         unlockDate.setDate(unlockDate.getDate() + 30);
+        unlockDate.setHours(0, 0, 0, 0); // 자정으로 설정
       }
 
       // 자동 비밀번호 생성

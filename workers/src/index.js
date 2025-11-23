@@ -26,11 +26,12 @@ const corsHeaders = {
 // 허용된 이벤트 타입 목록
 const ALLOWED_EVENT_TYPES = [
   'page_visit',
-  'practice_view', 
+  'practice_view',
   'practice_complete',
   'feedback_submit',
   'challenge_start',
   'challenge_complete',
+  'challenge_selected',
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
@@ -88,6 +89,11 @@ async function getTodayPractice(env, request) {
   // 이벤트 로깅: 페이지 방문
   await logUserEvent(env, request, 'page_visit', { page: 'today_practice' });
   
+  // URL에서 challengeId 파라미터 추출
+  const url = new URL(request.url);
+  const challengeIdParam = url.searchParams.get('challengeId');
+  console.log('getTodayPractice - challengeIdParam:', challengeIdParam, 'URL:', request.url);
+  
   // 클라이언트의 시간대 정보 받기
   const clientTimezone = request.headers.get('X-Client-Timezone');
   const clientTime = request.headers.get('X-Client-Time');
@@ -116,40 +122,66 @@ async function getTodayPractice(env, request) {
   // 사용자 ID를 헤더에서 받기
   const userId = request.headers.get('X-User-ID') || 'user123';
 
-  // 현재 날짜에 해당하는 챌린지 찾기
-  const challenge = await env.DB.prepare(`
-    SELECT * FROM challenges 
-    WHERE start_date <= date(?) AND end_date >= date(?)
-  `).bind(currentDate.toISOString().split('T')[0], currentDate.toISOString().split('T')[0]).first();
+  let challenge = null;
+  
+  // challengeId 파라미터가 있으면 해당 챌린지 조회
+  if (challengeIdParam) {
+    const challengeId = parseInt(challengeIdParam);
+    console.log('getTodayPractice - Looking for challenge ID:', challengeId);
+    challenge = await env.DB.prepare(`
+      SELECT * FROM challenges WHERE id = ?
+    `).bind(challengeId).first();
+    console.log('getTodayPractice - Found challenge:', challenge ? `ID ${challenge.id}` : 'NOT FOUND');
+  } else {
+    console.log('getTodayPractice - No challengeId param, using date-based lookup');
+    // challengeId가 없으면 현재 날짜에 해당하는 챌린지 찾기
+    challenge = await env.DB.prepare(`
+      SELECT * FROM challenges 
+      WHERE start_date <= date(?) AND end_date >= date(?)
+    `).bind(currentDate.toISOString().split('T')[0], currentDate.toISOString().split('T')[0]).first();
+  }
 
   if (challenge) {
-    // 활성 챌린지가 있는 경우
-    const startDate = new Date(challenge.start_date);
-    const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-    const day = dayDiff + 1;
+    let adjustedDay = 1;
+    
+    // challengeId 파라미터가 있으면 선택한 챌린지이므로 항상 1일차부터 시작
+    if (challengeIdParam) {
+      adjustedDay = 1;
+      console.log('getTodayPractice - Selected challenge, using day 1');
+    } else {
+      // challengeId가 없으면 날짜 기반으로 일차 계산
+      const startDate = new Date(challenge.start_date);
+      const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+      const day = dayDiff + 1;
+      
+      // 일차가 1보다 작으면 1로 설정, 총 일수를 넘으면 마지막 일차로 설정
+      const totalDays = Math.ceil((new Date(challenge.end_date) - startDate) / (1000 * 60 * 60 * 24)) + 1;
+      adjustedDay = Math.max(1, Math.min(day, totalDays));
+      console.log('getTodayPractice - Date-based challenge, calculated day:', adjustedDay);
+    }
     
     // DB에서 해당 챌린지의 해당 일수의 실천 과제 조회
     const practice = await env.DB.prepare(
       'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
-    ).bind(challenge.id, day).first();
+    ).bind(challenge.id, adjustedDay).first();
 
     if (practice) {
       // 이벤트 로깅: 실천 과제 조회
       await logUserEvent(env, request, 'practice_view', { 
         challenge_id: challenge.id, 
         practice_id: practice.id, 
-        day: day 
+        day: adjustedDay 
       });
       
       // 오늘 실천 기록 여부 확인
       const feedback = await env.DB.prepare(`
         SELECT id FROM practice_feedback 
         WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
-      `).bind(userId, challenge.id, day).first();
+      `).bind(userId, challenge.id, adjustedDay).first();
 
       return {
         ...practice,
-        day: day, // 현재 일차 추가
+        day: adjustedDay, // 현재 일차 추가
         isRecorded: !!feedback
       };
     }

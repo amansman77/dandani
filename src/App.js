@@ -10,7 +10,9 @@ import PracticeHistory from './components/PracticeHistory';
 import OnboardingModal from './components/OnboardingModal';
 import EnvelopeModal from './components/EnvelopeModal';
 import EnvelopeList from './components/EnvelopeList';
+import ChallengeSelector from './components/ChallengeSelector';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
+import { getSelectedChallengeId, setSelectedChallengeId, hasSelectedChallenge } from './utils/challengeSelection';
 import { initAnalytics } from './utils/analytics';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -55,17 +57,35 @@ function App() {
   const [selectedChallengeForEnvelope, setSelectedChallengeForEnvelope] = useState(null);
   const [envelopeListOpen, setEnvelopeListOpen] = useState(false);
   
+  // 챌린지 선택 상태
+  const [selectedChallengeId, setSelectedChallengeIdState] = useState(() => {
+    // LocalStorage에서 초기값 로드
+    return getSelectedChallengeId();
+  });
+  const [showChallengeSelector, setShowChallengeSelector] = useState(false);
 
-  const fetchPracticeAndChallenge = async () => {
+  const fetchPracticeAndChallenge = async (challengeId = null) => {
     setLoading(true);
     setError(null);
     try {
       // 사용자 ID 가져오기
       const userId = getUserId();
       
+      // 선택한 챌린지 ID 우선 사용, 없으면 파라미터 사용
+      const targetChallengeId = challengeId || selectedChallengeId;
+      
+      // 디버깅: 선택한 챌린지 ID 확인
+      console.log('Target challenge ID:', targetChallengeId, 'Type:', typeof targetChallengeId);
+      
       // 오늘의 실천 과제와 현재 챌린지 정보를 함께 가져오기
+      const practiceUrl = targetChallengeId 
+        ? `${API_URL}/api/practice/today?challengeId=${targetChallengeId}`
+        : `${API_URL}/api/practice/today`;
+      
+      console.log('Practice URL:', practiceUrl);
+      
       const [practiceResponse, challengesResponse] = await Promise.allSettled([
-        fetch(`${API_URL}/api/practice/today`, {
+        fetch(practiceUrl, {
           headers: {
             'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
             'X-Client-Time': new Date().toISOString(),
@@ -99,7 +119,33 @@ function App() {
       if (challengesResponse.status === 'fulfilled' && challengesResponse.value.ok) {
         const challengesData = await challengesResponse.value.json();
         console.log('Challenges data:', challengesData);
-        setCurrentChallenge(challengesData.current);
+        
+        // 선택한 챌린지가 있으면 해당 챌린지 정보 사용
+        if (targetChallengeId) {
+          // 모든 챌린지에서 선택한 챌린지 찾기
+          const allChallenges = [
+            ...(challengesData.current ? [challengesData.current] : []),
+            ...(challengesData.completed || []),
+            ...(challengesData.upcoming || [])
+          ];
+          const selectedChallenge = allChallenges.find(c => c.id === parseInt(targetChallengeId));
+          
+          if (selectedChallenge) {
+            // 선택한 챌린지의 경우, 항상 1일차부터 시작하는 것으로 간주
+            const updatedChallenge = {
+              ...selectedChallenge,
+              current_day: 1,
+              progress_percentage: Math.round((1 / selectedChallenge.total_days) * 100)
+            };
+            setCurrentChallenge(updatedChallenge);
+          } else {
+            // 선택한 챌린지를 찾을 수 없으면 기본 챌린지 사용
+            setCurrentChallenge(challengesData.current);
+          }
+        } else {
+          // 선택한 챌린지가 없으면 기본 챌린지 사용
+          setCurrentChallenge(challengesData.current);
+        }
       } else {
         console.log('Challenges API not available, using fallback');
         // Fallback 데이터
@@ -121,14 +167,29 @@ function App() {
   };
 
   useEffect(() => {
-    fetchPracticeAndChallenge();
-    
     // 새 사용자 온보딩 체크
     const { isNew } = getUserIdInfo();
     if (isNew) {
       setShowOnboarding(true);
     }
+    
+    // 선택한 챌린지가 없으면 선택 화면 표시
+    if (!hasSelectedChallenge()) {
+      setShowChallengeSelector(true);
+      setLoading(false); // 로딩 완료
+    } else {
+      // 선택한 챌린지가 있으면 실천 과제 로드
+      fetchPracticeAndChallenge();
+    }
   }, []);
+  
+  // 선택한 챌린지가 변경되면 실천 과제 다시 로드
+  useEffect(() => {
+    if (selectedChallengeId) {
+      fetchPracticeAndChallenge();
+      setShowChallengeSelector(false);
+    }
+  }, [selectedChallengeId]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -164,10 +225,23 @@ function App() {
   const handleCreateEnvelope = (challengeId) => {
     const challenge = currentChallenge;
     if (challenge) {
+      // 선택한 챌린지의 경우, 선택한 날짜 기준으로 종료일 계산
+      let actualEndDate = challenge.end_date;
+      const selectedChallengeId = getSelectedChallengeId();
+      
+      if (selectedChallengeId && parseInt(selectedChallengeId) === challengeId) {
+        // 선택한 챌린지인 경우, 오늘 날짜 + 챌린지 기간으로 종료일 계산
+        const today = new Date();
+        const totalDays = challenge.total_days || 7; // 기본값 7일
+        const calculatedEndDate = new Date(today);
+        calculatedEndDate.setDate(today.getDate() + totalDays - 1); // 시작일 포함이므로 -1
+        actualEndDate = `${calculatedEndDate.getFullYear()}-${String(calculatedEndDate.getMonth() + 1).padStart(2, '0')}-${String(calculatedEndDate.getDate()).padStart(2, '0')}`;
+      }
+      
       setSelectedChallengeForEnvelope({
         id: challengeId,
         name: challenge.name,
-        endDate: challenge.end_date
+        endDate: actualEndDate
       });
       setEnvelopeModalOpen(true);
     }
@@ -187,6 +261,16 @@ function App() {
   // 편지 목록 모달 닫기 핸들러
   const handleCloseEnvelopeList = () => {
     setEnvelopeListOpen(false);
+  };
+
+  // 챌린지 선택 핸들러
+  const handleChallengeSelected = (challenge) => {
+    setSelectedChallengeIdState(challenge.id.toString());
+    setSelectedChallengeId(challenge.id);
+    setCurrentChallenge(challenge); // 선택한 챌린지를 currentChallenge로 설정
+    setShowChallengeSelector(false);
+    // 실천 과제 로드
+    fetchPracticeAndChallenge(challenge.id);
   };
 
   // 빠른 완료 핸들러 (빈 값으로 저장)
@@ -223,7 +307,7 @@ function App() {
       
       if (response.ok) {
         const result = await response.json();
-        alert('실천을 완료했습니다! 🎉');
+        alert('좋아요! 오늘 실천 완료했어요');
         console.log('Quick complete submitted:', result);
         
         // 실천 기록이 성공적으로 제출되었으므로 기록된 상태로 표현
@@ -375,8 +459,16 @@ function App() {
 
         {activeTab === 0 && !showCurrentChallengeDetail && (
           <>
-            {/* 오늘의 실천 과제 카드 (위로 이동) */}
-            <StyledPaper elevation={3}>
+            {/* 챌린지 선택 화면 */}
+            {showChallengeSelector && (
+              <ChallengeSelector onChallengeSelected={handleChallengeSelected} />
+            )}
+            
+            {/* 선택한 챌린지가 있을 때만 실천 과제 표시 */}
+            {!showChallengeSelector && hasSelectedChallenge() && (
+              <>
+                {/* 오늘의 실천 과제 카드 (위로 이동) */}
+                <StyledPaper elevation={3}>
               <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
                 fontSize: '2.2rem',
                 fontWeight: 700,
@@ -482,13 +574,15 @@ function App() {
             {/* 카드 간격 추가 */}
             <Box sx={{ mt: 4 }} />
             
-            {/* 현재 챌린지 컨텍스트 (아래로 이동) */}
-            <ChallengeContext 
-              challenge={currentChallenge} 
-              onViewCurrentChallenge={handleViewCurrentChallenge}
-              onCreateEnvelope={handleCreateEnvelope}
-              onViewEnvelopeList={handleViewEnvelopeList}
-            />
+                {/* 현재 챌린지 컨텍스트 (아래로 이동) */}
+                <ChallengeContext 
+                  challenge={currentChallenge} 
+                  onViewCurrentChallenge={handleViewCurrentChallenge}
+                  onCreateEnvelope={handleCreateEnvelope}
+                  onViewEnvelopeList={handleViewEnvelopeList}
+                />
+              </>
+            )}
           </>
         )}
 

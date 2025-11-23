@@ -75,7 +75,7 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
               color: 'white',
               letterSpacing: '0.3px'
             }}>
-              {new Date().getMonth() + 1}월 진행중인 실천
+              나의 챌린지
             </Typography>
           </Box>
           <Typography variant="subtitle1" sx={{
