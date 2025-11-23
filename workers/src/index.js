@@ -611,13 +611,13 @@ async function calculateRetentionMetrics(env) {
         AND date(ue1.created_at) < ?
     `).bind(thirtyDaysAgo, today).first();
     
-    // Week1 챌린지 완료율 계산
+    // Week1 챌린지 완료율 계산 (user_events 테이블 사용)
     const week1Completion = await env.DB.prepare(`
       SELECT 
         COUNT(DISTINCT user_id) as total_users,
-        COUNT(DISTINCT CASE WHEN practice_completed = 1 THEN user_id END) as completed_users
-      FROM user_daily_activity
-      WHERE activity_date >= ? AND activity_date < ?
+        COUNT(DISTINCT CASE WHEN event_type = 'practice_complete' THEN user_id END) as completed_users
+      FROM user_events
+      WHERE created_at >= ? AND created_at < ?
     `).bind(thirtyDaysAgo, today).first();
     
     // Day7 리텐션 계산
@@ -634,12 +634,19 @@ async function calculateRetentionMetrics(env) {
         AND date(ue1.created_at) < ?
     `).bind(thirtyDaysAgo, today).first();
     
-    // Day30 완주율 계산
+    // Day30 완주율 계산 (user_events 테이블 사용)
     const day30Completion = await env.DB.prepare(`
       SELECT 
         COUNT(DISTINCT user_id) as total_users,
         COUNT(DISTINCT CASE WHEN active_days >= 30 THEN user_id END) as completed_users
-      FROM user_activity_summary
+      FROM (
+        SELECT 
+          user_id,
+          COUNT(DISTINCT date(created_at)) as active_days
+        FROM user_events 
+        WHERE event_type = 'page_visit'
+        GROUP BY user_id
+      ) user_activity_summary
     `).first();
     
     // 긍정 후기 비율 계산
