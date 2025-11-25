@@ -38,6 +38,8 @@ const ALLOWED_EVENT_TYPES = [
   'onboarding_complete'
 ];
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 // 이벤트 로깅 유틸리티 함수
 async function logUserEvent(env, request, eventType, eventData = {}) {
   try {
@@ -92,7 +94,8 @@ async function getTodayPractice(env, request) {
   // URL에서 challengeId 파라미터 추출
   const url = new URL(request.url);
   const challengeIdParam = url.searchParams.get('challengeId');
-  console.log('getTodayPractice - challengeIdParam:', challengeIdParam, 'URL:', request.url);
+  const startedAtParam = url.searchParams.get('startedAt');
+  console.log('getTodayPractice - challengeIdParam:', challengeIdParam, 'startedAt:', startedAtParam, 'URL:', request.url);
   
   // 클라이언트의 시간대 정보 받기
   const clientTimezone = request.headers.get('X-Client-Timezone');
@@ -142,25 +145,34 @@ async function getTodayPractice(env, request) {
   }
 
   if (challenge) {
+    const challengeStartDate = new Date(challenge.start_date);
+    const challengeEndDate = new Date(challenge.end_date);
+    const calculatedTotalDays = Math.ceil((challengeEndDate - challengeStartDate) / MS_PER_DAY) + 1;
+    const totalDays = Math.max(1, Number.isFinite(calculatedTotalDays) ? calculatedTotalDays : 1);
     let adjustedDay = 1;
-    
-    // challengeId 파라미터가 있으면 선택한 챌린지이므로 항상 1일차부터 시작
+
     if (challengeIdParam) {
-      adjustedDay = 1;
-      console.log('getTodayPractice - Selected challenge, using day 1');
+      let effectiveStartedAt = startedAtParam || challenge.start_date;
+      if (!startedAtParam) {
+        const fallbackStart = await getChallengeSelectionStart(env, userId, challengeIdParam);
+        if (fallbackStart) {
+          effectiveStartedAt = fallbackStart;
+        }
+      }
+
+      adjustedDay = calculateChallengeDayFromStart(
+        effectiveStartedAt,
+        currentDate,
+        totalDays
+      );
+      console.log('getTodayPractice - Selected challenge day:', adjustedDay, 'of', totalDays);
     } else {
-      // challengeId가 없으면 날짜 기반으로 일차 계산
-      const startDate = new Date(challenge.start_date);
-      const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+      const dayDiff = Math.floor((currentDate - challengeStartDate) / MS_PER_DAY);
       const day = dayDiff + 1;
-      
-      // 일차가 1보다 작으면 1로 설정, 총 일수를 넘으면 마지막 일차로 설정
-      const totalDays = Math.ceil((new Date(challenge.end_date) - startDate) / (1000 * 60 * 60 * 24)) + 1;
       adjustedDay = Math.max(1, Math.min(day, totalDays));
       console.log('getTodayPractice - Date-based challenge, calculated day:', adjustedDay);
     }
-    
-    // DB에서 해당 챌린지의 해당 일수의 실천 과제 조회
+
     const practice = await env.DB.prepare(
       'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
     ).bind(challenge.id, adjustedDay).first();
@@ -810,6 +822,66 @@ async function getUserActivityStats(env, days = 30) {
 // UTC 기준 날짜 계산 함수
 function getUTCDate(date = new Date()) {
   return date.toISOString().split('T')[0];
+}
+
+function normalizeUTCDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = value instanceof Date ? new Date(value) : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function calculateChallengeDayFromStart(startValue, currentDate, totalDays) {
+  const normalizedStart = normalizeUTCDate(startValue);
+  if (!normalizedStart || !currentDate) {
+    return 1;
+  }
+
+  const diffDays = Math.floor((currentDate - normalizedStart) / MS_PER_DAY);
+  const rawDay = diffDays + 1;
+  const safeTotalDays = Math.max(1, totalDays || 1);
+
+  if (!Number.isFinite(rawDay)) {
+    return 1;
+  }
+
+  if (rawDay < 1) {
+    return 1;
+  }
+
+  if (rawDay > safeTotalDays) {
+    return safeTotalDays;
+  }
+
+  return rawDay;
+}
+
+async function getChallengeSelectionStart(env, userId, challengeId) {
+  if (!userId || !challengeId) {
+    return null;
+  }
+
+  try {
+    const result = await env.DB.prepare(
+      `SELECT created_at FROM user_events
+       WHERE user_id = ?
+         AND event_type = 'challenge_selected'
+         AND CAST(json_extract(event_data, '$.challenge_id') AS TEXT) = ?
+       ORDER BY created_at DESC
+       LIMIT 1`
+    ).bind(userId, challengeId.toString()).first();
+
+    return result?.created_at || null;
+  } catch (error) {
+    console.error('Failed to fetch challenge selection start:', error);
+    return null;
+  }
 }
 
 // user_events 기준으로 정확한 일일 통계 계산
