@@ -49,6 +49,7 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
+  const [isAdLanding, setIsAdLanding] = useState(false);
 
   useEffect(() => {
     fetchChallenges();
@@ -104,12 +105,15 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
             c => c.id === adChallengeId
           );
           if (adChallengeIndex > -1) {
-            const adChallenge = sortedChallenges.splice(adChallengeIndex, 1)[0];
-            sortedChallenges.unshift(adChallenge);
+            const adChallenge = sortedChallenges[adChallengeIndex];
+            setChallenges([adChallenge]);
+            setIsAdLanding(true);
+            return;
           }
         }
 
-        // 하루 3~5개의 챌린지만 표시
+        // 광고 파라미터가 없거나 매칭되는 챌린지가 없는 경우 기본 목록 노출
+        setIsAdLanding(false);
         const displayChallenges = sortedChallenges.slice(0, 5);
         
         setChallenges(displayChallenges);
@@ -195,8 +199,13 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
             mb: 2
           }}
         >
-          오늘 하고 싶은 작은 실천을 골라보세요
+          {isAdLanding ? '이 실천에 초대받았어요' : '오늘 하고 싶은 작은 실천을 골라보세요'}
         </Typography>
+        {isAdLanding && (
+          <Typography variant="body1" color="text.secondary">
+            초대된 챌린지에 바로 참여해 보세요.
+          </Typography>
+        )}
       </TitleBox>
 
       <Box>
