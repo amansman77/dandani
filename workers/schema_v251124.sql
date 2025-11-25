@@ -4,8 +4,8 @@
 -- 챌린지 데이터 삽입
 INSERT INTO challenges (name, description, start_date, end_date, created_at)
 VALUES (
-  '아침 선언 7일 챌린지',
-  '7일 동안 매일 아침 "기분 좋은 하루를 떠올리며, 오늘 하루가 모두 잘될 거라 마음속으로 확신한다."라는 선언으로 하루를 시작합니다.',
+  '자존감을 높이는 아침 1분 루틴',
+  '성공한 사업가 고토 하야토의 노하우',
   '2025-11-01',
   '2025-11-07',
   datetime('now')
