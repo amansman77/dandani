@@ -212,7 +212,16 @@ function App() {
   }, [selectedChallengeId]);
 
   useEffect(() => {
-    if (selectedChallengeId && selectedChallengeStartedAt) {
+    if (selectedChallengeId) {
+      // 선택한 챌린지 ID는 있지만 시작 일시가 없는 경우, 현재 시점으로 설정
+      if (!selectedChallengeStartedAt) {
+        const startedAt = new Date().toISOString();
+        const selection = setSelectedChallenge(selectedChallengeId, startedAt);
+        setSelectedChallengeInfo(selection);
+        return; // 상태 업데이트 후 다음 useEffect에서 처리
+      }
+      
+      // 둘 다 있으면 실천 과제 로드
       fetchPracticeAndChallenge();
       setShowChallengeSelector(false);
     }

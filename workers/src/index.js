@@ -152,20 +152,19 @@ async function getTodayPractice(env, request) {
     let adjustedDay = 1;
 
     if (challengeIdParam) {
-      let effectiveStartedAt = startedAtParam || challenge.start_date;
+      // startedAtParam은 프론트엔드에서 보장되어야 함
       if (!startedAtParam) {
-        const fallbackStart = await getChallengeSelectionStart(env, userId, challengeIdParam);
-        if (fallbackStart) {
-          effectiveStartedAt = fallbackStart;
-        }
+        console.error('startedAt parameter is missing for selected challenge:', challengeIdParam);
+        // 프론트엔드에서 보장하므로 여기서는 challenge.start_date를 사용하지 않고 에러 반환
+        throw new Error('startedAt parameter is required for selected challenges');
       }
 
       adjustedDay = calculateChallengeDayFromStart(
-        effectiveStartedAt,
+        startedAtParam,
         currentDate,
         totalDays
       );
-      console.log('getTodayPractice - Selected challenge day:', adjustedDay, 'of', totalDays);
+      console.log('getTodayPractice - Selected challenge day:', adjustedDay, 'of', totalDays, 'startedAt:', startedAtParam);
     } else {
       const dayDiff = Math.floor((currentDate - challengeStartDate) / MS_PER_DAY);
       const day = dayDiff + 1;
