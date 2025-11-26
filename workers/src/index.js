@@ -29,7 +29,6 @@ const ALLOWED_EVENT_TYPES = [
   'practice_view',
   'practice_complete',
   'feedback_submit',
-  'challenge_start',
   'challenge_complete',
   'challenge_selected',
   'ai_chat_start',
@@ -1014,8 +1013,8 @@ async function getDailyReportData(env, targetDate = null) {
     const feedbackSubmits = yesterdayEventStats.results.find(event => event.event_type === 'feedback_submit');
     const pageVisits = yesterdayEventStats.results.find(event => event.event_type === 'page_visit');
     const onboardingCompletes = yesterdayEventStats.results.find(event => event.event_type === 'onboarding_complete');
-    const challengeStarts = yesterdayEventStats.results.find(event => event.event_type === 'challenge_start');
     const challengeCompletes = yesterdayEventStats.results.find(event => event.event_type === 'challenge_complete');
+    const challengeSelected = yesterdayEventStats.results.find(event => event.event_type === 'challenge_selected');
     
     // 기본값 설정
     const defaultStats = {
@@ -1032,8 +1031,8 @@ async function getDailyReportData(env, targetDate = null) {
       feedback_submits: feedbackSubmits || { count: 0, unique_users: 0 },
       page_visits: pageVisits || { count: 0, unique_users: 0 },
       onboarding_completes: onboardingCompletes || { count: 0, unique_users: 0 },
-      challenge_starts: challengeStarts || { count: 0, unique_users: 0 },
-      challenge_completes: challengeCompletes || { count: 0, unique_users: 0 }
+      challenge_completes: challengeCompletes || { count: 0, unique_users: 0 },
+      challenge_selected: challengeSelected || { count: 0, unique_users: 0 }
     };
     
     // yesterdayStats가 실패한 경우를 대비해 강제로 user_events 데이터 사용
@@ -1149,12 +1148,12 @@ function formatDiscordMessage(reportData) {
       },
       {
         name: `📊 일일 활동 통계 (${date})`,
-        value: `• 활성 사용자: ${event_stats.page_visits?.unique_users || 0}명\n• 실천 완료: ${event_stats.practice_completes.unique_users}명\n• 피드백 제출: ${event_stats.feedback_submits.unique_users}명\n• AI 상담 이용: ${event_stats.ai_chat_starts.unique_users}명`,
+        value: `• 활성 사용자: ${event_stats.page_visits?.unique_users || 0}명\n• 챌린지 선택: ${event_stats.challenge_selected?.unique_users || 0}명\n• 실천 완료: ${event_stats.practice_completes?.unique_users || 0}명\n• 피드백 제출: ${event_stats.feedback_submits?.unique_users || 0}명\n• AI 상담 이용: ${event_stats.ai_chat_starts?.unique_users || 0}명`,
         inline: true
       },
       {
         name: `📈 이벤트 통계 (${date})`,
-        value: `• 실천 완료: ${event_stats.practice_completes.count}회 (${event_stats.practice_completes.unique_users}명)\n• AI 상담 시작: ${event_stats.ai_chat_starts.count}회 (${event_stats.ai_chat_starts.unique_users}명)\n• 피드백 제출: ${event_stats.feedback_submits.count}회 (${event_stats.feedback_submits.unique_users}명)\n• 페이지 방문: ${event_stats.page_visits?.count || 0}회 (${event_stats.page_visits?.unique_users || 0}명)\n• 온보딩 완료: ${event_stats.onboarding_completes?.count || 0}회 (${event_stats.onboarding_completes?.unique_users || 0}명)`,
+        value: `• 챌린지 선택: ${event_stats.challenge_selected?.count || 0}회 (${event_stats.challenge_selected?.unique_users || 0}명)\n• 실천 완료: ${event_stats.practice_completes?.count || 0}회 (${event_stats.practice_completes?.unique_users || 0}명)\n• AI 상담 시작: ${event_stats.ai_chat_starts?.count || 0}회 (${event_stats.ai_chat_starts?.unique_users || 0}명)\n• 피드백 제출: ${event_stats.feedback_submits?.count || 0}회 (${event_stats.feedback_submits?.unique_users || 0}명)\n• 페이지 방문: ${event_stats.page_visits?.count || 0}회 (${event_stats.page_visits?.unique_users || 0}명)\n• 온보딩 완료: ${event_stats.onboarding_completes?.count || 0}회 (${event_stats.onboarding_completes?.unique_users || 0}명)`,
         inline: true
       },
       // 세션 통계 제거됨

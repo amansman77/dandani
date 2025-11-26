@@ -89,11 +89,6 @@ export const logAIChatMessage = (messageLength) => {
   logEvent('ai_chat_message', { message_length: messageLength });
 };
 
-// 챌린지 시작 이벤트
-export const logChallengeStart = (challengeId) => {
-  logEvent('challenge_start', { challenge_id: challengeId });
-};
-
 // 챌린지 완료 이벤트
 export const logChallengeComplete = (challengeId) => {
   logEvent('challenge_complete', { challenge_id: challengeId });
@@ -140,7 +135,6 @@ const analytics = {
   logFeedbackSubmit,
   logAIChatStart,
   logAIChatMessage,
-  logChallengeStart,
   logChallengeComplete,
   logOnboardingComplete,
   logTimefoldEnvelopeCreate,
