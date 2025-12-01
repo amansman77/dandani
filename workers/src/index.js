@@ -100,26 +100,8 @@ async function getTodayPractice(env, request) {
   const clientTimezone = request.headers.get('X-Client-Timezone');
   const clientTime = request.headers.get('X-Client-Time');
   
-  // 클라이언트 시간이 있으면 사용, 없으면 UTC 사용
-  const now = clientTime ? new Date(clientTime) : new Date();
-  
-  // UTC 기준으로 날짜 계산
-  const utcDate = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
-  ));
-  
-  // 클라이언트 시간대에 따라 날짜 조정
-  let currentDate = utcDate;
-  if (clientTimezone) {
-    // UTC+9인 경우, UTC 15:00 이후에는 다음날 실천 과제 표시
-    const utcHour = now.getUTCHours();
-    if (clientTimezone.includes('+9') && utcHour >= 15) {
-      currentDate = new Date(currentDate);
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-    }
-  }
+  // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산 (자정 기준)
+  const currentDate = getClientLocalDate(clientTime, clientTimezone);
 
   // 사용자 ID를 헤더에서 받기
   const userId = request.headers.get('X-User-ID') || 'user123';
@@ -189,10 +171,26 @@ async function getTodayPractice(env, request) {
         WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
       `).bind(userId, challenge.id, adjustedDay).first();
 
+      // 디버깅: 날짜 계산 정보 로깅
+      console.log('getTodayPractice - Date calculation:', {
+        clientTime,
+        clientTimezone,
+        calculatedDate: currentDate.toISOString().split('T')[0],
+        challengeDay: adjustedDay,
+        nextUpdateTime: '자정 (00:00) 기준'
+      });
+
       return {
         ...practice,
         day: adjustedDay, // 현재 일차 추가
-        isRecorded: !!feedback
+        isRecorded: !!feedback,
+        // 디버깅 정보 추가 (개발 환경에서만 유용)
+        _debug: {
+          calculatedDate: currentDate.toISOString().split('T')[0],
+          clientTime,
+          clientTimezone,
+          nextUpdateTime: '자정 (00:00) 기준'
+        }
       };
     }
   }
@@ -220,26 +218,8 @@ async function getChallenges(env, request) {
   const clientTimezone = request.headers.get('X-Client-Timezone');
   const clientTime = request.headers.get('X-Client-Time');
   
-  // 클라이언트 시간이 있으면 사용, 없으면 UTC 사용
-  const now = clientTime ? new Date(clientTime) : new Date();
-  
-  // UTC 기준으로 날짜 계산
-  const utcDate = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
-  ));
-  
-  // 클라이언트 시간대에 따라 날짜 조정
-  let currentDate = utcDate;
-  if (clientTimezone) {
-    // UTC+9인 경우, UTC 15:00 이후에는 다음날 실천 과제 표시
-    const utcHour = now.getUTCHours();
-    if (clientTimezone.includes('+9') && utcHour >= 15) {
-      currentDate = new Date(currentDate);
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-    }
-  }
+  // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산 (자정 기준)
+  const currentDate = getClientLocalDate(clientTime, clientTimezone);
 
   const currentDateStr = currentDate.toISOString().split('T')[0];
 
@@ -349,26 +329,8 @@ async function getChallengeDetail(env, challengeId, request) {
   const clientTimezone = request.headers.get('X-Client-Timezone');
   const clientTime = request.headers.get('X-Client-Time');
   
-  // 클라이언트 시간이 있으면 사용, 없으면 UTC 사용
-  const now = clientTime ? new Date(clientTime) : new Date();
-  
-  // UTC 기준으로 날짜 계산
-  const utcDate = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
-  ));
-  
-  // 클라이언트 시간대에 따라 날짜 조정
-  let currentDate = utcDate;
-  if (clientTimezone) {
-    // UTC+9인 경우, UTC 15:00 이후에는 다음날 실천 과제 표시
-    const utcHour = now.getUTCHours();
-    if (clientTimezone.includes('+9') && utcHour >= 15) {
-      currentDate = new Date(currentDate);
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-    }
-  }
+  // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산 (자정 기준)
+  const currentDate = getClientLocalDate(clientTime, clientTimezone);
 
   const startDate = new Date(challenge.start_date);
   const endDate = new Date(challenge.end_date);
@@ -815,6 +777,59 @@ async function getUserActivityStats(env, days = 30) {
     console.error('User activity stats error:', error);
     throw new Error(`사용자 활동 통계 조회 실패: ${error.message}`);
   }
+}
+
+// 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산
+function getClientLocalDate(clientTime, clientTimezone) {
+  if (clientTime) {
+    // ISO 8601 형식 문자열에서 날짜 부분만 추출 (예: "2025-11-27T23:30:00+09:00" -> "2025-11-27")
+    // 이렇게 하면 클라이언트의 로컬 시간 기준 날짜를 정확히 얻을 수 있음
+    const dateMatch = clientTime.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (dateMatch) {
+      const dateStr = dateMatch[1];
+      // YYYY-MM-DD 형식을 파싱하여 Date 객체 생성 (UTC 기준으로 날짜만 저장)
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+    
+    // ISO 8601 형식이 아니면 Date 객체로 파싱 시도
+    const clientDate = new Date(clientTime);
+    if (!isNaN(clientDate.getTime())) {
+      // 클라이언트 시간대 정보가 있으면 오프셋을 고려
+      if (clientTimezone) {
+        // 시간대 문자열에서 오프셋 추출 (예: "Asia/Seoul" 또는 "GMT+9" 또는 "+09:00")
+        let offsetHours = 0;
+        const offsetMatch = clientTimezone.match(/([+-])(\d+)/);
+        if (offsetMatch) {
+          const sign = offsetMatch[1] === '+' ? 1 : -1;
+          offsetHours = sign * parseInt(offsetMatch[2]);
+        }
+        
+        // UTC 시간에 오프셋을 더하여 로컬 시간 계산
+        const localTime = new Date(clientDate.getTime() + offsetHours * 60 * 60 * 1000);
+        return new Date(Date.UTC(
+          localTime.getUTCFullYear(),
+          localTime.getUTCMonth(),
+          localTime.getUTCDate()
+        ));
+      }
+      
+      // 시간대 정보가 없으면 클라이언트 시간의 날짜 부분만 사용
+      return new Date(Date.UTC(
+        clientDate.getUTCFullYear(),
+        clientDate.getUTCMonth(),
+        clientDate.getUTCDate()
+      ));
+    }
+  }
+  
+  // 클라이언트 시간이 없으면 UTC 기준으로 계산
+  const now = new Date();
+  return new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate()
+  ));
 }
 
 // UTC 기준 날짜 계산 함수

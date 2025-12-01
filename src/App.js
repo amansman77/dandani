@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Help as HelpIcon } from '@mui/icons-material';
@@ -77,7 +77,7 @@ function App() {
     return date;
   };
 
-  const calculateSelectedChallengeDay = (startDateLike, totalDays) => {
+  const calculateSelectedChallengeDay = useCallback((startDateLike, totalDays) => {
     const normalizedStart = normalizeDateOnly(startDateLike);
     const today = normalizeDateOnly(new Date());
 
@@ -89,9 +89,9 @@ function App() {
     const rawDay = diffDays + 1;
     const safeTotalDays = Math.max(1, totalDays || 1);
     return Math.max(1, Math.min(safeTotalDays, rawDay));
-  };
+  }, []);
 
-  const deriveSelectedChallengeProgress = (challenge, startDateLike) => {
+  const deriveSelectedChallengeProgress = useCallback((challenge, startDateLike) => {
     if (!challenge) {
       return { currentDay: 1, progressPercentage: 0 };
     }
@@ -102,9 +102,9 @@ function App() {
       currentDay,
       progressPercentage: Math.round((currentDay / safeTotalDays) * 100)
     };
-  };
+  }, [calculateSelectedChallengeDay]);
 
-  const fetchPracticeAndChallenge = async (challengeId = null, startedAtOverride = null) => {
+  const fetchPracticeAndChallenge = useCallback(async (challengeId = null, startedAtOverride = null) => {
     setLoading(true);
     setError(null);
     try {
@@ -145,6 +145,33 @@ function App() {
       if (practiceResponse.status === 'fulfilled' && practiceResponse.value.ok) {
         const practiceData = await practiceResponse.value.json();
         console.log('Practice data:', practiceData);
+        
+        // 챌린지 갱신 시간 정보 출력 (항상 표시)
+        const now = new Date();
+        const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const clientTime = now.toISOString();
+        
+        // 클라이언트 로컬 시간 기준으로 오늘 날짜 계산
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrowDate = new Date(todayDate);
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        
+        const timeUntilMidnight = tomorrowDate - now;
+        const hours = Math.floor(timeUntilMidnight / (1000 * 60 * 60));
+        const minutes = Math.floor((timeUntilMidnight % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeUntilMidnight % (1000 * 60)) / 1000);
+        
+        console.log('📅 챌린지 갱신 시간 정보:', {
+          '현재 시간 (로컬)': now.toLocaleString('ko-KR', { timeZone: clientTimezone }),
+          '현재 시간 (UTC)': clientTime,
+          '오늘 날짜': todayDate.toLocaleDateString('ko-KR'),
+          '클라이언트 시간대': clientTimezone,
+          '다음 갱신 시간': '자정 (00:00)',
+          '남은 시간': `${hours}시간 ${minutes}분 ${seconds}초`,
+          '챌린지 일차': practiceData.day || 'N/A',
+          ...(practiceData._debug ? { '서버 계산 날짜': practiceData._debug.calculatedDate } : {})
+        });
+        
         setPractice(practiceData);
       } else {
         console.log('Practice API not available, using fallback');
@@ -197,7 +224,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedChallengeId, selectedChallengeStartedAt, deriveSelectedChallengeProgress]);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
@@ -225,7 +252,7 @@ function App() {
       fetchPracticeAndChallenge();
       setShowChallengeSelector(false);
     }
-  }, [selectedChallengeId, selectedChallengeStartedAt]);
+  }, [selectedChallengeId, selectedChallengeStartedAt, fetchPracticeAndChallenge]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
