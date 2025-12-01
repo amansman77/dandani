@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Help as HelpIcon } from '@mui/icons-material';
@@ -39,6 +39,9 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  
+  // 중복 호출 방지를 위한 ref
+  const fetchingRef = useRef(false);
   
   // 채팅 관련 상태를 App.js에서 관리
   const [chatMessages, setChatMessages] = useState([]);
@@ -105,6 +108,15 @@ function App() {
   }, [calculateSelectedChallengeDay]);
 
   const fetchPracticeAndChallenge = useCallback(async (challengeId = null, startedAtOverride = null) => {
+    // 중복 호출 방지
+    if (fetchingRef.current) {
+      console.log('[App] fetchPracticeAndChallenge already in progress, skipping duplicate call');
+      return;
+    }
+    
+    fetchingRef.current = true;
+    console.log('[App] fetchPracticeAndChallenge called:', { challengeId, startedAtOverride });
+    
     setLoading(true);
     setError(null);
     try {
@@ -223,6 +235,7 @@ function App() {
       setError(err.message);
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   }, [selectedChallengeId, selectedChallengeStartedAt, deriveSelectedChallengeProgress]);
 

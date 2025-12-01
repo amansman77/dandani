@@ -24,6 +24,11 @@ export const logEvent = async (eventType, eventData = {}) => {
     const userId = getUserId();
     const sessionId = getSessionId();
     
+    // 디버깅: page_visit 이벤트 로깅 추적
+    if (eventType === 'page_visit') {
+      console.log(`[Analytics] Logging page_visit event:`, { eventType, eventData, userId, sessionId });
+    }
+    
     // 백엔드로 이벤트 전송 (비동기, 실패해도 서비스에 영향 없음)
     fetch(`${API_BASE_URL}/api/analytics/event`, {
       method: 'POST',
@@ -108,8 +113,18 @@ export const logTimefoldEnvelopeCreate = (challengeId, unlockDate) => {
 };
 
 // 사용자 활동 추적을 위한 자동 이벤트 로깅
+let analyticsInitialized = false;
+
 export const initAnalytics = () => {
+  // 중복 초기화 방지
+  if (analyticsInitialized) {
+    console.debug('[Analytics] initAnalytics already called, skipping duplicate initialization');
+    return;
+  }
+  analyticsInitialized = true;
+  
   // 페이지 로드 시 자동으로 페이지 방문 이벤트 로깅
+  console.log('[Analytics] Initializing analytics, logging page_visit event');
   logPageVisit('app_load');
   
   // 페이지 언로드 시는 별도 이벤트 로깅하지 않음 (허용되지 않는 event_type)

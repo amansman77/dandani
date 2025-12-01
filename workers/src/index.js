@@ -87,8 +87,8 @@ async function logUserEvent(env, request, eventType, eventData = {}) {
 
 // 오늘의 실천 과제와 기록 상태 가져오기
 async function getTodayPractice(env, request) {
-  // 이벤트 로깅: 페이지 방문
-  await logUserEvent(env, request, 'page_visit', { page: 'today_practice' });
+  // 페이지 방문 이벤트는 프론트엔드에서 로깅하므로 여기서는 제거
+  // await logUserEvent(env, request, 'page_visit', { page: 'today_practice' });
   
   // URL에서 challengeId 파라미터 추출
   const url = new URL(request.url);
