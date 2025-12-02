@@ -5,7 +5,7 @@ import {
   Typography,
   Button
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, keyframes } from '@mui/material/styles';
 
 const ContextContainer = styled(Paper)(({ theme }) => ({
   padding: '30px',
@@ -30,6 +30,16 @@ const ProgressInfo = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   marginTop: theme.spacing(1),
 }));
+
+// Progress Bar shimmer 애니메이션
+const progressShimmer = keyframes`
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+`;
 
 const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope, onViewEnvelopeList }) => {
   const [isCreatingEnvelope, setIsCreatingEnvelope] = useState(false);
@@ -122,17 +132,35 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
         </Box>
         <Box sx={{ 
           width: '100%', 
-          height: '8px', 
+          height: '10px', 
           backgroundColor: 'rgba(0, 0, 0, 0.1)', 
-          borderRadius: '4px', 
-          overflow: 'hidden' 
+          borderRadius: '10px', 
+          overflow: 'hidden',
+          position: 'relative',
+          boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)'
         }}>
           <Box sx={{ 
             height: '100%', 
-            borderRadius: '4px', 
-            background: 'linear-gradient(90deg, #3f7198, #5a8bb0)',
+            borderRadius: '10px', 
+            background: 'linear-gradient(90deg, rgba(63, 113, 152, 0.8), rgba(90, 139, 176, 1), rgba(63, 113, 152, 0.8))',
+            backgroundSize: '200% 100%',
             width: `${challenge.progress_percentage || 0}%`,
-            transition: 'width 0.3s ease'
+            transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)',
+            animation: `${progressShimmer} 2.5s ease-in-out infinite`,
+            boxShadow: '0 2px 8px rgba(63, 113, 152, 0.3)',
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+              backgroundSize: '200% 100%',
+              animation: `${progressShimmer} 2.5s ease-in-out infinite`,
+              borderRadius: '10px',
+            }
           }} />
         </Box>
       </Box>
@@ -140,9 +168,6 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
       <ProgressInfo>
         <Typography variant="caption" sx={{ opacity: 0.8 }}>
           {challenge.current_day}일차 / {challenge.total_days}일
-        </Typography>
-        <Typography variant="caption" fontWeight="bold">
-          {challenge.progress_percentage}% 완료
         </Typography>
       </ProgressInfo>
       

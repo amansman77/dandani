@@ -5,7 +5,8 @@ import {
   DialogActions,
   Button,
   Typography,
-  Box
+  Box,
+  Fade
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { CheckCircle, Error, Info, Warning } from '@mui/icons-material';
@@ -51,6 +52,18 @@ const AlertModal = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      TransitionComponent={Fade}
+      TransitionProps={{ 
+        timeout: 600,
+        easing: { enter: 'cubic-bezier(0.0, 0, 0.2, 1)', exit: 'cubic-bezier(0.4, 0, 1, 1)' }
+      }}
+      BackdropProps={{
+        sx: {
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(2px)',
+          transition: 'opacity 0.6s cubic-bezier(0.0, 0, 0.2, 1)'
+        }
+      }}
     >
       <DialogContent sx={{ textAlign: 'center', py: 3 }}>
         <IconBox>

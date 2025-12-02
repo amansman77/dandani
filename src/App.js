@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip, Fade, Divider } from '@mui/material';
+import { styled, keyframes } from '@mui/material/styles';
 import { Help as HelpIcon } from '@mui/icons-material';
 import ChatInterface from './components/ChatInterface';
 import ChallengeContext from './components/ChallengeContext';
@@ -36,6 +36,48 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   },
 }));
 
+// 두근거림 애니메이션
+const pulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+`;
+
+// 반짝 애니메이션
+const shine = keyframes`
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+`;
+
+const AnimatedButton = styled(Button)({
+  animation: `${pulse} 2s ease-in-out infinite`,
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+    backgroundSize: '200% 100%',
+    animation: `${shine} 3s ease-in-out infinite`,
+    pointerEvents: 'none',
+  },
+  '& > *': {
+    position: 'relative',
+    zIndex: 1,
+  },
+});
+
 function App() {
   const [practice, setPractice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +99,7 @@ function App() {
     message: '',
     type: 'info'
   });
+  
   
   // 현재 챌린지 상세보기 상태
   const [showCurrentChallengeDetail, setShowCurrentChallengeDetail] = useState(false);
@@ -711,7 +754,8 @@ function App() {
             {!showChallengeSelector && Boolean(selectedChallengeId) && !currentChallenge?.is_completed && (
               <>
                 {/* 오늘의 실천 과제 카드 (위로 이동) */}
-                <StyledPaper elevation={3}>
+                <Fade in={!!practice} timeout={800}>
+                  <StyledPaper elevation={3}>
               <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
                 fontSize: '2.2rem',
                 fontWeight: 700,
@@ -722,6 +766,13 @@ function App() {
               }}>
                 오늘의 추천 실천
               </Typography>
+              <Divider 
+                sx={{ 
+                  my: 3,
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  borderWidth: '1px'
+                }} 
+              />
               <Typography variant="body1" paragraph sx={{ 
                 fontSize: '1.4rem',
                 lineHeight: 1.6,
@@ -774,7 +825,7 @@ function App() {
                   </>
                 ) : (
                   <>
-                    <Button 
+                    <AnimatedButton 
                       variant="contained" 
                       size="large"
                       onClick={handleQuickComplete}
@@ -803,16 +854,18 @@ function App() {
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                          borderColor: 'rgba(255, 255, 255, 0.7)'
+                          borderColor: 'rgba(255, 255, 255, 0.7)',
+                          animation: 'pulse 1s ease-in-out infinite',
                         }
                       }}
                     >
                       실천 완료하기
-                    </Button>
+                    </AnimatedButton>
                   </>
                 )}
               </Box>
-            </StyledPaper>
+                  </StyledPaper>
+                </Fade>
             
             {/* 카드 간격 추가 */}
             <Box sx={{ mt: 4 }} />
@@ -994,6 +1047,7 @@ function App() {
           message={alertModal.message}
           type={alertModal.type}
         />
+
       </Box>
     </Container>
   );
