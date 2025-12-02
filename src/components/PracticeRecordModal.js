@@ -35,6 +35,12 @@ const RecordBox = styled(Box)(({ theme }) => ({
   border: `1px solid ${theme.palette.grey[200]}`
 }));
 
+const StyledChip = styled(Chip)({
+  '&.MuiChip-outlined': {
+    border: 'none'
+  }
+});
+
 const PracticeRecordModal = ({ 
   open, 
   onClose, 
@@ -248,7 +254,7 @@ const PracticeRecordModal = ({
               기록일: {new Date(record.created_at).toLocaleDateString('ko-KR')}
             </Typography>
             {isPastRecord(record.created_at) && (
-              <Chip 
+              <StyledChip 
                 label="과거 기록" 
                 size="small" 
                 color="default" 
@@ -274,7 +280,7 @@ const PracticeRecordModal = ({
                   </IconButton>
                 )}
                 {!isEditing && isPastRecord(record.created_at) && (
-                  <Chip 
+                  <StyledChip 
                     label="과거 기록" 
                     size="small" 
                     color="default" 
@@ -317,7 +323,7 @@ const PracticeRecordModal = ({
                   <FormControlLabel value="unknown" control={<Radio />} label="잘 모르겠다" />
                 </RadioGroup>
               ) : (
-                <Chip 
+                <StyledChip 
                   label={getMoodChangeText(record.mood_change)}
                   color={getMoodChangeColor(record.mood_change)}
                   variant="outlined"
@@ -341,7 +347,7 @@ const PracticeRecordModal = ({
                   <FormControlLabel value="unknown" control={<Radio />} label="잘 모르겠어요" />
                 </RadioGroup>
               ) : (
-                <Chip 
+                <StyledChip 
                   label={getHelpfulText(record.was_helpful)}
                   color={record.was_helpful === 'yes' ? 'success' : record.was_helpful === 'no' ? 'error' : 'default'}
                   variant="outlined"
