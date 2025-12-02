@@ -24,12 +24,18 @@ import {
   LockOpen as UnlockIcon,
 } from '@mui/icons-material';
 import { deleteEnvelope, updateAllEnvelopeStatuses } from '../utils/envelopeStorage';
+import AlertModal from './AlertModal';
 
 
 const EnvelopeList = ({ open, onClose }) => {
   const [envelopes, setEnvelopes] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [envelopeToDelete, setEnvelopeToDelete] = useState(null);
+  const [alertModal, setAlertModal] = useState({
+    open: false,
+    message: '',
+    type: 'info'
+  });
 
   useEffect(() => {
     if (open) {
@@ -57,10 +63,18 @@ const EnvelopeList = ({ open, onClose }) => {
   const handleCopyPassword = async (password) => {
     try {
       await navigator.clipboard.writeText(password);
-      alert('비밀번호가 복사되었습니다!');
+      setAlertModal({
+        open: true,
+        message: '비밀번호가 복사되었습니다!',
+        type: 'success'
+      });
     } catch (err) {
       console.error('Password copy failed:', err);
-      alert('비밀번호 복사에 실패했습니다.');
+      setAlertModal({
+        open: true,
+        message: '비밀번호 복사에 실패했습니다.',
+        type: 'error'
+      });
     }
   };
 
@@ -240,6 +254,14 @@ const EnvelopeList = ({ open, onClose }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 알림 모달 */}
+      <AlertModal
+        open={alertModal.open}
+        onClose={() => setAlertModal({ ...alertModal, open: false })}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </Dialog>
   );
 };

@@ -18,6 +18,7 @@ import { styled } from '@mui/material/styles';
 import { Edit, Check, Close } from '@mui/icons-material';
 import { getUserId } from '../utils/userId';
 import { calculateChallengeDay, isPastRecord, addStartedAtHeader } from '../utils/challengeDay';
+import AlertModal from './AlertModal';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -55,6 +56,11 @@ const PracticeRecordModal = ({
     practiceDescription: '',
     moodChange: '',
     wasHelpful: ''
+  });
+  const [alertModal, setAlertModal] = useState({
+    open: false,
+    message: '',
+    type: 'info'
   });
 
   // 과거 기록 판단은 utils/challengeDay.js의 공통 함수 사용
@@ -120,7 +126,11 @@ const PracticeRecordModal = ({
 
   const handleSave = async () => {
     if (!editData.practiceDescription.trim() || !editData.moodChange || !editData.wasHelpful) {
-      alert('모든 필드를 입력해주세요.');
+      setAlertModal({
+        open: true,
+        message: '모든 필드를 입력해주세요.',
+        type: 'warning'
+      });
       return;
     }
 
@@ -155,13 +165,21 @@ const PracticeRecordModal = ({
         if (onUpdate) {
           onUpdate(updatedRecord);
         }
-        alert('기록이 수정되었습니다! ✨');
+        setAlertModal({
+          open: true,
+          message: '기록이 수정되었습니다! ✨',
+          type: 'success'
+        });
       } else {
         throw new Error('기록 수정에 실패했습니다.');
       }
     } catch (error) {
       console.error('Update error:', error);
-      alert('기록 수정 중 오류가 발생했습니다.');
+      setAlertModal({
+        open: true,
+        message: '기록 수정 중 오류가 발생했습니다.',
+        type: 'error'
+      });
     }
   };
 
@@ -386,6 +404,14 @@ const PracticeRecordModal = ({
           </Button>
         )}
       </DialogActions>
+
+      {/* 알림 모달 */}
+      <AlertModal
+        open={alertModal.open}
+        onClose={() => setAlertModal({ ...alertModal, open: false })}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </StyledDialog>
   );
 };

@@ -16,6 +16,7 @@ import {
   FormLabel
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import AlertModal from './AlertModal';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -42,10 +43,19 @@ const FeedbackModal = ({
   const [moodChange, setMoodChange] = useState('');
   const [wasHelpful, setWasHelpful] = useState('');
   const [practiceDescription, setPracticeDescription] = useState('');
+  const [alertModal, setAlertModal] = useState({
+    open: false,
+    message: '',
+    type: 'info'
+  });
 
   const handleSubmit = () => {
     if (!practiceDescription.trim() || !moodChange || !wasHelpful) {
-      alert('모든 질문에 답해주세요.');
+      setAlertModal({
+        open: true,
+        message: '모든 질문에 답해주세요.',
+        type: 'warning'
+      });
       return;
     }
 
@@ -155,6 +165,14 @@ const FeedbackModal = ({
           기록하기
         </Button>
       </DialogActions>
+
+      {/* 알림 모달 */}
+      <AlertModal
+        open={alertModal.open}
+        onClose={() => setAlertModal({ ...alertModal, open: false })}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </StyledDialog>
   );
 };

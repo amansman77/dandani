@@ -11,6 +11,7 @@ import OnboardingModal from './components/OnboardingModal';
 import EnvelopeModal from './components/EnvelopeModal';
 import EnvelopeList from './components/EnvelopeList';
 import ChallengeSelector from './components/ChallengeSelector';
+import AlertModal from './components/AlertModal';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from './utils/challengeSelection';
 import { initAnalytics, logChallengeComplete } from './utils/analytics';
@@ -49,6 +50,13 @@ function App() {
   const [chatSessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
+  
+  // 알림 모달 상태
+  const [alertModal, setAlertModal] = useState({
+    open: false,
+    message: '',
+    type: 'info'
+  });
   
   // 현재 챌린지 상세보기 상태
   const [showCurrentChallengeDetail, setShowCurrentChallengeDetail] = useState(false);
@@ -547,7 +555,11 @@ function App() {
 
       if (response.ok) {
         const result = await response.json();
-        alert('좋아요! 오늘 실천 완료했어요');
+        setAlertModal({
+          open: true,
+          message: '좋아요! 오늘 실천 완료했어요',
+          type: 'success'
+        });
         console.log('Quick complete submitted:', result);
 
         if (practice) {
@@ -567,7 +579,11 @@ function App() {
       }
     } catch (error) {
       console.error('Quick complete error:', error);
-      alert('빠른 완료 중 오류가 발생했습니다.');
+      setAlertModal({
+        open: true,
+        message: '빠른 완료 중 오류가 발생했습니다.',
+        type: 'error'
+      });
     }
   };
 
@@ -969,6 +985,14 @@ function App() {
         <EnvelopeList
           open={envelopeListOpen}
           onClose={handleCloseEnvelopeList}
+        />
+
+        {/* 알림 모달 */}
+        <AlertModal
+          open={alertModal.open}
+          onClose={() => setAlertModal({ ...alertModal, open: false })}
+          message={alertModal.message}
+          type={alertModal.type}
         />
       </Box>
     </Container>
