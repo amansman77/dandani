@@ -823,39 +823,53 @@ async function getUserActivityStats(env, days = 30) {
 // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산
 function getClientLocalDate(clientTime, clientTimezone) {
   if (clientTime) {
-    // ISO 8601 형식 문자열에서 날짜 부분만 추출 (예: "2025-11-27T23:30:00+09:00" -> "2025-11-27")
-    // 이렇게 하면 클라이언트의 로컬 시간 기준 날짜를 정확히 얻을 수 있음
-    const dateMatch = clientTime.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (dateMatch) {
-      const dateStr = dateMatch[1];
-      // YYYY-MM-DD 형식을 파싱하여 Date 객체 생성 (UTC 기준으로 날짜만 저장)
-      const [year, month, day] = dateStr.split('-').map(Number);
-      return new Date(Date.UTC(year, month - 1, day));
-    }
-    
-    // ISO 8601 형식이 아니면 Date 객체로 파싱 시도
+    // 클라이언트가 보낸 시간을 Date 객체로 파싱 (UTC 시간)
     const clientDate = new Date(clientTime);
     if (!isNaN(clientDate.getTime())) {
-      // 클라이언트 시간대 정보가 있으면 오프셋을 고려
+      // 클라이언트 시간대 정보가 있으면 해당 시간대의 로컬 날짜 계산
       if (clientTimezone) {
-        // 시간대 문자열에서 오프셋 추출 (예: "Asia/Seoul" 또는 "GMT+9" 또는 "+09:00")
-        let offsetHours = 0;
-        const offsetMatch = clientTimezone.match(/([+-])(\d+)/);
-        if (offsetMatch) {
-          const sign = offsetMatch[1] === '+' ? 1 : -1;
-          offsetHours = sign * parseInt(offsetMatch[2]);
+        // 클라이언트 시간대 오프셋 계산 (밀리초)
+        // 주요 시간대 매핑
+        let timezoneOffsetMs = 0;
+        const timezoneLower = clientTimezone.toLowerCase();
+        
+        // Asia/Seoul, Asia/Tokyo 등 주요 시간대 처리
+        if (timezoneLower.includes('seoul') || timezoneLower.includes('korea')) {
+          timezoneOffsetMs = 9 * 60 * 60 * 1000; // UTC+9
+        } else if (timezoneLower.includes('tokyo') || timezoneLower.includes('japan')) {
+          timezoneOffsetMs = 9 * 60 * 60 * 1000; // UTC+9
+        } else if (timezoneLower.includes('beijing') || timezoneLower.includes('shanghai') || timezoneLower.includes('hongkong')) {
+          timezoneOffsetMs = 8 * 60 * 60 * 1000; // UTC+8
+        } else if (timezoneLower.includes('new_york') || timezoneLower.includes('america/new_york')) {
+          // EST/EDT는 계절에 따라 다르지만, 대략 UTC-5
+          timezoneOffsetMs = -5 * 60 * 60 * 1000;
+        } else if (timezoneLower.includes('london') || timezoneLower.includes('europe/london')) {
+          // GMT/BST는 계절에 따라 다르지만, 대략 UTC+0
+          timezoneOffsetMs = 0;
+        } else {
+          // 시간대 문자열에서 직접 오프셋 추출 시도 (예: "+09:00", "GMT+9")
+          const offsetMatch = clientTimezone.match(/([+-])(\d{1,2}):?(\d{2})?/);
+          if (offsetMatch) {
+            const sign = offsetMatch[1] === '+' ? 1 : -1;
+            const hours = parseInt(offsetMatch[2]) || 0;
+            const minutes = parseInt(offsetMatch[3]) || 0;
+            timezoneOffsetMs = sign * (hours * 60 * 60 + minutes * 60) * 1000;
+          }
         }
         
         // UTC 시간에 오프셋을 더하여 로컬 시간 계산
-        const localTime = new Date(clientDate.getTime() + offsetHours * 60 * 60 * 1000);
+        const localTimeMs = clientDate.getTime() + timezoneOffsetMs;
+        const localDate = new Date(localTimeMs);
+        
+        // 로컬 날짜만 반환 (자정 기준, UTC로 저장)
         return new Date(Date.UTC(
-          localTime.getUTCFullYear(),
-          localTime.getUTCMonth(),
-          localTime.getUTCDate()
+          localDate.getUTCFullYear(),
+          localDate.getUTCMonth(),
+          localDate.getUTCDate()
         ));
       }
       
-      // 시간대 정보가 없으면 클라이언트 시간의 날짜 부분만 사용
+      // 시간대 정보가 없으면 클라이언트 시간의 날짜 부분만 사용 (UTC 날짜)
       return new Date(Date.UTC(
         clientDate.getUTCFullYear(),
         clientDate.getUTCMonth(),
