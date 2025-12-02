@@ -24,6 +24,12 @@ import {
 } from '@mui/icons-material';
 import { getUserId } from '../utils/userId';
 
+const StyledChip = styled(Chip)(({ hasContent }) => ({
+  '&.MuiChip-outlined': {
+    border: hasContent ? undefined : 'none'
+  }
+}));
+
 const CalendarContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: '16px',
@@ -418,19 +424,25 @@ const PracticeCalendar = ({ challengeId, onDateSelect }) => {
                       <Typography variant="subtitle2" fontWeight="bold">
                         {record.practice_day}일차
                       </Typography>
-                      <Chip 
-                        icon={getMoodChangeIcon(record.mood_change)}
-                        label={getMoodChangeText(record.mood_change)}
-                        color={getMoodChangeColor(record.mood_change)}
-                        size="small"
-                        variant="outlined"
-                      />
-                      <Chip 
-                        label={getHelpfulText(record.was_helpful)}
-                        color={getHelpfulColor(record.was_helpful)}
-                        size="small"
-                        variant="outlined"
-                      />
+                      {record.mood_change && (
+                        <StyledChip 
+                          icon={getMoodChangeIcon(record.mood_change)}
+                          label={getMoodChangeText(record.mood_change)}
+                          color={getMoodChangeColor(record.mood_change)}
+                          size="small"
+                          variant="outlined"
+                          hasContent={!!record.mood_change}
+                        />
+                      )}
+                      {record.was_helpful && (
+                        <StyledChip 
+                          label={getHelpfulText(record.was_helpful)}
+                          color={getHelpfulColor(record.was_helpful)}
+                          size="small"
+                          variant="outlined"
+                          hasContent={!!record.was_helpful}
+                        />
+                      )}
                     </Box>
                     
                     <Typography 
