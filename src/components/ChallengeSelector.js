@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -51,10 +51,6 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
   const [selectedId, setSelectedId] = useState(null);
   const [isAdLanding, setIsAdLanding] = useState(false);
 
-  useEffect(() => {
-    fetchChallenges();
-  }, []);
-
   // URL 파라미터에서 광고 소스 정보 추출
   const getUrlParams = () => {
     const params = new URLSearchParams(window.location.search);
@@ -64,7 +60,7 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
     };
   };
 
-  const fetchChallenges = async () => {
+  const fetchChallenges = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -126,7 +122,11 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchChallenges();
+  }, [fetchChallenges]);
 
   const handleChallengeSelect = (challenge) => {
     setSelectedId(challenge.id);
@@ -196,10 +196,11 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
           sx={{ 
             fontWeight: 'bold',
             color: 'text.primary',
-            mb: 2
+            mb: 2,
+            whiteSpace: 'pre-line'
           }}
         >
-          {isAdLanding ? '이 실천에 초대받았어요' : '오늘 하고 싶은 작은 실천을 골라보세요'}
+          {isAdLanding ? '이 실천에 초대받았어요' : '오늘 하고 싶은\n작은 실천을 골라보세요'}
         </Typography>
         {isAdLanding && (
           <Typography variant="body1" color="text.secondary">
