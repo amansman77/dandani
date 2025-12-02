@@ -36,6 +36,25 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   },
 }));
 
+// 실천 완료 카드용 스타일
+const CompletedPaper = styled(Paper)(({ theme }) => ({
+  padding: '25px 35px',
+  marginTop: theme.spacing(4),
+  textAlign: 'center',
+  borderRadius: '16px',
+  boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+  backgroundColor: '#579f59', // 완료 녹색 배경
+  background: 'linear-gradient(135deg, #579f59, #7bb17d)', // 완료 그라데이션
+  color: 'white', // 흰색 텍스트
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0px 8px 30px rgba(87, 159, 89, 0.3)',
+  },
+}));
+
 // 두근거림 애니메이션
 const pulse = keyframes`
   0%, 100% {
@@ -753,119 +772,150 @@ function App() {
             {/* 선택한 챌린지가 있을 때만 실천 과제 표시 */}
             {!showChallengeSelector && Boolean(selectedChallengeId) && !currentChallenge?.is_completed && (
               <>
-                {/* 오늘의 실천 과제 카드 (위로 이동) */}
-                <Fade in={!!practice} timeout={800}>
-                  <StyledPaper elevation={3}>
-              <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
-                fontSize: '2.2rem',
-                fontWeight: 700,
-                lineHeight: 1.3,
-                color: 'white',
-                textAlign: 'center',
-                marginBottom: '20px'
-              }}>
-                오늘의 추천 실천
-              </Typography>
-              <Divider 
-                sx={{ 
-                  my: 3,
-                  borderColor: 'rgba(255, 255, 255, 0.3)',
-                  borderWidth: '1px'
-                }} 
-              />
-              <Typography variant="body1" paragraph sx={{ 
-                fontSize: '1.4rem',
-                lineHeight: 1.6,
-                color: 'white',
-                textAlign: 'center',
-                marginBottom: '25px'
-              }}>
-                {practice?.description}
-              </Typography>
-              
-              {/* 실천 완료/확인 버튼 */}
-              <Box sx={{ mt: 4, textAlign: 'center' }}>
-                {practice?.isRecorded ? (
-                  <>
-                    <Button 
-                      variant="contained" 
-                      size="large"
-                      onClick={() => setRecordModalOpen(true)}
-                      sx={{ 
-                        borderRadius: '10px',
-                        padding: '22px 44px',
-                        fontSize: '1.4rem',
+                {/* 실천 완료 전: 오늘의 추천 실천 카드 */}
+                {!practice?.isRecorded && (
+                  <Fade in={!!practice && !practice?.isRecorded} timeout={3000}>
+                    <StyledPaper elevation={3}>
+                      <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
+                        fontSize: '2.2rem',
                         fontWeight: 700,
-                        textTransform: 'none',
+                        lineHeight: 1.3,
                         color: 'white',
-                        borderColor: 'rgba(255, 255, 255, 0.5)',
-                        borderWidth: '3px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        minWidth: '160px',
-                        margin: '5px',
                         textAlign: 'center',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        fontFamily: "'Noto Serif KR', serif",
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.2)',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                          borderColor: 'rgba(255, 255, 255, 0.7)'
-                        }
-                      }}
-                    >
-                      실천 기록하기
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <AnimatedButton 
-                      variant="contained" 
-                      size="large"
-                      onClick={handleQuickComplete}
-                      sx={{ 
-                        borderRadius: '10px',
-                        padding: '22px 44px',
+                        marginBottom: '20px'
+                      }}>
+                        오늘의 추천 실천
+                      </Typography>
+                      <Divider 
+                        sx={{ 
+                          my: 3,
+                          borderColor: 'rgba(255, 255, 255, 0.3)',
+                          borderWidth: '1px'
+                        }} 
+                      />
+                      <Typography variant="body1" paragraph sx={{ 
                         fontSize: '1.4rem',
-                        fontWeight: 700,
-                        textTransform: 'none',
+                        lineHeight: 1.6,
                         color: 'white',
-                        borderColor: 'rgba(255, 255, 255, 0.5)',
-                        borderWidth: '3px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                        minWidth: '160px',
-                        margin: '5px',
                         textAlign: 'center',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        fontFamily: "'Noto Serif KR', serif",
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.2)',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                          borderColor: 'rgba(255, 255, 255, 0.7)',
-                          animation: 'pulse 1s ease-in-out infinite',
-                        }
-                      }}
-                    >
-                      실천 완료하기
-                    </AnimatedButton>
-                  </>
+                        marginBottom: '25px'
+                      }}>
+                        {practice?.description}
+                      </Typography>
+                      
+                      {/* 실천 완료 버튼 */}
+                      <Box sx={{ mt: 4, textAlign: 'center' }}>
+                        <AnimatedButton 
+                          variant="contained" 
+                          size="large"
+                          onClick={handleQuickComplete}
+                          sx={{ 
+                            borderRadius: '10px',
+                            padding: '22px 44px',
+                            fontSize: '1.4rem',
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            color: 'white',
+                            borderColor: 'rgba(255, 255, 255, 0.5)',
+                            borderWidth: '3px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            minWidth: '160px',
+                            margin: '5px',
+                            textAlign: 'center',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            fontFamily: "'Noto Serif KR', serif",
+                            boxSizing: 'border-box',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.2)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                              borderColor: 'rgba(255, 255, 255, 0.7)',
+                              animation: 'pulse 1s ease-in-out infinite',
+                            }
+                          }}
+                        >
+                          실천 완료하기
+                        </AnimatedButton>
+                      </Box>
+                    </StyledPaper>
+                  </Fade>
                 )}
-              </Box>
-                  </StyledPaper>
-                </Fade>
+
+                {/* 실천 완료 후: 실천 완료 카드 */}
+                {practice?.isRecorded && (
+                  <Fade in={practice?.isRecorded} timeout={2000}>
+                    <CompletedPaper elevation={3}>
+                      <Typography variant="h5" paragraph sx={{ 
+                        fontSize: '1.5rem',
+                        lineHeight: 1.5,
+                        textAlign: 'center',
+                        marginBottom: '20px',
+                        fontWeight: 700,
+                        color: 'rgba(255, 255, 255, 1)',
+                        textShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                        animation: 'fadeToGray 2s ease-in-out forwards',
+                        '@keyframes fadeToGray': {
+                          '0%': {
+                            opacity: 1,
+                            color: 'rgba(255, 255, 255, 1)'
+                          },
+                          '100%': {
+                            opacity: 0.9,
+                            color: 'rgba(255, 255, 255, 0.9)'
+                          }
+                        }
+                      }}>
+                        오늘의 실천을 완료했어요.
+                      </Typography>
+                      
+                      {/* 실천 기록하기 버튼 (비활성화) */}
+                      <Box sx={{ mt: 2, textAlign: 'center' }}>
+                        <AnimatedButton 
+                          variant="contained" 
+                          size="large"
+                          onClick={() => setRecordModalOpen(true)}
+                          sx={{ 
+                            borderRadius: '10px',
+                            padding: '22px 44px',
+                            fontSize: '1.4rem',
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            color: 'white',
+                            borderColor: 'rgba(255, 255, 255, 0.8)',
+                            borderWidth: '3px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                            minWidth: '160px',
+                            margin: '5px',
+                            textAlign: 'center',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            fontFamily: "'Noto Serif KR', serif",
+                            boxSizing: 'border-box',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 0.35)',
+                              borderColor: 'rgba(255, 255, 255, 0.9)',
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0px 6px 16px rgba(0, 0, 0, 0.3)'
+                            }
+                          }}
+                        >
+                          실천 기록하기
+                        </AnimatedButton>
+                      </Box>
+                    </CompletedPaper>
+                  </Fade>
+                )}
             
             {/* 카드 간격 추가 */}
             <Box sx={{ mt: 4 }} />
