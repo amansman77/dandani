@@ -207,17 +207,80 @@ function App() {
 
           if (selectedChallenge) {
             const { currentDay, progressPercentage } = deriveSelectedChallengeProgress(selectedChallenge, targetStartedAt);
+            
+            // 실제 완료한 일수를 기반으로 진행률 재계산 (ChallengeDetail과 동일한 로직)
+            let actualProgressPercentage = progressPercentage;
+            let completedDays = 0;
+            
+            try {
+              const feedbackResponse = await fetch(`${API_URL}/api/feedback/history?challengeId=${targetChallengeId}`, {
+                headers: {
+                  'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  'X-Client-Time': new Date().toISOString(),
+                  'X-User-ID': userId
+                }
+              });
+              
+              if (feedbackResponse.ok) {
+                const feedbackData = await feedbackResponse.json();
+                const completedDaysSet = new Set(feedbackData.map(feedback => feedback.practice_day));
+                completedDays = completedDaysSet.size;
+                const totalDays = Math.max(1, selectedChallenge.total_days || 1);
+                actualProgressPercentage = Math.round((completedDays / totalDays) * 100);
+                console.log('Actual progress calculated:', { completedDays, totalDays, actualProgressPercentage });
+              }
+            } catch (feedbackError) {
+              console.warn('Failed to fetch feedback history for progress calculation:', feedbackError);
+              // 피드백 조회 실패 시 기존 계산값 사용
+            }
+            
             const updatedChallenge = {
               ...selectedChallenge,
               current_day: currentDay,
-              progress_percentage: progressPercentage
+              progress_percentage: actualProgressPercentage,
+              completed_days: completedDays
             };
             setCurrentChallenge(updatedChallenge);
           } else {
             setCurrentChallenge(challengesData.current);
           }
         } else {
-          setCurrentChallenge(challengesData.current);
+          // targetChallengeId가 없는 경우에도 현재 챌린지가 있으면 실제 완료 일수 기반으로 진행률 계산
+          if (challengesData.current) {
+            const currentChallenge = challengesData.current;
+            let actualProgressPercentage = currentChallenge.progress_percentage || 0;
+            let completedDays = 0;
+            
+            try {
+              const feedbackResponse = await fetch(`${API_URL}/api/feedback/history?challengeId=${currentChallenge.id}`, {
+                headers: {
+                  'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  'X-Client-Time': new Date().toISOString(),
+                  'X-User-ID': userId
+                }
+              });
+              
+              if (feedbackResponse.ok) {
+                const feedbackData = await feedbackResponse.json();
+                const completedDaysSet = new Set(feedbackData.map(feedback => feedback.practice_day));
+                completedDays = completedDaysSet.size;
+                const totalDays = Math.max(1, currentChallenge.total_days || 1);
+                actualProgressPercentage = Math.round((completedDays / totalDays) * 100);
+                console.log('Actual progress calculated for current challenge:', { completedDays, totalDays, actualProgressPercentage });
+              }
+            } catch (feedbackError) {
+              console.warn('Failed to fetch feedback history for progress calculation:', feedbackError);
+              // 피드백 조회 실패 시 기존 계산값 사용
+            }
+            
+            setCurrentChallenge({
+              ...currentChallenge,
+              progress_percentage: actualProgressPercentage,
+              completed_days: completedDays
+            });
+          } else {
+            setCurrentChallenge(challengesData.current);
+          }
         }
       } else {
         console.log('Challenges API not available, using fallback');
