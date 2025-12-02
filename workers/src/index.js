@@ -19,7 +19,7 @@ const PRACTICES = [
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID, X-Session-ID, User-Agent, CF-Connecting-IP',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID, X-Session-ID, X-Started-At, User-Agent, CF-Connecting-IP',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -165,11 +165,24 @@ async function getTodayPractice(env, request) {
         day: adjustedDay 
       });
       
-      // 오늘 실천 기록 여부 확인
-      const feedback = await env.DB.prepare(`
+      // 오늘 실천 기록 여부 확인 (선택한 챌린지의 경우 startedAt 이후 기록만 확인)
+      let feedbackQuery = `
         SELECT id FROM practice_feedback 
         WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
-      `).bind(userId, challenge.id, adjustedDay).first();
+      `;
+      let feedbackParams = [userId, challenge.id, adjustedDay];
+      
+      // 선택한 챌린지의 경우 startedAt 이후에 생성된 기록만 확인
+      if (challengeIdParam && startedAtParam) {
+        // SQLite datetime() 함수를 사용하여 ISO 8601 형식과 DATETIME 형식 비교
+        feedbackQuery += ` AND datetime(created_at) >= datetime(?)`;
+        feedbackParams.push(startedAtParam);
+        console.log('getTodayPractice - Filtering feedback by startedAt:', startedAtParam);
+      }
+      
+      feedbackQuery += ` ORDER BY created_at DESC LIMIT 1`;
+      
+      const feedback = await env.DB.prepare(feedbackQuery).bind(...feedbackParams).first();
 
       // 디버깅: 날짜 계산 정보 로깅
       console.log('getTodayPractice - Date calculation:', {
@@ -454,6 +467,7 @@ async function submitFeedback(env, request) {
 // 특정 실천 기록 조회
 async function getPracticeRecord(env, challengeId, practiceDay, request) {
   const userId = request.headers.get('X-User-ID') || 'user123';
+  const startedAt = request.headers.get('X-Started-At');
   
   // practiceDay가 null이거나 undefined인 경우 처리
   if (!practiceDay) {
@@ -461,12 +475,26 @@ async function getPracticeRecord(env, challengeId, practiceDay, request) {
     return null;
   }
   
-  console.log('Looking for record:', { userId, challengeId, practiceDay });
+  console.log('Looking for record:', { userId, challengeId, practiceDay, startedAt });
   
-  const record = await env.DB.prepare(`
+  let query = `
     SELECT * FROM practice_feedback 
     WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
-  `).bind(userId, challengeId, practiceDay).first();
+  `;
+  let bindParams = [userId, challengeId, practiceDay];
+  
+  // 선택한 챌린지의 경우 startedAt 이후에 생성된 기록만 조회
+  if (startedAt) {
+    // SQLite datetime() 함수를 사용하여 ISO 8601 형식과 DATETIME 형식 비교
+    query += ` AND datetime(created_at) >= datetime(?)`;
+    bindParams.push(startedAt);
+    console.log('Filtering by startedAt:', startedAt);
+  }
+  
+  // 가장 최근 기록 조회 (동일한 practice_day에 여러 기록이 있을 경우)
+  query += ` ORDER BY created_at DESC LIMIT 1`;
+  
+  const record = await env.DB.prepare(query).bind(...bindParams).first();
   
   console.log('Found record:', record);
   
@@ -476,12 +504,25 @@ async function getPracticeRecord(env, challengeId, practiceDay, request) {
 // 실천 기록 히스토리 조회
 async function getPracticeHistory(env, challengeId, request) {
   const userId = request.headers.get('X-User-ID') || 'user123';
+  const startedAt = request.headers.get('X-Started-At');
   
-  const records = await env.DB.prepare(`
+  let query = `
     SELECT * FROM practice_feedback 
     WHERE user_id = ? AND challenge_id = ?
-    ORDER BY practice_day ASC
-  `).bind(userId, challengeId).all();
+  `;
+  let bindParams = [userId, challengeId];
+  
+  // 선택한 챌린지의 경우 startedAt 이후에 생성된 기록만 조회
+  if (startedAt) {
+    // SQLite datetime() 함수를 사용하여 ISO 8601 형식과 DATETIME 형식 비교
+    query += ` AND datetime(created_at) >= datetime(?)`;
+    bindParams.push(startedAt);
+    console.log('getPracticeHistory - Filtering by startedAt:', startedAt);
+  }
+  
+  query += ` ORDER BY practice_day ASC`;
+  
+  const records = await env.DB.prepare(query).bind(...bindParams).all();
   
   return records.results;
 }

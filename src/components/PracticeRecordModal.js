@@ -17,6 +17,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Edit, Check, Close } from '@mui/icons-material';
 import { getUserId } from '../utils/userId';
+import { calculateChallengeDay, isPastRecord, addStartedAtHeader } from '../utils/challengeDay';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
@@ -50,14 +51,7 @@ const PracticeRecordModal = ({
     wasHelpful: ''
   });
 
-  // 과거 기록인지 확인하는 함수
-  const isPastRecord = (recordDate) => {
-    if (!recordDate) return false;
-    const recordTime = new Date(recordDate).getTime();
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    return recordTime < todayStart;
-  };
+  // 과거 기록 판단은 utils/challengeDay.js의 공통 함수 사용
 
   const fetchRecord = useCallback(async () => {
     setLoading(true);
@@ -65,23 +59,27 @@ const PracticeRecordModal = ({
       const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
       const userId = getUserId();
       
-      // practice.day가 없으면 현재 챌린지의 현재 일차를 계산
-      let practiceDay = practice.day;
-      if (!practiceDay && challenge) {
-        const now = new Date();
-        const startDate = new Date(challenge.start_date);
-        const dayDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-        practiceDay = dayDiff + 1;
-      }
+      // 공통 유틸리티를 사용하여 일차 계산
+      const practiceDay = calculateChallengeDay(challenge, { 
+        practiceDay: practice?.day 
+      });
       
-      console.log('Fetching record with:', { challengeId: challenge.id, practiceDay, practice, userId });
+      console.log('Fetching record with:', { 
+        challengeId: challenge.id, 
+        practiceDay, 
+        practiceDayFromPractice: practice?.day,
+        practice, 
+        userId 
+      });
+      
+      const headers = addStartedAtHeader({
+        'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+        'X-Client-Time': new Date().toISOString(),
+        'X-User-ID': userId
+      }, challenge.id);
       
       const response = await fetch(`${API_URL}/api/feedback/record?challengeId=${challenge.id}&practiceDay=${practiceDay}`, {
-        headers: {
-          'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-          'X-Client-Time': new Date().toISOString(),
-          'X-User-ID': userId
-        }
+        headers
       });
       
       if (response.ok) {
@@ -124,14 +122,10 @@ const PracticeRecordModal = ({
       const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
       const userId = getUserId();
       
-      // practice.day가 없으면 현재 챌린지의 현재 일차를 계산
-      let practiceDay = practice.day;
-      if (!practiceDay && challenge) {
-        const now = new Date();
-        const startDate = new Date(challenge.start_date);
-        const dayDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-        practiceDay = dayDiff + 1;
-      }
+      // 공통 유틸리티를 사용하여 일차 계산
+      const practiceDay = calculateChallengeDay(challenge, { 
+        practiceDay: practice?.day 
+      });
       
       const response = await fetch(`${API_URL}/api/feedback/update`, {
         method: 'PUT',

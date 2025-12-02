@@ -97,3 +97,48 @@ export const hasSelectedChallenge = () => {
   return !!getSelectedChallenge();
 };
 
+/**
+ * 선택한 챌린지의 startedAt을 가져오고, 없거나 유효하지 않으면 현재 시점으로 설정
+ * 
+ * @param {string} challengeId - 챌린지 ID
+ * @returns {string} 유효한 startedAt (ISO 문자열)
+ */
+export const getOrInitializeStartedAt = (challengeId) => {
+  const selection = getSelectedChallenge();
+  
+  // 선택한 챌린지가 아니거나 startedAt이 없으면 현재 시점으로 설정
+  if (!selection || selection.id !== challengeId.toString() || !selection.startedAt) {
+    const startedAt = new Date().toISOString();
+    setSelectedChallenge(challengeId, startedAt);
+    return startedAt;
+  }
+  
+  return selection.startedAt;
+};
+
+/**
+ * startedAt이 유효한지 검증하고, 유효하지 않으면 현재 시점으로 재설정
+ * 
+ * @param {string} challengeId - 챌린지 ID
+ * @param {string} startedAt - 검증할 startedAt
+ * @returns {string} 유효한 startedAt (ISO 문자열)
+ */
+export const validateAndFixStartedAt = (challengeId, startedAt) => {
+  if (!startedAt) {
+    const newStartedAt = new Date().toISOString();
+    setSelectedChallenge(challengeId, newStartedAt);
+    return newStartedAt;
+  }
+  
+  // 날짜 유효성 검증
+  const date = new Date(startedAt);
+  if (Number.isNaN(date.getTime())) {
+    console.warn('Invalid startedAt detected, resetting to current time:', startedAt);
+    const newStartedAt = new Date().toISOString();
+    setSelectedChallenge(challengeId, newStartedAt);
+    return newStartedAt;
+  }
+  
+  return startedAt;
+};
+

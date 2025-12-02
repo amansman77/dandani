@@ -20,6 +20,8 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import TodayIcon from '@mui/icons-material/Today';
 import PracticeRecordModal from './PracticeRecordModal';
 import { getUserId } from '../utils/userId';
+import { calculateChallengeDay, calculateChallengeStatus, addStartedAtHeader } from '../utils/challengeDay';
+import { getSelectedChallenge } from '../utils/challengeSelection';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -77,6 +79,12 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
       
       const userId = getUserId();
       
+      const feedbackHeaders = addStartedAtHeader({
+        'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+        'X-Client-Time': new Date().toISOString(),
+        'X-User-ID': userId
+      }, challengeId);
+      
       // 챌린지 상세 정보와 사용자의 실천 기록을 함께 가져오기
       const [challengeResponse, feedbackResponse] = await Promise.allSettled([
         fetch(`${API_URL}/api/challenges/${challengeId}`, {
@@ -87,11 +95,7 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
           }
         }),
         fetch(`${API_URL}/api/feedback/history?challengeId=${challengeId}`, {
-          headers: {
-            'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-            'X-Client-Time': new Date().toISOString(),
-            'X-User-ID': userId
-          }
+          headers: feedbackHeaders
         })
       ]);
 
@@ -100,6 +104,25 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
       }
 
       const challengeData = await challengeResponse.value.json();
+      
+      // 선택한 챌린지인 경우 startedAt 기준으로 정보 수정
+      const selectedChallengeInfo = getSelectedChallenge();
+      const isSelectedChallenge = selectedChallengeInfo && parseInt(selectedChallengeInfo.id) === parseInt(challengeId);
+      
+      if (isSelectedChallenge && selectedChallengeInfo.startedAt) {
+        // 선택한 챌린지의 경우 서버에서 받은 start_date/end_date는 무의미하므로 제거
+        delete challengeData.start_date;
+        delete challengeData.end_date;
+        
+        // status도 startedAt 기준으로 재계산
+        const challengeForStatus = {
+          id: challengeId,
+          total_days: challengeData.total_days
+        };
+        const { status, currentDay } = calculateChallengeStatus(challengeForStatus, {});
+        challengeData.status = status;
+        challengeData.current_day = currentDay;
+      }
       
       console.log('Challenge detail data:', challengeData);
       
@@ -111,16 +134,47 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
         console.log('User feedback data:', feedbackData);
         console.log('Completed days:', Array.from(completedDays));
         
-        // 실천 과제에 완료 상태 추가
+        // 공통 유틸리티를 사용하여 최대 가능 일차 계산
+        const challengeForCalculation = {
+          id: challengeId,
+          total_days: challengeData.total_days
+        };
+        const maxPossibleDay = calculateChallengeDay(challengeForCalculation, {});
+        
+        // 버그 복구: 완료 일수가 최대 가능 일차보다 많은 경우 제한
+        let validCompletedDays = completedDays;
+        const completedCount = completedDays.size;
+        
+        if (completedCount > maxPossibleDay) {
+          console.warn('Progress mismatch detected in detail view, correcting:', { 
+            completedCount, 
+            maxPossibleDay, 
+            challengeId 
+          });
+          // 최대 가능 일차까지만 완료된 것으로 간주
+          validCompletedDays = new Set(
+            Array.from(completedDays).filter(day => day <= maxPossibleDay)
+          );
+        }
+        
+        // 실천 과제에 완료 상태 추가 (수정된 완료 일수 기준)
         challengeData.practices = challengeData.practices.map(practice => ({
           ...practice,
-          completed: completedDays.has(practice.day)
+          completed: validCompletedDays.has(practice.day)
         }));
         
-        // 진행률 재계산
-        const completedCount = completedDays.size;
-        challengeData.progress_percentage = Math.round((completedCount / challengeData.total_days) * 100);
-        challengeData.completed_days = completedCount;
+        // 진행률 재계산 (수정된 완료 일수 기준)
+        const correctedCompletedCount = validCompletedDays.size;
+        challengeData.progress_percentage = Math.round((correctedCompletedCount / challengeData.total_days) * 100);
+        challengeData.completed_days = correctedCompletedCount;
+        
+        if (completedCount !== correctedCompletedCount) {
+          console.log('Progress corrected in detail view:', { 
+            original: completedCount, 
+            corrected: correctedCompletedCount,
+            maxPossibleDay
+          });
+        }
       }
 
       setChallenge(challengeData);

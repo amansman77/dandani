@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { calculateChallengeDay } from '../utils/challengeDay';
 import {
   Dialog,
   DialogTitle,
@@ -48,14 +49,10 @@ const FeedbackModal = ({
       return;
     }
 
-    // practice.day가 없으면 현재 챌린지의 현재 일차를 계산
-    let practiceDay = practice.day;
-    if (!practiceDay && challenge) {
-      const now = new Date();
-      const startDate = new Date(challenge.start_date);
-      const dayDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-      practiceDay = dayDiff + 1;
-    }
+    // 공통 유틸리티를 사용하여 일차 계산
+    const practiceDay = calculateChallengeDay(challenge, { 
+      practiceDay: practice?.day 
+    });
 
     const feedback = {
       challengeId: challenge.id,
