@@ -849,8 +849,8 @@ function getClientLocalDate(clientTime, clientTimezone) {
         } else {
           // 시간대 문자열에서 직접 오프셋 추출 시도 (예: "+09:00", "GMT+9")
           const offsetMatch = clientTimezone.match(/([+-])(\d{1,2}):?(\d{2})?/);
-          if (offsetMatch) {
-            const sign = offsetMatch[1] === '+' ? 1 : -1;
+        if (offsetMatch) {
+          const sign = offsetMatch[1] === '+' ? 1 : -1;
             const hours = parseInt(offsetMatch[2]) || 0;
             const minutes = parseInt(offsetMatch[3]) || 0;
             timezoneOffsetMs = sign * (hours * 60 * 60 + minutes * 60) * 1000;

@@ -182,3 +182,58 @@ export const addStartedAtHeader = (headers, challengeId) => {
   return headers;
 };
 
+/**
+ * 날짜를 한국어 형식으로 포맷팅 (KST 기준)
+ * SQLite DATETIME 형식을 UTC로 해석하여 로컬 시간대로 변환
+ * 
+ * @param {string|Date} dateValue - 날짜 값 (SQLite DATETIME 또는 ISO 8601 형식)
+ * @param {Object} options - 포맷 옵션
+ * @param {boolean} options.includeTime - 시간 포함 여부 (기본값: false)
+ * @returns {string} 포맷팅된 날짜 문자열 (예: "2025년 12월 5일" 또는 "2025년 12월 5일 오전 7:40")
+ */
+export const formatDateToKorean = (dateValue, options = {}) => {
+  if (!dateValue) {
+    return '';
+  }
+
+  // SQLite DATETIME 형식("2025-12-04 22:37:43")을 UTC로 해석
+  let recordDate;
+  if (dateValue instanceof Date) {
+    recordDate = dateValue;
+  } else if (typeof dateValue === 'string') {
+    if (dateValue.includes('T')) {
+      // ISO 8601 형식인 경우
+      recordDate = new Date(dateValue);
+    } else {
+      // SQLite DATETIME 형식인 경우 UTC로 해석
+      // "2025-12-04 22:37:43" -> "2025-12-04T22:37:43Z"
+      const utcDateStr = dateValue.replace(' ', 'T') + 'Z';
+      recordDate = new Date(utcDateStr);
+    }
+  } else {
+    return '';
+  }
+
+  if (Number.isNaN(recordDate.getTime())) {
+    return '';
+  }
+
+  const { includeTime = false } = options;
+
+  // KST로 변환된 날짜 추출
+  const localYear = recordDate.getFullYear();
+  const localMonth = recordDate.getMonth() + 1;
+  const localDay = recordDate.getDate();
+
+  if (includeTime) {
+    const localHour = recordDate.getHours();
+    const localMinute = recordDate.getMinutes();
+    const ampm = localHour < 12 ? '오전' : '오후';
+    const hour12 = localHour % 12 || 12;
+    const minuteStr = String(localMinute).padStart(2, '0');
+    return `${localYear}년 ${localMonth}월 ${localDay}일 ${ampm} ${hour12}:${minuteStr}`;
+  }
+
+  return `${localYear}년 ${localMonth}월 ${localDay}일`;
+};
+

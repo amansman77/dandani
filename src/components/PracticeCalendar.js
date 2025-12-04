@@ -426,22 +426,22 @@ const PracticeCalendar = ({ challengeId, onDateSelect }) => {
                       </Typography>
                       {record.mood_change && (
                         <StyledChip 
-                          icon={getMoodChangeIcon(record.mood_change)}
-                          label={getMoodChangeText(record.mood_change)}
-                          color={getMoodChangeColor(record.mood_change)}
-                          size="small"
-                          variant="outlined"
+                        icon={getMoodChangeIcon(record.mood_change)}
+                        label={getMoodChangeText(record.mood_change)}
+                        color={getMoodChangeColor(record.mood_change)}
+                        size="small"
+                        variant="outlined"
                           hasContent={!!record.mood_change}
-                        />
+                      />
                       )}
                       {record.was_helpful && (
                         <StyledChip 
-                          label={getHelpfulText(record.was_helpful)}
-                          color={getHelpfulColor(record.was_helpful)}
-                          size="small"
-                          variant="outlined"
+                        label={getHelpfulText(record.was_helpful)}
+                        color={getHelpfulColor(record.was_helpful)}
+                        size="small"
+                        variant="outlined"
                           hasContent={!!record.was_helpful}
-                        />
+                      />
                       )}
                     </Box>
                     

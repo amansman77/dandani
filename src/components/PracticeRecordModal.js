@@ -17,7 +17,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Edit, Check, Close } from '@mui/icons-material';
 import { getUserId } from '../utils/userId';
-import { calculateChallengeDay, isPastRecord, addStartedAtHeader } from '../utils/challengeDay';
+import { calculateChallengeDay, isPastRecord, addStartedAtHeader, formatDateToKorean } from '../utils/challengeDay';
 import AlertModal from './AlertModal';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
@@ -269,7 +269,7 @@ const PracticeRecordModal = ({
         {record && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <Typography variant="caption" color="text.secondary">
-              기록일: {new Date(record.created_at).toLocaleDateString('ko-KR')}
+              기록일: {formatDateToKorean(record.created_at)}
             </Typography>
             {isPastRecord(record.created_at) && (
               <StyledChip 
