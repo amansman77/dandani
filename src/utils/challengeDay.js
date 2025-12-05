@@ -148,19 +148,68 @@ export const calculateChallengeEndDate = (startedAt, totalDays) => {
 };
 
 /**
- * 과거 기록인지 확인
+ * 데이터베이스 날짜 값을 Date 객체로 파싱
+ * SQLite DATETIME 형식과 ISO 8601 형식을 모두 지원
  * 
- * @param {string|Date} recordDate - 기록 날짜
+ * @param {string|Date} dateValue - 날짜 값 (SQLite DATETIME, ISO 8601, 또는 Date 객체)
+ * @returns {Date|null} 파싱된 Date 객체 또는 null (파싱 실패 시)
+ */
+export const parseDatabaseDate = (dateValue) => {
+  if (!dateValue) {
+    return null;
+  }
+
+  // Date 객체인 경우 그대로 반환
+  if (dateValue instanceof Date) {
+    return Number.isNaN(dateValue.getTime()) ? null : dateValue;
+  }
+
+  // 문자열인 경우 형식에 따라 파싱
+  if (typeof dateValue === 'string') {
+    if (dateValue.includes('T')) {
+      // ISO 8601 형식인 경우 (예: "2025-12-05T15:00:00Z")
+      const parsed = new Date(dateValue);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    } else {
+      // SQLite DATETIME 형식인 경우 UTC로 해석
+      // "2025-12-04 22:37:43" -> "2025-12-04T22:37:43Z"
+      const utcDateStr = dateValue.replace(' ', 'T') + 'Z';
+      const parsed = new Date(utcDateStr);
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * 과거 기록인지 확인
+ * SQLite DATETIME 형식을 UTC로 해석하여 로컬 시간 기준으로 비교
+ * 
+ * @param {string|Date} recordDate - 기록 날짜 (SQLite DATETIME 또는 ISO 8601 형식)
  * @returns {boolean} 오늘 자정 이전의 기록이면 true
  */
 export const isPastRecord = (recordDate) => {
-  if (!recordDate) return false;
+  const parsedDate = parseDatabaseDate(recordDate);
+  if (!parsedDate) {
+    return false;
+  }
   
-  const recordTime = new Date(recordDate).getTime();
+  // 로컬 시간 기준으로 기록 날짜 추출 (시간 제거)
+  const recordYear = parsedDate.getFullYear();
+  const recordMonth = parsedDate.getMonth();
+  const recordDay = parsedDate.getDate();
+  const recordDateOnly = new Date(recordYear, recordMonth, recordDay).getTime();
+  
+  // 오늘 날짜 (로컬 시간 기준, 시간 제거)
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const todayYear = now.getFullYear();
+  const todayMonth = now.getMonth();
+  const todayDay = now.getDate();
+  const todayDateOnly = new Date(todayYear, todayMonth, todayDay).getTime();
   
-  return recordTime < todayStart;
+  // 기록 날짜가 오늘 날짜보다 이전이면 과거 기록
+  return recordDateOnly < todayDateOnly;
 };
 
 /**
@@ -192,29 +241,8 @@ export const addStartedAtHeader = (headers, challengeId) => {
  * @returns {string} 포맷팅된 날짜 문자열 (예: "2025년 12월 5일" 또는 "2025년 12월 5일 오전 7:40")
  */
 export const formatDateToKorean = (dateValue, options = {}) => {
-  if (!dateValue) {
-    return '';
-  }
-
-  // SQLite DATETIME 형식("2025-12-04 22:37:43")을 UTC로 해석
-  let recordDate;
-  if (dateValue instanceof Date) {
-    recordDate = dateValue;
-  } else if (typeof dateValue === 'string') {
-    if (dateValue.includes('T')) {
-      // ISO 8601 형식인 경우
-      recordDate = new Date(dateValue);
-    } else {
-      // SQLite DATETIME 형식인 경우 UTC로 해석
-      // "2025-12-04 22:37:43" -> "2025-12-04T22:37:43Z"
-      const utcDateStr = dateValue.replace(' ', 'T') + 'Z';
-      recordDate = new Date(utcDateStr);
-    }
-  } else {
-    return '';
-  }
-
-  if (Number.isNaN(recordDate.getTime())) {
+  const recordDate = parseDatabaseDate(dateValue);
+  if (!recordDate) {
     return '';
   }
 
