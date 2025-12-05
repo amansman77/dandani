@@ -7,6 +7,7 @@ import {
   Alert,
   Chip
 } from '@mui/material';
+import { Star, TrendingUp } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { logEvent } from '../utils/analytics';
 import { setSelectedChallengeId } from '../utils/challengeSelection';
@@ -25,24 +26,49 @@ const TitleBox = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(4),
 }));
 
-const ChallengeCard = styled(Paper)(({ theme, selected }) => ({
-  padding: theme.spacing(3),
-  marginBottom: theme.spacing(2),
-  borderRadius: theme.spacing(2),
-  border: selected 
-    ? `2px solid ${theme.palette.primary.main}` 
-    : `1px solid ${theme.palette.grey[300]}`,
-  boxShadow: selected
-    ? '0 4px 20px rgba(25, 118, 210, 0.15)'
-    : '0 2px 8px rgba(0, 0, 0, 0.1)',
-  transition: 'all 0.3s ease',
-  cursor: 'pointer',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 6px 25px rgba(0, 0, 0, 0.15)',
-    borderColor: theme.palette.primary.main,
-  },
-}));
+const ChallengeCard = styled(Paper, {
+  shouldForwardProp: (prop) => !['selected', 'isRecommended', 'isPopular'].includes(prop),
+})(({ theme, selected, isRecommended, isPopular }) => {
+  let borderColor = theme.palette.grey[300];
+  let boxShadowColor = 'rgba(0, 0, 0, 0.1)';
+  
+  if (selected) {
+    borderColor = theme.palette.primary.main;
+    boxShadowColor = 'rgba(25, 118, 210, 0.15)';
+  } else if (isRecommended) {
+    borderColor = theme.palette.success.main; // 초록색 계열 - 신뢰감과 긍정적 느낌
+    boxShadowColor = 'rgba(87, 159, 89, 0.15)';
+  } else if (isPopular) {
+    borderColor = theme.palette.warning.main; // 주황/핑크 계열 - 활기와 따뜻함
+    boxShadowColor = 'rgba(238, 124, 111, 0.15)';
+  }
+  
+  return {
+    padding: theme.spacing(3),
+    marginBottom: theme.spacing(2),
+    borderRadius: theme.spacing(2),
+    border: selected || isRecommended || isPopular
+      ? `2px solid ${borderColor}`
+      : `1px solid ${borderColor}`,
+    boxShadow: selected || isRecommended || isPopular
+      ? `0 4px 20px ${boxShadowColor}`
+      : '0 2px 8px rgba(0, 0, 0, 0.1)',
+    transition: 'all 0.3s ease',
+    cursor: 'pointer',
+    position: 'relative',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 6px 25px rgba(0, 0, 0, 0.15)',
+      borderColor: selected 
+        ? theme.palette.primary.main 
+        : isRecommended 
+          ? theme.palette.success.main 
+          : isPopular 
+            ? theme.palette.warning.main 
+            : theme.palette.primary.main,
+    },
+  };
+});
 
 const ChallengeSelector = ({ onChallengeSelected }) => {
   const [challenges, setChallenges] = useState([]);
@@ -110,7 +136,14 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
 
         // 광고 파라미터가 없거나 매칭되는 챌린지가 없는 경우 기본 목록 노출
         setIsAdLanding(false);
-        const displayChallenges = sortedChallenges.slice(0, 5);
+        
+        // 추천/인기 챌린지는 데이터베이스에서 관리 (is_recommended, is_popular 필드)
+        // API 응답에서 이미 boolean 값으로 변환되어 있음
+        const displayChallenges = sortedChallenges.slice(0, 5).map((challenge) => ({
+          ...challenge,
+          isRecommended: challenge.is_recommended || false,
+          isPopular: challenge.is_popular || false
+        }));
         
         setChallenges(displayChallenges);
       } else {
@@ -214,37 +247,69 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
           <ChallengeCard
             key={challenge.id}
             selected={selectedId === challenge.id}
+            isRecommended={challenge.isRecommended}
+            isPopular={challenge.isPopular}
             onClick={() => handleChallengeSelect(challenge)}
             elevation={selectedId === challenge.id ? 4 : 2}
           >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography 
-                  variant="h6" 
-                  component="h2"
-                  sx={{ 
-                    fontWeight: 'bold',
-                    color: 'text.primary',
-                    mb: 1
-                  }}
-                >
-                  {challenge.name}
-                </Typography>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary"
-                  sx={{ lineHeight: 1.6 }}
-                >
-                  {challenge.description}
-                </Typography>
+            <Box sx={{ position: 'relative' }}>
+              {/* 추천/인기 배지 */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+                {challenge.isRecommended && (
+                  <Chip
+                    icon={<Star />}
+                    label="추천"
+                    color="success"
+                    size="small"
+                    sx={{ 
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                )}
+                {challenge.isPopular && (
+                  <Chip
+                    icon={<TrendingUp />}
+                    label="인기"
+                    color="warning"
+                    size="small"
+                    sx={{ 
+                      fontWeight: 'bold',
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                )}
               </Box>
-              <Chip
-                label={formatDuration(challenge.total_days)}
-                color="primary"
-                variant="outlined"
-                size="small"
-                sx={{ ml: 2 }}
-              />
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography 
+                    variant="h6" 
+                    component="h2"
+                    sx={{ 
+                      fontWeight: 'bold',
+                      color: 'text.primary',
+                      mb: 1
+                    }}
+                  >
+                    {challenge.name}
+                  </Typography>
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary"
+                    sx={{ lineHeight: 1.6 }}
+                  >
+                    {challenge.description}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={formatDuration(challenge.total_days)}
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  sx={{ ml: 2 }}
+                />
+              </Box>
             </Box>
           </ChallengeCard>
         ))}

@@ -273,6 +273,8 @@ async function getChallenges(env, request) {
         current_day: currentDay,
         total_days: totalDays,
         progress_percentage: progressPercentage,
+        is_recommended: challenge.is_recommended === 1,
+        is_popular: challenge.is_popular === 1,
         today_practice: todayPractice ? {
           title: todayPractice.title,
           description: todayPractice.description
@@ -295,6 +297,8 @@ async function getChallenges(env, request) {
         total_days: totalDays,
         completed_days: totalDays,
         progress_percentage: 100,
+        is_recommended: challenge.is_recommended === 1,
+        is_popular: challenge.is_popular === 1,
         last_practice: lastPractice ? {
           title: lastPractice.title,
           description: lastPractice.description
@@ -312,7 +316,9 @@ async function getChallenges(env, request) {
         start_date: challenge.start_date,
         end_date: challenge.end_date,
         total_days: totalDays,
-        days_until_start: daysUntilStart
+        days_until_start: daysUntilStart,
+        is_recommended: challenge.is_recommended === 1,
+        is_popular: challenge.is_popular === 1
       });
     }
   }
