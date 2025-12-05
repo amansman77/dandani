@@ -23,6 +23,7 @@ import {
   Help
 } from '@mui/icons-material';
 import { getUserId } from '../utils/userId';
+import { parseDatabaseDate } from '../utils/challengeDay';
 
 const StyledChip = styled(Chip)(({ hasContent }) => ({
   '&.MuiChip-outlined': {
@@ -199,8 +200,13 @@ const PracticeCalendar = ({ challengeId, onDateSelect }) => {
     const localDay = date.getDate();
     
     return records.filter(record => {
-      // record.created_at은 UTC로 저장되어 있으므로, 로컬 시간대로 변환
-      const recordDate = new Date(record.created_at);
+      // parseDatabaseDate를 사용하여 SQLite DATETIME 형식을 올바르게 UTC로 해석
+      const recordDate = parseDatabaseDate(record.created_at);
+      if (!recordDate) {
+        return false;
+      }
+      
+      // 로컬 시간 기준으로 날짜 추출
       const recordYear = recordDate.getFullYear();
       const recordMonth = recordDate.getMonth();
       const recordDay = recordDate.getDate();
