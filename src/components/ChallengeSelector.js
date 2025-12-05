@@ -114,21 +114,15 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
           ? parseInt(urlParams.challengeId) 
           : null;
 
-        // 최신 챌린지 순으로 정렬 (start_date 기준 내림차순)
-        let sortedChallenges = [...allChallenges].sort((a, b) => {
-          const dateA = new Date(a.start_date);
-          const dateB = new Date(b.start_date);
-          return dateB - dateA; // 최신순 (내림차순)
-        });
-
         // 광고 매칭 챌린지가 있으면 첫 번째로 배치
         if (adChallengeId) {
-          const adChallengeIndex = sortedChallenges.findIndex(
-            c => c.id === adChallengeId
-          );
-          if (adChallengeIndex > -1) {
-            const adChallenge = sortedChallenges[adChallengeIndex];
-            setChallenges([adChallenge]);
+          const adChallenge = allChallenges.find(c => c.id === adChallengeId);
+          if (adChallenge) {
+            setChallenges([{
+              ...adChallenge,
+              isRecommended: adChallenge.is_recommended || false,
+              isPopular: adChallenge.is_popular || false
+            }]);
             setIsAdLanding(true);
             return;
           }
@@ -136,6 +130,27 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
 
         // 광고 파라미터가 없거나 매칭되는 챌린지가 없는 경우 기본 목록 노출
         setIsAdLanding(false);
+        
+        // 추천/인기 챌린지를 상단에 배치하도록 정렬
+        // 정렬 우선순위: 1) 추천 챌린지, 2) 인기 챌린지, 3) 최신순
+        let sortedChallenges = [...allChallenges].sort((a, b) => {
+          // 추천 챌린지 우선
+          const aIsRecommended = a.is_recommended || false;
+          const bIsRecommended = b.is_recommended || false;
+          if (aIsRecommended && !bIsRecommended) return -1;
+          if (!aIsRecommended && bIsRecommended) return 1;
+          
+          // 인기 챌린지 다음
+          const aIsPopular = a.is_popular || false;
+          const bIsPopular = b.is_popular || false;
+          if (aIsPopular && !bIsPopular) return -1;
+          if (!aIsPopular && bIsPopular) return 1;
+          
+          // 나머지는 최신순 (start_date 기준 내림차순)
+          const dateA = new Date(a.start_date);
+          const dateB = new Date(b.start_date);
+          return dateB - dateA;
+        });
         
         // 추천/인기 챌린지는 데이터베이스에서 관리 (is_recommended, is_popular 필드)
         // API 응답에서 이미 boolean 값으로 변환되어 있음
