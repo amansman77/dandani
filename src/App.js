@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip, Fade, Divider } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { Help as HelpIcon } from '@mui/icons-material';
@@ -34,6 +34,34 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     transform: 'translateY(-2px)',
     boxShadow: '0px 8px 30px rgba(0, 0, 0, 0.15)',
   },
+}));
+
+// 오늘의 추천 실천 카드 (높이 확장 애니메이션 적용)
+const PracticeCard = styled(Paper)(({ theme }) => ({
+  padding: '35px',
+  marginTop: theme.spacing(4),
+  textAlign: 'center',
+  borderRadius: '16px',
+  boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+  backgroundColor: '#3f7198', // 메인 블루 배경
+  color: 'white', // 흰색 텍스트
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0px 8px 30px rgba(0, 0, 0, 0.15)',
+  },
+}));
+
+// 카드 컨테이너 (높이 애니메이션용)
+const PracticeCardContainer = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'cardHeight' && prop !== 'shouldAnimate' && prop !== 'isMeasuring',
+})(({ cardHeight, shouldAnimate, isMeasuring }) => ({
+  height: isMeasuring ? 'auto' : (cardHeight > 0 ? `${cardHeight}px` : '0px'),
+  opacity: shouldAnimate ? 1 : (isMeasuring ? 1 : 0),
+  overflow: shouldAnimate ? 'visible' : 'hidden', // 애니메이션 완료 후 visible로 변경
+  transition: shouldAnimate ? 'height 1.5s ease-out, opacity 0.4s ease-out' : 'height 0s, opacity 0s',
 }));
 
 // 실천 완료 카드용 스타일
@@ -106,11 +134,19 @@ function App() {
   // 중복 호출 방지를 위한 ref
   const fetchingRef = useRef(false);
   
+  // 오늘의 추천 실천 카드 애니메이션을 위한 ref
+  const practiceCardRef = useRef(null);
+  const practiceCardInnerRef = useRef(null);
+  const [practiceCardHeight, setPracticeCardHeight] = useState(0);
+  const [shouldAnimateCard, setShouldAnimateCard] = useState(false);
+  const [isMeasuringHeight, setIsMeasuringHeight] = useState(false);
+  
   // 채팅 관련 상태를 App.js에서 관리
   const [chatMessages, setChatMessages] = useState([]);
   const [chatSessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
+  const [hasDetailedRecord, setHasDetailedRecord] = useState(false); // 상세 기록 여부
   
   // 알림 모달 상태
   const [alertModal, setAlertModal] = useState({
@@ -236,6 +272,10 @@ function App() {
         });
         
         setPractice(practiceData);
+        // practice가 새로 로드될 때 상세 기록 상태 초기화
+        if (!practiceData?.isRecorded) {
+          setHasDetailedRecord(false);
+        }
       } else if (isChallengeCompleted) {
         // 종료된 챌린지의 경우 practice를 null로 설정
         setPractice(null);
@@ -469,6 +509,69 @@ function App() {
     }
   }, [selectedChallengeId]);
 
+  // 오늘의 추천 실천 카드 애니메이션 처리
+  useLayoutEffect(() => {
+    if (practice && !practice.isRecorded) {
+      // 먼저 측정 모드로 전환 (카드가 보이도록)
+      setIsMeasuringHeight(true);
+      
+      // DOM이 업데이트된 직후 높이 측정
+      const measureHeight = () => {
+        if (practiceCardInnerRef.current) {
+          const cardElement = practiceCardInnerRef.current;
+          // getBoundingClientRect를 사용하여 더 정확한 높이 측정
+          const rect = cardElement.getBoundingClientRect();
+          const actualHeight = rect.height || cardElement.offsetHeight || cardElement.scrollHeight;
+          
+          if (actualHeight > 0) {
+            // 측정 완료, 높이를 0으로 초기화
+            // 약간의 여유 공간 추가 (1px)로 하단 잘림 방지
+            const heightWithMargin = actualHeight + 1;
+            setIsMeasuringHeight(false);
+            setPracticeCardHeight(0);
+            setShouldAnimateCard(false);
+            
+            // 2초 후 애니메이션 시작
+            setTimeout(() => {
+              // 다음 프레임에서 애니메이션 시작
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  setPracticeCardHeight(heightWithMargin);
+                  setShouldAnimateCard(true);
+                });
+              });
+            }, 2000);
+            return true; // 측정 성공
+          }
+        }
+        return false; // 측정 실패
+      };
+      
+      // 즉시 측정 시도
+      if (!measureHeight()) {
+        // DOM 업데이트를 기다리기 위한 짧은 지연들
+        const timers = [];
+        [10, 50, 100, 200].forEach((delay) => {
+          const timer = setTimeout(() => {
+            if (measureHeight()) {
+              // 측정 성공 시 나머지 타이머 정리
+              timers.forEach(t => clearTimeout(t));
+            }
+          }, delay);
+          timers.push(timer);
+        });
+        
+        return () => {
+          timers.forEach(timer => clearTimeout(timer));
+        };
+      }
+    } else {
+      setPracticeCardHeight(0);
+      setShouldAnimateCard(false);
+      setIsMeasuringHeight(false);
+    }
+  }, [practice]);
+
   // 이전 실행 추적을 위한 ref
   const lastFetchRef = useRef({ challengeId: null, startedAt: null });
   
@@ -624,6 +727,9 @@ function App() {
         });
         console.log('Quick complete submitted:', result);
 
+        // 빠른 완료는 상세 기록이 아니므로 false로 유지
+        setHasDetailedRecord(false);
+
         if (practice) {
           setPractice({
             ...practice,
@@ -773,10 +879,16 @@ function App() {
             {!showChallengeSelector && Boolean(selectedChallengeId) && !currentChallenge?.is_completed && (
               <>
                 {/* 실천 완료 전: 오늘의 추천 실천 카드 */}
-                {!practice?.isRecorded && (
-                  <Fade in={!!practice && !practice?.isRecorded} timeout={3000}>
-                    <StyledPaper elevation={3}>
-                      <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
+                {!practice?.isRecorded && practice && (
+                  <PracticeCardContainer
+                    ref={practiceCardRef}
+                    cardHeight={practiceCardHeight}
+                    shouldAnimate={shouldAnimateCard}
+                    isMeasuring={isMeasuringHeight}
+                  >
+                    <Box ref={practiceCardInnerRef}>
+                      <PracticeCard elevation={3}>
+                        <Typography variant="h6" color="primary.contrastText" gutterBottom sx={{
                         fontSize: '2.2rem',
                         fontWeight: 700,
                         lineHeight: 1.3,
@@ -842,12 +954,13 @@ function App() {
                           실천 완료하기
                         </AnimatedButton>
                       </Box>
-                    </StyledPaper>
-                  </Fade>
+                      </PracticeCard>
+                    </Box>
+                  </PracticeCardContainer>
                 )}
 
-                {/* 실천 완료 후: 실천 완료 카드 */}
-                {practice?.isRecorded && (
+                {/* 실천 완료 후: 실천 완료 카드 (상세 기록 시 표시 안 함) */}
+                {!hasDetailedRecord && practice?.isRecorded && (
                   <Fade in={practice?.isRecorded} timeout={2000}>
                     <CompletedPaper elevation={3}>
                       <Typography variant="h5" paragraph sx={{ 
@@ -1063,6 +1176,8 @@ function App() {
           practice={practice}
           challenge={currentChallenge}
           onUpdate={(updatedRecord) => {
+            // 상세 기록 완료 표시
+            setHasDetailedRecord(true);
             // 기록 업데이트 후 실천 데이터 다시 가져오기
             fetchPracticeAndChallenge();
           }}
