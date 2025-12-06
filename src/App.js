@@ -730,18 +730,15 @@ function App() {
         // 빠른 완료는 상세 기록이 아니므로 false로 유지
         setHasDetailedRecord(false);
 
+        // 로컬 상태만 업데이트 (페이지 리로딩 방지)
         if (practice) {
           setPractice({
             ...practice,
             isRecorded: true
           });
         }
-
-        try {
-          await fetchPracticeAndChallenge(currentChallenge?.id, selectedChallengeStartedAt);
-        } catch (error) {
-          console.log('Backend refresh failed, using local state update');
-        }
+        
+        // fetchPracticeAndChallenge 제거 - 로컬 상태 업데이트만으로 충분
       } else {
         throw new Error('빠른 완료 제출에 실패했습니다.');
       }
@@ -1178,8 +1175,16 @@ function App() {
           onUpdate={(updatedRecord) => {
             // 상세 기록 완료 표시
             setHasDetailedRecord(true);
-            // 기록 업데이트 후 실천 데이터 다시 가져오기
-            fetchPracticeAndChallenge();
+            
+            // 로컬 상태만 업데이트 (페이지 리로딩 방지)
+            if (practice) {
+              setPractice({
+                ...practice,
+                isRecorded: true
+              });
+            }
+            
+            // fetchPracticeAndChallenge 제거 - 로컬 상태 업데이트만으로 충분
           }}
         />
 
