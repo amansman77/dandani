@@ -176,6 +176,45 @@ function App() {
 
   // 일차 계산은 utils/challengeDay.js의 공통 함수 사용
 
+  // 상세 기록 확인 함수
+  const checkDetailedRecord = useCallback(async (practiceData, challenge) => {
+    if (!practiceData || !challenge?.id) return;
+    
+    try {
+      const userId = getUserId();
+      const practiceDay = calculateChallengeDay(challenge, { 
+        practiceDay: practiceData?.day 
+      });
+      
+      const headers = addStartedAtHeader({
+        'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+        'X-Client-Time': new Date().toISOString(),
+        'X-User-ID': userId
+      }, challenge.id);
+      
+      const response = await fetch(`${API_URL}/api/feedback/record?challengeId=${challenge.id}&practiceDay=${practiceDay}`, {
+        headers
+      });
+      
+      if (response.ok) {
+        const recordData = await response.json();
+        // 기록이 있고, 상세 기록(mood_change, was_helpful, practice_description 중 하나라도 null이 아님)이면
+        if (recordData && (recordData.mood_change || recordData.was_helpful || recordData.practice_description)) {
+          setHasDetailedRecord(true);
+        } else {
+          setHasDetailedRecord(false);
+        }
+      } else {
+        // 기록이 없으면 상세 기록이 아님
+        setHasDetailedRecord(false);
+      }
+    } catch (error) {
+      console.error('Failed to check detailed record:', error);
+      // 에러 발생 시 기본값 유지
+      setHasDetailedRecord(false);
+    }
+  }, []);
+
   const fetchPracticeAndChallenge = useCallback(async (challengeId = null, startedAtOverride = null) => {
     // 중복 호출 방지
     if (fetchingRef.current) {
@@ -241,9 +280,10 @@ function App() {
         }
       }
 
+      let loadedPracticeData = null;
       if (practiceResponse.status === 'fulfilled' && practiceResponse.value.ok && !isChallengeCompleted) {
-        const practiceData = await practiceResponse.value.json();
-        console.log('Practice data:', practiceData);
+        loadedPracticeData = await practiceResponse.value.json();
+        console.log('Practice data:', loadedPracticeData);
         
         // 챌린지 갱신 시간 정보 출력 (항상 표시)
         const now = new Date();
@@ -267,13 +307,14 @@ function App() {
           '클라이언트 시간대': clientTimezone,
           '다음 갱신 시간': '자정 (00:00)',
           '남은 시간': `${hours}시간 ${minutes}분 ${seconds}초`,
-          '챌린지 일차': practiceData.day || 'N/A',
-          ...(practiceData._debug ? { '서버 계산 날짜': practiceData._debug.calculatedDate } : {})
+          '챌린지 일차': loadedPracticeData.day || 'N/A',
+          ...(loadedPracticeData._debug ? { '서버 계산 날짜': loadedPracticeData._debug.calculatedDate } : {})
         });
         
-        setPractice(practiceData);
-        // practice가 새로 로드될 때 상세 기록 상태 초기화
-        if (!practiceData?.isRecorded) {
+        setPractice(loadedPracticeData);
+        // practice.isRecorded가 true일 때, 실제로 상세 기록이 있는지 확인
+        // (챌린지가 설정된 후에 확인하므로 여기서는 초기화만)
+        if (!loadedPracticeData?.isRecorded) {
           setHasDetailedRecord(false);
         }
       } else if (isChallengeCompleted) {
@@ -385,6 +426,10 @@ function App() {
             });
             
             setCurrentChallenge(updatedChallenge);
+            // 챌린지 설정 후 상세 기록 확인
+            if (loadedPracticeData?.isRecorded) {
+              checkDetailedRecord(loadedPracticeData, updatedChallenge);
+            }
           } else {
             const challenge = challengesData.current;
             if (challenge) {
@@ -398,6 +443,10 @@ function App() {
               });
             }
             setCurrentChallenge(challenge);
+            // 챌린지 설정 후 상세 기록 확인
+            if (loadedPracticeData?.isRecorded && challenge) {
+              checkDetailedRecord(loadedPracticeData, challenge);
+            }
           }
         } else {
           // targetChallengeId가 없는 경우에도 현재 챌린지가 있으면 실제 완료 일수 기반으로 진행률 계산
@@ -495,7 +544,7 @@ function App() {
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [selectedChallengeId, selectedChallengeStartedAt, currentChallenge?.is_completed]);
+  }, [selectedChallengeId, selectedChallengeStartedAt, currentChallenge?.is_completed, checkDetailedRecord]);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
