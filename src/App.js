@@ -273,43 +273,27 @@ function App() {
           ];
           const tempChallenge = allChallenges.find(c => c.id === parseInt(targetChallengeId));
           if (tempChallenge && targetStartedAt) {
-            const { currentDay } = calculateChallengeProgress(tempChallenge, {});
+            // startedAt을 직접 사용하여 일차 계산
+            const startedAtDate = new Date(targetStartedAt);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            startedAtDate.setHours(0, 0, 0, 0);
+            
+            const diffDays = Math.floor((today.getTime() - startedAtDate.getTime()) / (24 * 60 * 60 * 1000));
+            const currentDay = diffDays + 1;
             const totalDays = Math.max(1, tempChallenge.total_days || 1);
-            isChallengeCompleted = currentDay >= totalDays;
+            isChallengeCompleted = currentDay > totalDays; // 현재 일차가 총 일수를 초과하면 완료
+            
+            // 챌린지 완료 여부 계산 완료
           }
         }
       }
+
 
       let loadedPracticeData = null;
       if (practiceResponse.status === 'fulfilled' && practiceResponse.value.ok && !isChallengeCompleted) {
         loadedPracticeData = await practiceResponse.value.json();
         console.log('Practice data:', loadedPracticeData);
-        
-        // 챌린지 갱신 시간 정보 출력 (항상 표시)
-        const now = new Date();
-        const clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const clientTime = now.toISOString();
-        
-        // 클라이언트 로컬 시간 기준으로 오늘 날짜 계산
-        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const tomorrowDate = new Date(todayDate);
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-        
-        const timeUntilMidnight = tomorrowDate - now;
-        const hours = Math.floor(timeUntilMidnight / (1000 * 60 * 60));
-        const minutes = Math.floor((timeUntilMidnight % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeUntilMidnight % (1000 * 60)) / 1000);
-        
-        console.log('📅 챌린지 갱신 시간 정보:', {
-          '현재 시간 (로컬)': now.toLocaleString('ko-KR', { timeZone: clientTimezone }),
-          '현재 시간 (UTC)': clientTime,
-          '오늘 날짜': todayDate.toLocaleDateString('ko-KR'),
-          '클라이언트 시간대': clientTimezone,
-          '다음 갱신 시간': '자정 (00:00)',
-          '남은 시간': `${hours}시간 ${minutes}분 ${seconds}초`,
-          '챌린지 일차': loadedPracticeData.day || 'N/A',
-          ...(loadedPracticeData._debug ? { '서버 계산 날짜': loadedPracticeData._debug.calculatedDate } : {})
-        });
         
         setPractice(loadedPracticeData);
         // practice.isRecorded가 true일 때, 실제로 상세 기록이 있는지 확인
@@ -321,6 +305,17 @@ function App() {
         // 종료된 챌린지의 경우 practice를 null로 설정
         setPractice(null);
         console.log('Challenge is completed, practice not fetched');
+      } else if (practiceResponse.status === 'fulfilled' && !practiceResponse.value.ok) {
+        // API 응답이 실패한 경우
+        console.error('Practice API failed:', {
+          status: practiceResponse.value.status,
+          statusText: practiceResponse.value.statusText
+        });
+        setPractice(null);
+      } else if (practiceResponse.status === 'rejected') {
+        // API 호출 자체가 실패한 경우
+        console.error('Practice API request failed:', practiceResponse.reason);
+        setPractice(null);
       } else {
         console.log('Practice API not available, using fallback');
         setPractice({

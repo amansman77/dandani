@@ -174,10 +174,13 @@ async function getTodayPractice(env, request) {
       
       // 선택한 챌린지의 경우 startedAt 이후에 생성된 기록만 확인
       if (challengeIdParam && startedAtParam) {
-        // SQLite datetime() 함수를 사용하여 ISO 8601 형식과 DATETIME 형식 비교
-        feedbackQuery += ` AND datetime(created_at) >= datetime(?)`;
-        feedbackParams.push(startedAtParam);
-        console.log('getTodayPractice - Filtering feedback by startedAt:', startedAtParam);
+        // startedAt을 날짜만 추출하여 비교 (자정 기준)
+        // startedAt은 ISO 8601 형식이므로 날짜 부분만 추출
+        const startedAtDateStr = startedAtParam.split('T')[0]; // "2025-12-01T06:00:00.000Z" -> "2025-12-01"
+        // created_at의 날짜 부분만 추출하여 비교 (자정 기준)
+        feedbackQuery += ` AND date(created_at) >= date(?)`;
+        feedbackParams.push(startedAtDateStr);
+        // startedAt 날짜 필터링 적용
       }
       
       feedbackQuery += ` ORDER BY created_at DESC LIMIT 1`;
@@ -190,20 +193,14 @@ async function getTodayPractice(env, request) {
         clientTimezone,
         calculatedDate: currentDate.toISOString().split('T')[0],
         challengeDay: adjustedDay,
+        hasFeedback: !!feedback,
         nextUpdateTime: '자정 (00:00) 기준'
       });
 
       return {
         ...practice,
         day: adjustedDay, // 현재 일차 추가
-        isRecorded: !!feedback,
-        // 디버깅 정보 추가 (개발 환경에서만 유용)
-        _debug: {
-          calculatedDate: currentDate.toISOString().split('T')[0],
-          clientTime,
-          clientTimezone,
-          nextUpdateTime: '자정 (00:00) 기준'
-        }
+        isRecorded: !!feedback
       };
     }
   }
@@ -491,10 +488,13 @@ async function getPracticeRecord(env, challengeId, practiceDay, request) {
   
   // 선택한 챌린지의 경우 startedAt 이후에 생성된 기록만 조회
   if (startedAt) {
-    // SQLite datetime() 함수를 사용하여 ISO 8601 형식과 DATETIME 형식 비교
-    query += ` AND datetime(created_at) >= datetime(?)`;
-    bindParams.push(startedAt);
-    console.log('Filtering by startedAt:', startedAt);
+    // startedAt을 날짜만 추출하여 비교 (자정 기준)
+    // startedAt은 ISO 8601 형식이므로 날짜 부분만 추출
+    const startedAtDateStr = startedAt.split('T')[0]; // "2025-12-01T06:00:00.000Z" -> "2025-12-01"
+    // created_at의 날짜 부분만 추출하여 비교 (자정 기준)
+    query += ` AND date(created_at) >= date(?)`;
+    bindParams.push(startedAtDateStr);
+    // startedAt 날짜 필터링 적용
   }
   
   // 가장 최근 기록 조회 (동일한 practice_day에 여러 기록이 있을 경우)
@@ -520,10 +520,13 @@ async function getPracticeHistory(env, challengeId, request) {
   
   // 선택한 챌린지의 경우 startedAt 이후에 생성된 기록만 조회
   if (startedAt) {
-    // SQLite datetime() 함수를 사용하여 ISO 8601 형식과 DATETIME 형식 비교
-    query += ` AND datetime(created_at) >= datetime(?)`;
-    bindParams.push(startedAt);
-    console.log('getPracticeHistory - Filtering by startedAt:', startedAt);
+    // startedAt을 날짜만 추출하여 비교 (자정 기준)
+    // startedAt은 ISO 8601 형식이므로 날짜 부분만 추출
+    const startedAtDateStr = startedAt.split('T')[0]; // "2025-12-01T06:00:00.000Z" -> "2025-12-01"
+    // created_at의 날짜 부분만 추출하여 비교 (자정 기준)
+    query += ` AND date(created_at) >= date(?)`;
+    bindParams.push(startedAtDateStr);
+    // startedAt 날짜 필터링 적용
   }
   
   query += ` ORDER BY practice_day ASC`;
