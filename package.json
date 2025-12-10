@@ -1,40 +1,22 @@
 {
-  "name": "dandani",
+  "name": "dandani-workspace",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@emotion/react": "^11.11.3",
-    "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.17.1",
-    "@mui/material": "^5.15.10",
-    "crypto-js": "^4.2.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "sharp": "^0.34.2"
-  },
+  "description": "단단이 프로젝트 워크스페이스",
+  "workspaces": [
+    "frontend",
+    "workers"
+  ],
   "scripts": {
-    "start": "REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev react-scripts start",
-    "build": "REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "install:all": "npm install && cd frontend && npm install && cd ../workers && npm install",
+    "start:frontend": "cd frontend && npm start",
+    "build:frontend": "cd frontend && npm run build",
+    "dev:workers": "cd workers && npm run dev",
+    "deploy:workers": "cd workers && npm run deploy"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/amansman77/dandani.git"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  }
+  "license": "Apache-2.0"
 }

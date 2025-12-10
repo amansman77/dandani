@@ -21,8 +21,8 @@ async function resizeImage(inputPath, outputPath, width, height) {
 
 // 메인 함수
 async function main() {
-  const inputDir = path.join(__dirname, 'public/assets/images/dandani-character');
-  const outputDir = path.join(__dirname, 'public/assets/images/dandani-character');
+  const inputDir = path.join(__dirname, '../frontend/public/assets/images/dandani-character');
+  const outputDir = path.join(__dirname, '../frontend/public/assets/images/dandani-character');
   
   // 출력 디렉토리가 없으면 생성
   if (!fs.existsSync(outputDir)) {

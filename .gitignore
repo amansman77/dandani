@@ -2,6 +2,7 @@
 /node_modules
 /.pnp
 .pnp.js
+/frontend/node_modules
 /workers/node_modules
 
 # testing
@@ -10,6 +11,13 @@
 # production
 /build
 /dist
+/frontend/build
+/frontend/dist
+
+# Capacitor
+/frontend/ios
+/frontend/android
+/.capacitor
 
 # misc
 .DS_Store
