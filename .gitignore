@@ -18,6 +18,7 @@
 /frontend/ios
 /frontend/android
 /.capacitor
+/frontend/.capacitor
 
 # misc
 .DS_Store

@@ -24,7 +24,15 @@
     "start": "REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev react-scripts start",
     "build": "REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "cap:add": "npx cap add",
+    "cap:sync": "npx cap sync",
+    "cap:copy": "npx cap copy",
+    "cap:update": "npx cap update",
+    "cap:open": "npx cap open",
+    "cap:run": "npx cap run",
+    "cap:ios": "npm run build && npx cap sync && npx cap open ios",
+    "cap:android": "npm run build && npx cap sync && npx cap open android"
   },
   "eslintConfig": {
     "extends": [
@@ -43,5 +51,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/ios": "^8.0.0"
   }
 }

@@ -1,0 +1,25 @@
+{
+  "appId": "com.yetimates.dandani",
+  "appName": "단단이",
+  "webDir": "build",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "launchAutoHide": true,
+      "backgroundColor": "#faf5e9",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "StatusBar": {
+      "style": "light",
+      "backgroundColor": "#3f7198"
+    }
+  }
+}
