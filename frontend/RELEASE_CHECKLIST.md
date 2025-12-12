@@ -15,40 +15,40 @@
 ### 1. 앱 정보 설정
 
 #### Xcode 프로젝트 설정
-- [ ] **Display Name**: `단단이` 확인
-- [ ] **Bundle Identifier**: `com.yetimates.dandani` 확인
-- [ ] **Version**: `0.1.0` 확인
-- [ ] **Build**: `1` 확인
-- [ ] **Minimum iOS Version**: `15.0` 확인
+- [x] **Display Name**: `Dandani` 확인
+- [x] **Bundle Identifier**: `com.yetimates.dandani` 확인
+- [x] **Version**: `1.0` 확인
+- [x] **Build**: `1` 확인
+- [x] **Minimum iOS Version**: `15.0` 확인
+
+#### Apple Developer 계정 확인
+- [ ] Apple Developer 계정 확인
 
 #### App Store Connect 설정
+- [ ] Apple ID 확인
 - [ ] App Store Connect에 앱 등록
 - [ ] Bundle ID 등록 확인
-- [ ] 앱 이름: `단단이`
+- [ ] 앱 이름: `Dandani`
 - [ ] 기본 언어: 한국어
 - [ ] 카테고리 선택 (건강 및 피트니스, 라이프스타일 등)
 
 ### 2. 앱 아이콘 및 스플래시 스크린
 
 #### 앱 아이콘
-- [ ] 1024x1024 PNG 아이콘 준비
-- [ ] Xcode에서 Assets.xcassets > AppIcon에 추가
-- [ ] 모든 크기 자동 생성 확인
+- [x] 1024x1024 PNG 아이콘 준비
+- [x] Xcode에서 Assets.xcassets > AppIcon에 추가
+- [x] 모든 크기 자동 생성 완료 (`npm run icons:generate`)
+- [x] 아이콘 서명 워닝 해결 완료
 
 #### 스플래시 스크린
-- [ ] LaunchScreen.storyboard 확인
-- [ ] 배경색: `#faf5e9` 확인
-- [ ] 로고 또는 텍스트 추가 (선택사항)
+- [x] 스플래시 이미지 추가
+- [x] 모든 크기 자동 생성 완료
+- [x] LaunchScreen.storyboard 확인
 
 ### 3. 권한 및 개인정보 보호
 
-#### Info.plist 권한 설명
-- [ ] 인터넷 연결 권한 (자동)
-- [ ] 추가 권한이 필요한 경우 설명 추가:
-  ```xml
-  <key>NSPhotoLibraryUsageDescription</key>
-  <string>사진을 선택하기 위해 권한이 필요합니다</string>
-  ```
+#### Info.plist 권한 설정
+- [x] 없음
 
 #### App Privacy (App Store Connect)
 - [ ] 개인정보 수집 여부 확인
