@@ -30,9 +30,9 @@
 ### 2. 서명 설정
 
 #### 키스토어 생성
-- [ ] 키스토어 파일 생성 (`dandani-release-key.jks`)
-- [ ] 키스토어 비밀번호 안전하게 보관
-- [ ] 키 별칭 (alias) 설정
+- [x] 키스토어 파일 생성 (`dandani-release-key.jks`)
+- [x] 키스토어 비밀번호 안전하게 보관
+- [x] 키 별칭 (alias): `dandani-key`
 
 #### 서명 설정 파일
 - [ ] `android/keystore.properties` 파일 생성
@@ -101,9 +101,9 @@
 ### 7. 빌드 및 업로드
 
 #### Release 빌드
-- [ ] 서명된 AAB 파일 생성 (`app-release.aab`)
-- [ ] 빌드 성공 확인
-- [ ] 파일 크기 확인 (최대 150MB)
+- [x] 서명된 AAB 파일 생성 (`app-release.aab`) ✅
+- [x] 빌드 성공 확인 ✅
+- [x] 파일 크기 확인 (8.9MB, 최대 150MB 이하) ✅
 
 #### 내부 테스트
 - [ ] 내부 테스트 트랙 생성
