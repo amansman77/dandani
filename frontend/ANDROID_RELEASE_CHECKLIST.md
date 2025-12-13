@@ -16,14 +16,14 @@
 ### 1. 앱 정보 설정
 
 #### Android 프로젝트 설정
-- [ ] **Application ID**: `com.yetimates.dandani` 확인
-- [ ] **Version Name**: `1.0` 확인
-- [ ] **Version Code**: `1` 확인
-- [ ] **Min SDK Version**: 확인 (현재 설정값)
-- [ ] **Target SDK Version**: 확인 (현재 설정값)
+- [x] **Application ID**: `com.yetimates.dandani` 확인
+- [x] **Version Name**: `1.0` 확인
+- [x] **Version Code**: `21` 확인
+- [x] **Min SDK Version**: `23` 확인
+- [x] **Target SDK Version**: `35` 확인
 
 #### 앱 이름 및 아이콘
-- [x] 앱 이름: `단단이` (strings.xml)
+- [x] 앱 이름: `Dandani` (strings.xml)
 - [x] 앱 아이콘: 모든 크기 생성 완료
 - [x] 스플래시 이미지: 모든 크기 생성 완료
 
