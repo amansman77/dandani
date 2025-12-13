@@ -15,7 +15,7 @@
 /frontend/dist
 
 # Capacitor
-/frontend/ios
+# /frontend/ios  # ios 폴더는 형상관리에 포함 (커스텀 설정 포함)
 # /frontend/android  # android 폴더는 형상관리에 포함 (커스텀 설정 포함)
 /.capacitor
 /frontend/.capacitor
@@ -30,6 +30,17 @@
 /frontend/android/keystore.properties
 /frontend/android/.idea/
 /frontend/android/capacitor-cordova-android-plugins/
+
+# iOS - 빌드 산출물 및 생성 파일만 제외
+/frontend/ios/App/build/
+/frontend/ios/App/Pods/
+/frontend/ios/App/output/
+/frontend/ios/App/App/public/
+/frontend/ios/App/App/capacitor.config.json
+/frontend/ios/App/App/config.xml
+/frontend/ios/DerivedData/
+/frontend/ios/**/xcuserdata/
+/frontend/ios/capacitor-cordova-ios-plugins/
 
 # misc
 .DS_Store

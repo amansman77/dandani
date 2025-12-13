@@ -35,9 +35,9 @@
 - [x] 키 별칭 (alias): `dandani-key`
 
 #### 서명 설정 파일
-- [ ] `android/keystore.properties` 파일 생성
-- [ ] `android/app/build.gradle`에 서명 설정 추가
-- [ ] 서명 테스트 빌드 성공 확인
+- [x] `android/keystore.properties` 파일 생성
+- [x] `android/app/build.gradle`에 서명 설정 추가
+- [x] 서명 테스트 빌드 성공 확인
 
 ### 3. 빌드 준비
 
