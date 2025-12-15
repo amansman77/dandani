@@ -1,0 +1,7 @@
+# Cloudflare Pages redirects
+# SPA fallback for React app
+/*    /index.html   200
+
+# Privacy policy
+/privacy    /privacy.html   200
+
