@@ -44,9 +44,8 @@ const logPostHogEvent = (eventName, properties = {}) => {
             timestamp: new Date().toISOString(),
           });
           
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[PostHog] Event captured: ${eventName}`, properties);
-          }
+          // 프로덕션에서도 주요 이벤트는 로그로 확인
+          console.log(`[PostHog] Event captured: ${eventName}`, properties);
           return true;
         }
         return false;
@@ -62,7 +61,7 @@ const logPostHogEvent = (eventName, properties = {}) => {
         elapsed += checkInterval;
         if (tryCapture() || elapsed >= maxWaitTime) {
           clearInterval(intervalId);
-          if (elapsed >= maxWaitTime && process.env.NODE_ENV === 'development') {
+          if (elapsed >= maxWaitTime) {
             console.warn('[PostHog] Event not captured - PostHog initialization timeout:', eventName);
           }
         }

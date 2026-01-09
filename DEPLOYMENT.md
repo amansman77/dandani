@@ -98,9 +98,37 @@ curl https://dandani-api.amansman77.workers.dev/api/challenges
 ## ⚙️ 환경 변수
 
 ### 프론트엔드
-- `REACT_APP_API_URL`: API 엔드포인트 URL
-  - 프로덕션: `https://dandani-api.amansman77.workers.dev`
-  - 개발: `http://localhost:8787` (로컬 Workers 실행 시)
+
+#### 로컬 개발
+프론트엔드 디렉토리에 `.env` 파일을 생성하고 다음 환경 변수를 설정하세요:
+
+```env
+# PostHog Analytics 설정
+REACT_APP_POSTHOG_KEY=phc_
+REACT_APP_POSTHOG_HOST=https://
+
+# API 엔드포인트 URL
+REACT_APP_API_URL=https://
+```
+
+#### Cloudflare Pages 배포
+Cloudflare Pages 대시보드에서 환경 변수를 설정해야 합니다:
+
+1. **Cloudflare 대시보드 접속**
+   - https://dash.cloudflare.com → Pages → `dandani` 프로젝트 선택
+
+2. **환경 변수 설정**
+   - Settings → Environment variables → Add variable
+   - Production 환경에 다음 변수 추가:
+     - `REACT_APP_POSTHOG_KEY`: `phc_`
+     - `REACT_APP_POSTHOG_HOST`: `https://`
+     - `REACT_APP_API_URL`: `https://`
+
+3. **빌드 설정 확인**
+   - Build settings에서 빌드 명령어: `npm run build`
+   - 빌드 출력 디렉토리: `build`
+
+**참고**: 환경 변수는 빌드 시점에 주입되므로, 환경 변수 변경 후에는 재배포가 필요합니다.
 
 ### 백엔드
 - `DISCORD_WEBHOOK_URL`: 디스코드 웹훅 URL (일일 보고서용)

@@ -69,16 +69,25 @@ const theme = createTheme({
 });
 
 // PostHog 설정
+const posthogApiKey = process.env.REACT_APP_POSTHOG_KEY;
+const posthogHost = process.env.REACT_APP_POSTHOG_HOST || 'https://us.i.posthog.com';
+
+// PostHog API Key 확인 (프로덕션에서도 경고 표시)
+if (!posthogApiKey) {
+  console.warn('[PostHog] REACT_APP_POSTHOG_KEY is not set. PostHog analytics will not work.');
+}
+
 const posthogOptions = {
-  api_host: process.env.REACT_APP_POSTHOG_HOST || 'https://us.i.posthog.com',
+  api_host: posthogHost,
   person_profiles: 'identified_only', // 익명 사용자도 추적
   capture_pageview: false, // 수동으로 페이지뷰를 캡처하므로 자동 캡처 비활성화
   capture_pageleave: true, // 페이지 이탈 캡처
   autocapture: true, // 자동 이벤트 캡처 활성화
   loaded: (posthog) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[PostHog] Initialized successfully');
-    }
+    console.log('[PostHog] Initialized successfully', { 
+      apiKey: posthogApiKey ? `${posthogApiKey.substring(0, 10)}...` : 'MISSING',
+      host: posthogHost 
+    });
     // PostHog 인스턴스를 window에 명시적으로 설정
     if (typeof window !== 'undefined') {
       window.posthog = posthog;
@@ -95,7 +104,7 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <PostHogProvider 
-      apiKey={process.env.REACT_APP_POSTHOG_KEY}
+      apiKey={posthogApiKey}
       options={posthogOptions}
     >
       <ThemeProvider theme={theme}>
