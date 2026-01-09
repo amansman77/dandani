@@ -2,7 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { PostHogProvider } from 'posthog-js/react';
 import App from './App';
+import { initAnalytics } from './utils/analytics';
 
 const theme = createTheme({
   palette: {
@@ -66,12 +68,40 @@ const theme = createTheme({
   },
 });
 
+// PostHog 설정
+const posthogOptions = {
+  api_host: process.env.REACT_APP_POSTHOG_HOST || 'https://us.i.posthog.com',
+  person_profiles: 'identified_only', // 익명 사용자도 추적
+  capture_pageview: false, // 수동으로 페이지뷰를 캡처하므로 자동 캡처 비활성화
+  capture_pageleave: true, // 페이지 이탈 캡처
+  autocapture: true, // 자동 이벤트 캡처 활성화
+  loaded: (posthog) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PostHog] Initialized successfully');
+    }
+    // PostHog 인스턴스를 window에 명시적으로 설정
+    if (typeof window !== 'undefined') {
+      window.posthog = posthog;
+    }
+    // PostHog 초기화 완료 후 analytics 초기화
+    // 약간의 지연을 두어 window.posthog가 완전히 설정되도록 함
+    setTimeout(() => {
+      initAnalytics();
+    }, 200);
+  },
+};
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
+    <PostHogProvider 
+      apiKey={process.env.REACT_APP_POSTHOG_KEY || 'phc_6iBNJemIdUdzIQd0h2U78QaIyLEwFZHGzshGXsEZmvG'}
+      options={posthogOptions}
+    >
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </PostHogProvider>
   </React.StrictMode>
 ); 

@@ -1,4 +1,5 @@
 // 클라이언트 사이드 이벤트 로깅 유틸리티
+// PostHog는 PostHogProvider를 통해 초기화되며 window.posthog로 접근 가능
 
 // Production API URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -18,6 +19,61 @@ const getUserId = () => {
   return localStorage.getItem('dandani_user_id') || 'anonymous';
 };
 
+// PostHog 이벤트 로깅 헬퍼 함수
+// PostHogProvider를 통해 초기화되므로 직접 init할 필요 없음
+const logPostHogEvent = (eventName, properties = {}) => {
+  try {
+    if (typeof window !== 'undefined') {
+      // PostHog가 초기화될 때까지 대기 (최대 3초)
+      const maxWaitTime = 3000;
+      const checkInterval = 100;
+      let elapsed = 0;
+      
+      const tryCapture = () => {
+        if (window.posthog) {
+          const userId = getUserId();
+          
+          // 사용자 ID 설정 (익명 사용자도 추적)
+          if (userId && userId !== 'anonymous') {
+            window.posthog.identify(userId);
+          }
+          
+          // 이벤트 전송
+          window.posthog.capture(eventName, {
+            ...properties,
+            timestamp: new Date().toISOString(),
+          });
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[PostHog] Event captured: ${eventName}`, properties);
+          }
+          return true;
+        }
+        return false;
+      };
+      
+      // 즉시 시도
+      if (tryCapture()) {
+        return;
+      }
+      
+      // PostHog가 아직 초기화되지 않았다면 대기
+      const intervalId = setInterval(() => {
+        elapsed += checkInterval;
+        if (tryCapture() || elapsed >= maxWaitTime) {
+          clearInterval(intervalId);
+          if (elapsed >= maxWaitTime && process.env.NODE_ENV === 'development') {
+            console.warn('[PostHog] Event not captured - PostHog initialization timeout:', eventName);
+          }
+        }
+      }, checkInterval);
+    }
+  } catch (error) {
+    // PostHog 이벤트 로깅 실패는 조용히 처리
+    console.debug('[PostHog] Event logging error:', error);
+  }
+};
+
 // 이벤트 로깅 함수
 export const logEvent = async (eventType, eventData = {}) => {
   try {
@@ -27,6 +83,22 @@ export const logEvent = async (eventType, eventData = {}) => {
     // 디버깅: page_visit 이벤트 로깅 추적
     if (eventType === 'page_visit') {
       console.log(`[Analytics] Logging page_visit event:`, { eventType, eventData, userId, sessionId });
+    }
+    
+    // PostHog 이벤트 로깅 (주요 이벤트만)
+    const posthogEventMap = {
+      'page_visit': 'page_visit',
+      'challenge_selected': 'challenge_selected',
+      'practice_complete': 'practice_complete',
+      'feedback_submit': 'practice_recorded',
+    };
+    
+    const posthogEventName = posthogEventMap[eventType];
+    if (posthogEventName) {
+      logPostHogEvent(posthogEventName, {
+        ...eventData,
+        event_type: eventType, // 원본 이벤트 타입 유지
+      });
     }
     
     // 백엔드로 이벤트 전송 (비동기, 실패해도 서비스에 영향 없음)
@@ -123,9 +195,31 @@ export const initAnalytics = () => {
   }
   analyticsInitialized = true;
   
-  // 페이지 로드 시 자동으로 페이지 방문 이벤트 로깅
-  console.log('[Analytics] Initializing analytics, logging page_visit event');
-  logPageVisit('app_load');
+  // PostHog는 PostHogProvider를 통해 자동 초기화됨
+  // PostHog 초기화를 기다린 후 페이지 방문 이벤트 로깅
+  const waitForPostHog = () => {
+    if (typeof window !== 'undefined' && window.posthog) {
+      console.log('[Analytics] Initializing analytics, logging page_visit event');
+      logPageVisit('app_load');
+    } else {
+      // PostHog가 아직 초기화되지 않았다면 잠시 후 재시도 (최대 3초)
+      const maxWaitTime = 3000;
+      const startTime = Date.now();
+      const checkInterval = setInterval(() => {
+        if (typeof window !== 'undefined' && window.posthog) {
+          clearInterval(checkInterval);
+          console.log('[Analytics] Initializing analytics, logging page_visit event');
+          logPageVisit('app_load');
+        } else if (Date.now() - startTime > maxWaitTime) {
+          clearInterval(checkInterval);
+          console.warn('[Analytics] PostHog initialization timeout, logging page_visit anyway');
+          logPageVisit('app_load');
+        }
+      }, 100);
+    }
+  };
+  
+  waitForPostHog();
   
   // 페이지 언로드 시는 별도 이벤트 로깅하지 않음 (허용되지 않는 event_type)
   // window.addEventListener('beforeunload', () => {
@@ -142,6 +236,16 @@ export const initAnalytics = () => {
   // });
 };
 
+// 챌린지 선택 이벤트 (PostHog 전용)
+export const logChallengeSelected = (challengeId, challengeName, totalDays, source) => {
+  logEvent('challenge_selected', {
+    challenge_id: challengeId,
+    challenge_name: challengeName,
+    total_days: totalDays,
+    source: source
+  });
+};
+
 const analytics = {
   logEvent,
   logPageVisit,
@@ -151,6 +255,7 @@ const analytics = {
   logAIChatStart,
   logAIChatMessage,
   logChallengeComplete,
+  logChallengeSelected,
   logOnboardingComplete,
   logTimefoldEnvelopeCreate,
   initAnalytics

@@ -18,6 +18,7 @@ import { styled } from '@mui/material/styles';
 import { Edit, Check, Close } from '@mui/icons-material';
 import { getUserId } from '../utils/userId';
 import { calculateChallengeDay, isPastRecord, addStartedAtHeader, formatDateToKorean } from '../utils/challengeDay';
+import { logFeedbackSubmit } from '../utils/analytics';
 import AlertModal from './AlertModal';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
@@ -162,6 +163,15 @@ const PracticeRecordModal = ({
         const updatedRecord = await response.json();
         setRecord(updatedRecord);
         setIsEditing(false);
+        
+        // 피드백 제출 이벤트 로깅 (PostHog 포함)
+        logFeedbackSubmit(
+          challenge.id,
+          practiceDay,
+          editData.moodChange,
+          editData.wasHelpful
+        );
+        
         if (onUpdate) {
           onUpdate(updatedRecord);
         }

@@ -14,7 +14,7 @@ import ChallengeSelector from './components/ChallengeSelector';
 import AlertModal from './components/AlertModal';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from './utils/challengeSelection';
-import { initAnalytics, logChallengeComplete } from './utils/analytics';
+import { initAnalytics, logChallengeComplete, logPracticeComplete } from './utils/analytics';
 import { calculateChallengeDay, calculateChallengeProgress, calculateChallengeEndDate, addStartedAtHeader } from './utils/challengeDay';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -662,10 +662,8 @@ function App() {
     setActiveTab(newValue);
   };
 
-  // 분석 도구 초기화
-  useEffect(() => {
-    initAnalytics();
-  }, []);
+  // 분석 도구 초기화는 PostHog의 loaded 콜백에서 처리
+  // (index.js의 PostHogProvider options.loaded에서 호출)
 
   // 현재 챌린지 상세보기 핸들러
   const handleViewCurrentChallenge = (challengeId) => {
@@ -770,6 +768,14 @@ function App() {
           type: 'success'
         });
         console.log('Quick complete submitted:', result);
+
+        // 실천 완료 이벤트 로깅 (PostHog 포함)
+        logPracticeComplete(
+          currentChallenge?.id,
+          practiceDay,
+          null, // 빠른 완료는 moodChange 없음
+          null  // 빠른 완료는 wasHelpful 없음
+        );
 
         // 빠른 완료는 상세 기록이 아니므로 false로 유지
         setHasDetailedRecord(false);

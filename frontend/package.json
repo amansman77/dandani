@@ -15,14 +15,15 @@
     "@mui/icons-material": "^5.17.1",
     "@mui/material": "^5.15.10",
     "crypto-js": "^4.2.0",
+    "posthog-js": "^1.150.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "sharp": "^0.34.2"
   },
   "scripts": {
-    "start": "REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev react-scripts start",
-    "build": "REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev react-scripts build",
+    "start": "GENERATE_SOURCEMAP=false REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev REACT_APP_POSTHOG_KEY=phc_6iBNJemIdUdzIQd0h2U78QaIyLEwFZHGzshGXsEZmvG REACT_APP_POSTHOG_HOST=https://us.i.posthog.com react-scripts start",
+    "build": "GENERATE_SOURCEMAP=false REACT_APP_API_URL=https://dandani-api.amansman77.workers.dev REACT_APP_POSTHOG_KEY=phc_6iBNJemIdUdzIQd0h2U78QaIyLEwFZHGzshGXsEZmvG REACT_APP_POSTHOG_HOST=https://us.i.posthog.com react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "cap:add": "npx cap add",
