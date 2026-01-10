@@ -139,7 +139,12 @@ async function getTodayPractice(env, request) {
   let challenge;
   try {
     challenge = await env.DB.prepare(`
-      SELECT id, name, description, is_recommended, is_popular, created_at
+      SELECT 
+        id, 
+        name, 
+        description, 
+        COALESCE(is_recommended, 0) as is_recommended,
+        created_at
       FROM challenges WHERE id = ?
     `).bind(challengeId).first();
   } catch (dbError) {
@@ -282,7 +287,12 @@ async function getChallenges(env, request) {
   // 모든 챌린지 조회 (최신순 정렬: id 내림차순)
   // total_days는 practices 테이블에서 계산
   const allChallenges = await env.DB.prepare(`
-    SELECT id, name, description, is_recommended, is_popular, created_at
+    SELECT 
+      id, 
+      name, 
+      description, 
+      COALESCE(is_recommended, 0) as is_recommended,
+      created_at
     FROM challenges 
     ORDER BY id DESC
   `).all();
@@ -314,8 +324,7 @@ async function getChallenges(env, request) {
     name: challenge.name,
     description: challenge.description,
     total_days: challenge.total_days,
-    is_recommended: challenge.is_recommended === 1,
-    is_popular: challenge.is_popular === 1
+    is_recommended: challenge.is_recommended === 1
   }));
 
   return {
@@ -334,7 +343,12 @@ async function getChallengeDetail(env, challengeId, request) {
   // 챌린지 기본 정보 조회
   // total_days는 practices 테이블에서 계산
   const challenge = await env.DB.prepare(`
-    SELECT id, name, description, is_recommended, is_popular, created_at
+    SELECT 
+      id, 
+      name, 
+      description, 
+      COALESCE(is_recommended, 0) as is_recommended,
+      created_at
     FROM challenges WHERE id = ?
   `).bind(challengeId).first();
 
