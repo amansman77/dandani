@@ -59,7 +59,9 @@ const ChallengeList = () => {
       if (response.ok) {
         const data = await response.json();
         console.log('Challenges data:', data);
-        setChallenges(data);
+        // API 응답 형식 변경: challenges 배열로 반환
+        // ChallengeList는 현재 사용되지 않지만, 호환성을 위해 빈 객체로 설정
+        setChallenges({ challenges: data.challenges || [] });
       } else {
         throw new Error(`Failed to fetch challenges: ${response.status}`);
       }

@@ -23,6 +23,20 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 
 [상세 내용](./0001-timezone-management-policy.md)
 
+### 0002: 챌린지 상태 정의 (Challenge Status Definition)
+**Status**: Accepted (2026-01-10)
+
+`current` / `completed` / `upcoming` 상태 집합과 판정 규칙을 정의하고, 모든 챌린지에 적용되는 일차/진행률 계산 기준을 문서화합니다.
+
+[상세 내용](./0002-challenge-status-definition.md)
+
+### 0003: 챌린지 모델 통일 (Challenge Model Unification)
+**Status**: Accepted (2026-01-10)
+
+일정형 챌린지(`start_date`/`end_date`)를 제거하고 모든 챌린지를 선택형 모델(`startedAt` 기반)로 통일한 결정입니다. X-Started-At 헤더 필수 요구사항, 기존 데이터 처리 전략, DB 스키마 변경 전략을 포함합니다.
+
+[상세 내용](./0003-challenge-model-unification.md)
+
 ## ADR 작성 가이드
 
 새로운 ADR을 작성할 때는 다음 템플릿을 사용하세요:

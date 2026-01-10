@@ -136,16 +136,59 @@ REACT_APP_API_URL=http://localhost:8787
 - **개발**: `http://localhost:8787` (Workers 실행 시)
 
 ### 주요 API 엔드포인트
+
+#### 챌린지 관련 API
+모든 챌린지 관련 API 요청은 다음 헤더를 포함해야 합니다:
+- `X-Started-At`: 챌린지 시작일시 (ISO 8601 형식, 필수)
+- `X-User-ID`: 사용자 ID (필수)
+- `X-Client-Timezone`: 클라이언트 시간대 (필수)
+- `X-Client-Time`: 클라이언트 현재 시간 (ISO 8601, 필수)
+
+**예외**: `/api/challenges` (목록 조회)는 `X-Started-At` 선택사항
+
 ```javascript
 // 오늘의 실천 과제 조회
-GET /api/practice/today
+GET /api/practice/today?challengeId=12&startedAt=2025-01-10T00:00:00.000Z
+Headers: {
+  "X-Started-At": "2025-01-10T00:00:00.000Z",
+  "X-User-ID": "user123",
+  "X-Client-Timezone": "Asia/Seoul",
+  "X-Client-Time": "2025-01-10T12:00:00.000Z"
+}
 
 // 응답 예시
 {
+  "id": 189,
+  "challenge_id": 12,
+  "day": 1,
   "title": "오늘의 단단이가 되는 법",
-  "description": "실천 과제 내용..."
+  "description": "실천 과제 내용...",
+  "isRecorded": false
+}
+
+// 챌린지 목록 조회
+GET /api/challenges
+Headers: {
+  "X-User-ID": "user123",
+  "X-Client-Timezone": "Asia/Seoul",
+  "X-Client-Time": "2025-01-10T12:00:00.000Z"
+  // X-Started-At는 선택사항
+}
+
+// 챌린지 상세 조회
+GET /api/challenges/:id
+Headers: {
+  "X-Started-At": "2025-01-10T00:00:00.000Z", // 필수
+  "X-User-ID": "user123",
+  "X-Client-Timezone": "Asia/Seoul",
+  "X-Client-Time": "2025-01-10T12:00:00.000Z"
 }
 ```
+
+**중요**: 
+- `start_date`/`end_date` 필드는 더 이상 사용하지 않으며, 모든 API 응답에서 제외됩니다.
+- 모든 챌린지는 선택형 모델(`startedAt` 기반)로 통일되었습니다.
+- `X-Started-At` 헤더가 누락된 경우 400 Bad Request를 반환합니다.
 
 ### Buddy AI API 연동
 - **URL**: `https://buddy.yetimates.com/api/chat/dandani`

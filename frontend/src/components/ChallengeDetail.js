@@ -79,20 +79,19 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
       
       const userId = getUserId();
       
-      const feedbackHeaders = addStartedAtHeader({
+      const baseHeaders = {
         'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
         'X-Client-Time': new Date().toISOString(),
         'X-User-ID': userId
-      }, challengeId);
+      };
+      
+      const challengeHeaders = addStartedAtHeader({ ...baseHeaders }, challengeId);
+      const feedbackHeaders = addStartedAtHeader({ ...baseHeaders }, challengeId);
       
       // 챌린지 상세 정보와 사용자의 실천 기록을 함께 가져오기
       const [challengeResponse, feedbackResponse] = await Promise.allSettled([
         fetch(`${API_URL}/api/challenges/${challengeId}`, {
-          headers: {
-            'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-            'X-Client-Time': new Date().toISOString(),
-            'X-User-ID': userId
-          }
+          headers: challengeHeaders
         }),
         fetch(`${API_URL}/api/feedback/history?challengeId=${challengeId}`, {
           headers: feedbackHeaders

@@ -153,10 +153,7 @@ const ChallengeCard = ({ challenge, type, onClick }) => {
         {challenge.description}
       </Typography>
       
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="caption" color="text.secondary">
-          {formatDate(challenge.start_date)} ~ {formatDate(challenge.end_date)}
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         <Typography variant="caption" color="text.secondary" fontWeight="medium">
           {getProgressText()}
         </Typography>

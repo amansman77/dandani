@@ -93,7 +93,33 @@ async function getTodayPractice(env, request) {
   // URL에서 challengeId 파라미터 추출
   const url = new URL(request.url);
   const challengeIdParam = url.searchParams.get('challengeId');
-  const startedAtParam = url.searchParams.get('startedAt');
+  const startedAtParam = url.searchParams.get('startedAt') || request.headers.get('X-Started-At');
+  
+  // challengeId는 필수 (일정형 챌린지 제거)
+  if (!challengeIdParam) {
+    console.error('getTodayPractice - Missing challengeId parameter. URL:', request.url);
+    console.error('getTodayPractice - Headers:', {
+      'X-Started-At': request.headers.get('X-Started-At'),
+      'X-User-ID': request.headers.get('X-User-ID'),
+      'X-Client-Timezone': request.headers.get('X-Client-Timezone')
+    });
+    throw new Error('challengeId parameter is required');
+  }
+  
+  // startedAt은 필수 (헤더 또는 쿼리 파라미터)
+  if (!startedAtParam) {
+    console.error('getTodayPractice - Missing startedAt parameter. challengeId:', challengeIdParam);
+    console.error('getTodayPractice - Headers:', {
+      'X-Started-At': request.headers.get('X-Started-At'),
+      'X-User-ID': request.headers.get('X-User-ID')
+    });
+    console.error('getTodayPractice - URL params:', {
+      challengeId: url.searchParams.get('challengeId'),
+      startedAt: url.searchParams.get('startedAt')
+    });
+    throw new Error('startedAt parameter or X-Started-At header is required');
+  }
+  
   console.log('getTodayPractice - challengeIdParam:', challengeIdParam, 'startedAt:', startedAtParam, 'URL:', request.url);
   
   // 클라이언트의 시간대 정보 받기
@@ -106,228 +132,191 @@ async function getTodayPractice(env, request) {
   // 사용자 ID를 헤더에서 받기
   const userId = request.headers.get('X-User-ID') || 'user123';
 
-  let challenge = null;
+  // challengeId로 챌린지 조회
+  const challengeId = parseInt(challengeIdParam);
+  console.log('getTodayPractice - Looking for challenge ID:', challengeId);
   
-  // challengeId 파라미터가 있으면 해당 챌린지 조회
-  if (challengeIdParam) {
-    const challengeId = parseInt(challengeIdParam);
-    console.log('getTodayPractice - Looking for challenge ID:', challengeId);
+  let challenge;
+  try {
     challenge = await env.DB.prepare(`
-      SELECT * FROM challenges WHERE id = ?
+      SELECT id, name, description, total_days, is_recommended, is_popular, created_at, updated_at
+      FROM challenges WHERE id = ?
     `).bind(challengeId).first();
-    console.log('getTodayPractice - Found challenge:', challenge ? `ID ${challenge.id}` : 'NOT FOUND');
-  } else {
-    console.log('getTodayPractice - No challengeId param, using date-based lookup');
-    // challengeId가 없으면 현재 날짜에 해당하는 챌린지 찾기
-    challenge = await env.DB.prepare(`
-      SELECT * FROM challenges 
-      WHERE start_date <= date(?) AND end_date >= date(?)
-    `).bind(currentDate.toISOString().split('T')[0], currentDate.toISOString().split('T')[0]).first();
+  } catch (dbError) {
+    console.error('getTodayPractice - Database error when fetching challenge:', dbError);
+    throw new Error(`Database error: ${dbError.message}`);
+  }
+  
+  if (!challenge) {
+    // 사용 가능한 챌린지 목록 확인 (디버깅용)
+    try {
+      const allChallenges = await env.DB.prepare(`
+        SELECT id, name FROM challenges ORDER BY id DESC LIMIT 10
+      `).all();
+      console.error('getTodayPractice - Challenge not found:', challengeId);
+      console.error('getTodayPractice - Available challenges:', allChallenges.results.map(c => ({ id: c.id, name: c.name })));
+    } catch (dbError) {
+      console.error('getTodayPractice - Error checking available challenges:', dbError);
+    }
+    throw new Error(`Challenge not found: ${challengeId}`);
+  }
+  
+  console.log('getTodayPractice - Found challenge:', {
+    id: challenge.id,
+    name: challenge.name,
+    total_days: challenge.total_days
+  });
+
+  // total_days는 DB에서 직접 가져오거나 practices 테이블에서 계산
+  let totalDays = challenge.total_days;
+  if (!totalDays || totalDays <= 0) {
+    // practices 테이블에서 최대 day 값으로 계산
+    try {
+      const maxDayResult = await env.DB.prepare(`
+        SELECT MAX(day) as max_day FROM practices WHERE challenge_id = ?
+      `).bind(challenge.id).first();
+      totalDays = Math.max(1, maxDayResult?.max_day || 1);
+      console.log('getTodayPractice - Calculated totalDays from practices:', totalDays);
+    } catch (dbError) {
+      console.error('getTodayPractice - Database error when calculating totalDays:', dbError);
+      totalDays = 1; // 기본값
+    }
+  }
+  totalDays = Math.max(1, totalDays);
+  
+  console.log('getTodayPractice - Date calculation inputs:', {
+    startedAt: startedAtParam,
+    currentDate: currentDate.toISOString(),
+    totalDays
+  });
+  
+  // startedAt 기준으로 일차 계산
+  let adjustedDay;
+  try {
+    adjustedDay = calculateChallengeDayFromStart(
+      startedAtParam,
+      currentDate,
+      totalDays
+    );
+    console.log('getTodayPractice - Challenge day calculated:', adjustedDay, 'of', totalDays);
+  } catch (calcError) {
+    console.error('getTodayPractice - Error calculating challenge day:', calcError);
+    throw new Error(`Failed to calculate challenge day: ${calcError.message}`);
   }
 
-  if (challenge) {
-    const challengeStartDate = new Date(challenge.start_date);
-    const challengeEndDate = new Date(challenge.end_date);
-    const calculatedTotalDays = Math.ceil((challengeEndDate - challengeStartDate) / MS_PER_DAY) + 1;
-    const totalDays = Math.max(1, Number.isFinite(calculatedTotalDays) ? calculatedTotalDays : 1);
-    let adjustedDay = 1;
-
-    if (challengeIdParam) {
-      // startedAtParam은 프론트엔드에서 보장되어야 함
-      if (!startedAtParam) {
-        console.error('startedAt parameter is missing for selected challenge:', challengeIdParam);
-        // 프론트엔드에서 보장하므로 여기서는 challenge.start_date를 사용하지 않고 에러 반환
-        throw new Error('startedAt parameter is required for selected challenges');
-      }
-
-      adjustedDay = calculateChallengeDayFromStart(
-        startedAtParam,
-        currentDate,
-        totalDays
-      );
-      console.log('getTodayPractice - Selected challenge day:', adjustedDay, 'of', totalDays, 'startedAt:', startedAtParam);
-    } else {
-      const dayDiff = Math.floor((currentDate - challengeStartDate) / MS_PER_DAY);
-      const day = dayDiff + 1;
-      adjustedDay = Math.max(1, Math.min(day, totalDays));
-      console.log('getTodayPractice - Date-based challenge, calculated day:', adjustedDay);
-    }
-
-    const practice = await env.DB.prepare(
+  let practice;
+  try {
+    practice = await env.DB.prepare(
       'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
     ).bind(challenge.id, adjustedDay).first();
+  } catch (dbError) {
+    console.error('getTodayPractice - Database error when fetching practice:', dbError);
+    throw new Error(`Database error when fetching practice: ${dbError.message}`);
+  }
 
-    if (practice) {
-      // 이벤트 로깅: 실천 과제 조회
-      await logUserEvent(env, request, 'practice_view', { 
-        challenge_id: challenge.id, 
-        practice_id: practice.id, 
-        day: adjustedDay 
-      });
-      
-      // 오늘 실천 기록 여부 확인 (선택한 챌린지의 경우 startedAt 이후 기록만 확인)
-      let feedbackQuery = `
-        SELECT id FROM practice_feedback 
-        WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
-      `;
-      let feedbackParams = [userId, challenge.id, adjustedDay];
-      
-      // 선택한 챌린지의 경우 startedAt 이후에 생성된 기록만 확인
-      if (challengeIdParam && startedAtParam) {
-        // startedAt을 날짜만 추출하여 비교 (자정 기준)
-        // startedAt은 ISO 8601 형식이므로 날짜 부분만 추출
-        const startedAtDateStr = startedAtParam.split('T')[0]; // "2025-12-01T06:00:00.000Z" -> "2025-12-01"
-        // created_at의 날짜 부분만 추출하여 비교 (자정 기준)
-        feedbackQuery += ` AND date(created_at) >= date(?)`;
-        feedbackParams.push(startedAtDateStr);
-        // startedAt 날짜 필터링 적용
-      }
-      
-      feedbackQuery += ` ORDER BY created_at DESC LIMIT 1`;
-      
-      const feedback = await env.DB.prepare(feedbackQuery).bind(...feedbackParams).first();
-
-      // 디버깅: 날짜 계산 정보 로깅
-      console.log('getTodayPractice - Date calculation:', {
-        clientTime,
-        clientTimezone,
-        calculatedDate: currentDate.toISOString().split('T')[0],
-        challengeDay: adjustedDay,
-        hasFeedback: !!feedback,
-        nextUpdateTime: '자정 (00:00) 기준'
-      });
-
-      return {
-        ...practice,
-        day: adjustedDay, // 현재 일차 추가
-        isRecorded: !!feedback
-      };
+  if (!practice) {
+    // 사용 가능한 일차 범위 확인
+    let availableDays;
+    try {
+      availableDays = await env.DB.prepare(`
+        SELECT MIN(day) as min_day, MAX(day) as max_day FROM practices WHERE challenge_id = ?
+      `).bind(challenge.id).first();
+    } catch (dbError) {
+      console.error('getTodayPractice - Database error when checking available days:', dbError);
+      availableDays = null;
     }
+    
+    console.error('getTodayPractice - Practice not found:', {
+      challengeId,
+      adjustedDay,
+      totalDays,
+      availableDays: availableDays ? `${availableDays.min_day}-${availableDays.max_day}` : 'none',
+      startedAt: startedAtParam,
+      currentDate: currentDate.toISOString()
+    });
+    
+    throw new Error(`Practice not found for challenge ${challengeId} on day ${adjustedDay}. Available days: ${availableDays ? `${availableDays.min_day}-${availableDays.max_day}` : 'none'}`);
   }
+  
+  console.log('getTodayPractice - Found practice:', {
+    id: practice.id,
+    day: practice.day,
+    title: practice.title
+  });
 
-  // Fallback: 활성 챌린지가 없거나 해당 일수의 실천 과제가 없는 경우
-  // 모든 실천 과제 중에서 무작위로 선택
-  const allPractices = await env.DB.prepare(
-    'SELECT * FROM practices ORDER BY RANDOM() LIMIT 1'
-  ).first();
+  // 이벤트 로깅: 실천 과제 조회
+  await logUserEvent(env, request, 'practice_view', { 
+    challenge_id: challenge.id, 
+    practice_id: practice.id, 
+    day: adjustedDay 
+  });
+  
+  // 오늘 실천 기록 여부 확인 (startedAt 이후 기록만 확인)
+  // startedAt을 날짜만 추출하여 비교 (자정 기준)
+  const startedAtDateStr = startedAtParam.split('T')[0]; // "2025-12-01T06:00:00.000Z" -> "2025-12-01"
+  
+  const feedback = await env.DB.prepare(`
+    SELECT id FROM practice_feedback 
+    WHERE user_id = ? AND challenge_id = ? AND practice_day = ?
+      AND date(created_at) >= date(?)
+    ORDER BY created_at DESC LIMIT 1
+  `).bind(userId, challenge.id, adjustedDay, startedAtDateStr).first();
 
-  if (!allPractices) {
-    throw new Error('No practices found in database');
-  }
+  // 디버깅: 날짜 계산 정보 로깅
+  console.log('getTodayPractice - Date calculation:', {
+    clientTime,
+    clientTimezone,
+    calculatedDate: currentDate.toISOString().split('T')[0],
+    challengeDay: adjustedDay,
+    hasFeedback: !!feedback,
+    nextUpdateTime: '자정 (00:00) 기준'
+  });
 
   return {
-    ...allPractices,
-    day: 1, // Fallback의 경우 1일차로 설정
-    isRecorded: false
+    ...practice,
+    day: adjustedDay, // 현재 일차 추가
+    isRecorded: !!feedback
   };
 }
 
 // 챌린지 목록 가져오기
+// 일정형 챌린지 제거: 모든 챌린지를 선택 가능한 목록으로 반환
 async function getChallenges(env, request) {
-  // 클라이언트의 시간대 정보 받기
-  const clientTimezone = request.headers.get('X-Client-Timezone');
-  const clientTime = request.headers.get('X-Client-Time');
-  
-  // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산 (자정 기준)
-  const currentDate = getClientLocalDate(clientTime, clientTimezone);
-
-  const currentDateStr = currentDate.toISOString().split('T')[0];
-
-  // 모든 챌린지 조회
+  // 모든 챌린지 조회 (최신순 정렬: id 내림차순, start_date/end_date 제외)
   const allChallenges = await env.DB.prepare(`
-    SELECT * FROM challenges 
-    ORDER BY start_date ASC
+    SELECT id, name, description, total_days, is_recommended, is_popular, created_at, updated_at
+    FROM challenges 
+    ORDER BY id DESC
   `).all();
 
-  const result = {
-    current: null,
-    completed: [],
-    upcoming: []
+  // 단순 목록 반환 (선택 가능한 챌린지 목록)
+  // 상태 계산은 클라이언트에서 startedAt 기준으로 수행
+  const challenges = allChallenges.results.map(challenge => ({
+    id: challenge.id,
+    name: challenge.name,
+    description: challenge.description,
+    total_days: Math.max(1, challenge.total_days || 1),
+    is_recommended: challenge.is_recommended === 1,
+    is_popular: challenge.is_popular === 1
+  }));
+
+  return {
+    challenges
   };
-
-  for (const challenge of allChallenges.results) {
-    const startDate = new Date(challenge.start_date);
-    const endDate = new Date(challenge.end_date);
-    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-
-    // 현재 진행 중인 챌린지
-    if (currentDate >= startDate && currentDate <= endDate) {
-      const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-      const currentDay = dayDiff + 1;
-      const progressPercentage = Math.round((currentDay / totalDays) * 100);
-
-      // 오늘의 실천 과제 조회
-      const todayPractice = await env.DB.prepare(
-        'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
-      ).bind(challenge.id, currentDay).first();
-
-      result.current = {
-        id: challenge.id,
-        name: challenge.name,
-        description: challenge.description,
-        start_date: challenge.start_date,
-        end_date: challenge.end_date,
-        current_day: currentDay,
-        total_days: totalDays,
-        progress_percentage: progressPercentage,
-        is_recommended: challenge.is_recommended === 1,
-        is_popular: challenge.is_popular === 1,
-        today_practice: todayPractice ? {
-          title: todayPractice.title,
-          description: todayPractice.description
-        } : null
-      };
-    }
-    // 완료된 챌린지
-    else if (currentDate > endDate) {
-      // 마지막 실천 과제 조회
-      const lastPractice = await env.DB.prepare(
-        'SELECT * FROM practices WHERE challenge_id = ? AND day = ?'
-      ).bind(challenge.id, totalDays).first();
-
-      result.completed.push({
-        id: challenge.id,
-        name: challenge.name,
-        description: challenge.description,
-        start_date: challenge.start_date,
-        end_date: challenge.end_date,
-        total_days: totalDays,
-        completed_days: totalDays,
-        progress_percentage: 100,
-        is_recommended: challenge.is_recommended === 1,
-        is_popular: challenge.is_popular === 1,
-        last_practice: lastPractice ? {
-          title: lastPractice.title,
-          description: lastPractice.description
-        } : null
-      });
-    }
-    // 예정된 챌린지
-    else if (currentDate < startDate) {
-      const daysUntilStart = Math.ceil((startDate - currentDate) / (1000 * 60 * 60 * 24));
-      
-      result.upcoming.push({
-        id: challenge.id,
-        name: challenge.name,
-        description: challenge.description,
-        start_date: challenge.start_date,
-        end_date: challenge.end_date,
-        total_days: totalDays,
-        days_until_start: daysUntilStart,
-        is_recommended: challenge.is_recommended === 1,
-        is_popular: challenge.is_popular === 1
-      });
-    }
-  }
-
-  return result;
 }
 
 // 챌린지 상세 정보 가져오기
 async function getChallengeDetail(env, challengeId, request) {
-  // 챌린지 기본 정보 조회
+  // startedAt 헤더 필수 검증
+  const startedAt = request.headers.get('X-Started-At');
+  if (!startedAt) {
+    throw new Error('X-Started-At header is required');
+  }
+
+  // 챌린지 기본 정보 조회 (start_date/end_date 제외)
   const challenge = await env.DB.prepare(`
-    SELECT * FROM challenges WHERE id = ?
+    SELECT id, name, description, total_days, is_recommended, is_popular, created_at, updated_at
+    FROM challenges WHERE id = ?
   `).bind(challengeId).first();
 
   if (!challenge) {
@@ -348,51 +337,39 @@ async function getChallengeDetail(env, challengeId, request) {
   // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산 (자정 기준)
   const currentDate = getClientLocalDate(clientTime, clientTimezone);
 
-  const startDate = new Date(challenge.start_date);
-  const endDate = new Date(challenge.end_date);
-  const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+  const totalDays = Math.max(1, challenge.total_days || 1);
 
-  // 현재 진행 상황 계산
-  let currentDay = 0;
-  let progressPercentage = 0;
-  let status = 'upcoming';
+  // startedAt 기준으로 현재 일차 및 상태 계산
+  const currentDay = calculateChallengeDayFromStart(startedAt, currentDate, totalDays);
+  
+  let status = 'current';
+  if (currentDay < 1) {
+    status = 'upcoming';
+  } else if (currentDay > totalDays) {
+    status = 'completed';
+  }
 
-  console.log('Challenge detail date calculation:', {
+  console.log('Challenge detail calculation:', {
     challengeId,
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
+    startedAt,
     currentDate: currentDate.toISOString(),
+    currentDay,
+    totalDays,
+    status,
     clientTimezone,
     clientTime
   });
 
-  if (currentDate >= startDate && currentDate <= endDate) {
-    // 현재 진행 중
-    const dayDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-    currentDay = dayDiff + 1;
-    progressPercentage = Math.round((currentDay / totalDays) * 100);
-    status = 'current';
-    console.log('Challenge is current:', { dayDiff, currentDay, totalDays });
-  } else if (currentDate > endDate) {
-    // 완료됨
-    currentDay = totalDays;
-    progressPercentage = 100;
-    status = 'completed';
-    console.log('Challenge is completed');
-  } else {
-    // 예정됨
-    status = 'upcoming';
-    console.log('Challenge is upcoming');
-  }
-
   // 사용자 ID 가져오기
   const userId = request.headers.get('X-User-ID') || 'user123';
   
-  // 사용자의 실천 기록 조회
+  // 사용자의 실천 기록 조회 (startedAt 이후 기록만)
+  const startedAtDateStr = startedAt.split('T')[0];
   const userFeedback = await env.DB.prepare(`
     SELECT practice_day FROM practice_feedback 
     WHERE user_id = ? AND challenge_id = ?
-  `).bind(userId, challengeId).all();
+      AND date(created_at) >= date(?)
+  `).bind(userId, challengeId, startedAtDateStr).all();
   
   const completedDays = new Set(userFeedback.results.map(feedback => feedback.practice_day));
   
@@ -411,8 +388,6 @@ async function getChallengeDetail(env, challengeId, request) {
     id: challenge.id,
     name: challenge.name,
     description: challenge.description,
-    start_date: challenge.start_date,
-    end_date: challenge.end_date,
     total_days: totalDays,
     current_day: currentDay,
     progress_percentage: actualProgressPercentage,

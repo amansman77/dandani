@@ -15,7 +15,7 @@ import AlertModal from './components/AlertModal';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from './utils/challengeSelection';
 import { initAnalytics, logChallengeComplete, logPracticeComplete } from './utils/analytics';
-import { calculateChallengeDay, calculateChallengeProgress, calculateChallengeEndDate, addStartedAtHeader } from './utils/challengeDay';
+import { calculateChallengeDay, calculateChallengeProgress, calculateChallengeEndDate, addStartedAtHeader, calculateChallengeStatus } from './utils/challengeDay';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -167,8 +167,24 @@ function App() {
   const [selectedChallengeForEnvelope, setSelectedChallengeForEnvelope] = useState(null);
   const [envelopeListOpen, setEnvelopeListOpen] = useState(false);
   
-  // 챌린지 선택 상태
-  const [selectedChallengeInfo, setSelectedChallengeInfo] = useState(() => getSelectedChallenge());
+  // 챌린지 선택 상태 초기화 및 검증
+  const initializeSelectedChallenge = () => {
+    const stored = getSelectedChallenge();
+    if (!stored || !stored.id) {
+      return null;
+    }
+    
+    // startedAt이 없으면 유효하지 않은 선택으로 간주
+    if (!stored.startedAt) {
+      console.log('📝 [초기화] startedAt이 없어서 챌린지 선택 초기화');
+      clearSelectedChallenge();
+      return null;
+    }
+    
+    return stored;
+  };
+  
+  const [selectedChallengeInfo, setSelectedChallengeInfo] = useState(() => initializeSelectedChallenge());
   const [showChallengeSelector, setShowChallengeSelector] = useState(false);
   const selectedChallengeId = selectedChallengeInfo?.id || null;
   const selectedChallengeStartedAt = selectedChallengeInfo?.startedAt || null;
@@ -230,68 +246,50 @@ function App() {
       const targetChallengeId = challengeId || selectedChallengeId;
       const targetStartedAt = startedAtOverride || selectedChallengeStartedAt;
 
-      let practiceUrl = `${API_URL}/api/practice/today`;
-      if (targetChallengeId) {
-        const params = new URLSearchParams();
-        params.append('challengeId', targetChallengeId);
-        if (targetStartedAt) {
-          params.append('startedAt', targetStartedAt);
-        }
-        practiceUrl = `${API_URL}/api/practice/today?${params.toString()}`;
+      // challengeId가 없으면 챌린지 선택 화면을 보여주기 위해 API 호출 건너뛰기
+      if (!targetChallengeId) {
+        console.log('No challenge selected, skipping practice API call');
+        setLoading(false);
+        fetchingRef.current = false;
+        setShowChallengeSelector(true);
+        return;
       }
 
-      console.log('Target challenge ID:', targetChallengeId, 'Started at:', targetStartedAt);
+      // startedAt이 없으면 검증 및 초기화
+      const validStartedAt = targetStartedAt || validateAndFixStartedAt(targetChallengeId, null);
+      
+      const params = new URLSearchParams();
+      params.append('challengeId', targetChallengeId);
+      params.append('startedAt', validStartedAt);
+      const practiceUrl = `${API_URL}/api/practice/today?${params.toString()}`;
+
+      console.log('Target challenge ID:', targetChallengeId, 'Started at:', validStartedAt);
       console.log('Practice URL:', practiceUrl);
 
+      // X-Started-At 헤더 준비
+      const headers = {
+        'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+        'X-Client-Time': new Date().toISOString(),
+        'X-User-ID': userId,
+        'X-Started-At': validStartedAt
+      };
+
       const [practiceResponse, challengesResponse] = await Promise.allSettled([
-        fetch(practiceUrl, {
-          headers: {
-            'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-            'X-Client-Time': new Date().toISOString(),
-            'X-User-ID': userId
-          }
-        }),
-        fetch(`${API_URL}/api/challenges`, {
-          headers: {
-            'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-            'X-Client-Time': new Date().toISOString(),
-            'X-User-ID': userId
-          }
-        })
+        fetch(practiceUrl, { headers }),
+        fetch(`${API_URL}/api/challenges`, { headers })
       ]);
 
-      // 챌린지 데이터를 먼저 확인하여 종료 여부 판단
-      let isChallengeCompleted = false;
+      // 챌린지 데이터 확인
       let challengesData = null;
       if (challengesResponse.status === 'fulfilled' && challengesResponse.value.ok) {
         challengesData = await challengesResponse.value.json();
-        if (targetChallengeId) {
-          const allChallenges = [
-            ...(challengesData.current ? [challengesData.current] : []),
-            ...(challengesData.completed || []),
-            ...(challengesData.upcoming || [])
-          ];
-          const tempChallenge = allChallenges.find(c => c.id === parseInt(targetChallengeId));
-          if (tempChallenge && targetStartedAt) {
-            // startedAt을 직접 사용하여 일차 계산
-            const startedAtDate = new Date(targetStartedAt);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            startedAtDate.setHours(0, 0, 0, 0);
-            
-            const diffDays = Math.floor((today.getTime() - startedAtDate.getTime()) / (24 * 60 * 60 * 1000));
-            const currentDay = diffDays + 1;
-            const totalDays = Math.max(1, tempChallenge.total_days || 1);
-            isChallengeCompleted = currentDay > totalDays; // 현재 일차가 총 일수를 초과하면 완료
-            
-            // 챌린지 완료 여부 계산 완료
-          }
-        }
       }
 
-
+      // practice 응답 처리
+      // 백엔드가 totalDays를 초과하는 경우 자동으로 마지막 일차의 practice를 반환하므로
+      // 프론트엔드에서 완료 여부를 미리 판단할 필요 없음
       let loadedPracticeData = null;
-      if (practiceResponse.status === 'fulfilled' && practiceResponse.value.ok && !isChallengeCompleted) {
+      if (practiceResponse.status === 'fulfilled' && practiceResponse.value.ok) {
         loadedPracticeData = await practiceResponse.value.json();
         console.log('Practice data:', loadedPracticeData);
         
@@ -301,10 +299,6 @@ function App() {
         if (!loadedPracticeData?.isRecorded) {
           setHasDetailedRecord(false);
         }
-      } else if (isChallengeCompleted) {
-        // 종료된 챌린지의 경우 practice를 null로 설정
-        setPractice(null);
-        console.log('Challenge is completed, practice not fetched');
       } else if (practiceResponse.status === 'fulfilled' && !practiceResponse.value.ok) {
         // API 응답이 실패한 경우
         console.error('Practice API failed:', {
@@ -328,11 +322,8 @@ function App() {
         console.log('📦 [페이지 로드] Challenges API 응답:', challengesData);
 
         if (targetChallengeId) {
-          const allChallenges = [
-            ...(challengesData.current ? [challengesData.current] : []),
-            ...(challengesData.completed || []),
-            ...(challengesData.upcoming || [])
-          ];
+          // API 응답 형식 변경: current/completed/upcoming → challenges 배열
+          const allChallenges = challengesData.challenges || [];
           const selectedChallenge = allChallenges.find(c => c.id === parseInt(targetChallengeId));
 
           if (selectedChallenge) {
@@ -419,6 +410,23 @@ function App() {
                 calculatedDay: currentDay
               }
             });
+            
+            // 챌린지 상태 확인: currentDay >= totalDays이면 완료된 것으로 간주
+            const challengeStatus = calculateChallengeStatus(updatedChallenge, {});
+            if (challengeStatus.status === 'completed') {
+              console.log('📝 [완료 감지] 챌린지가 완료되어 선택 초기화:', {
+                challengeId: targetChallengeId,
+                currentDay,
+                totalDays: updatedChallenge.total_days,
+                status: challengeStatus.status
+              });
+              clearSelectedChallenge();
+              setSelectedChallengeInfo(null);
+              setShowChallengeSelector(true);
+              setCurrentChallenge(null);
+              setPractice(null);
+              return; // 완료된 챌린지는 더 이상 처리하지 않음
+            }
             
             setCurrentChallenge(updatedChallenge);
             // 챌린지 설정 후 상세 기록 확인
@@ -541,6 +549,73 @@ function App() {
     }
   }, [selectedChallengeId, selectedChallengeStartedAt, currentChallenge?.is_completed, checkDetailedRecord]);
 
+  // 챌린지 진행률 업데이트 함수
+  const updateChallengeProgress = useCallback(async (challengeId) => {
+    if (!challengeId || !currentChallenge) {
+      return;
+    }
+
+    try {
+      const userId = getUserId();
+      const feedbackHeaders = addStartedAtHeader({
+        'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+        'X-Client-Time': new Date().toISOString(),
+        'X-User-ID': userId
+      }, challengeId);
+
+      const feedbackResponse = await fetch(`${API_URL}/api/feedback/history?challengeId=${challengeId}`, {
+        headers: feedbackHeaders
+      });
+
+      if (feedbackResponse.ok) {
+        const feedbackData = await feedbackResponse.json();
+        const completedDaysSet = new Set(feedbackData.map(feedback => feedback.practice_day));
+        const completedDays = completedDaysSet.size;
+        const totalDays = Math.max(1, currentChallenge.total_days || 1);
+        const actualProgressPercentage = Math.round((completedDays / totalDays) * 100);
+
+        // 현재 일차 계산
+        const { currentDay } = calculateChallengeProgress(currentChallenge, {});
+
+        // 진행률이 비정상적으로 높은 경우 자동으로 재계산
+        const maxPossibleDay = currentDay;
+        let validCompletedDays = completedDays;
+        if (completedDays > maxPossibleDay) {
+          console.warn('Progress mismatch detected, resetting:', { completedDays, maxPossibleDay });
+          validCompletedDays = Math.min(completedDays, maxPossibleDay);
+        }
+
+        const finalProgressPercentage = Math.round((validCompletedDays / totalDays) * 100);
+        const isCompleted = validCompletedDays >= totalDays;
+
+        // 챌린지 완료 이벤트 로깅
+        if (isCompleted && !currentChallenge.is_completed) {
+          logChallengeComplete(challengeId);
+        }
+
+        // 챌린지 상태 업데이트
+        setCurrentChallenge({
+          ...currentChallenge,
+          current_day: currentDay,
+          progress_percentage: finalProgressPercentage,
+          completed_days: validCompletedDays,
+          is_completed: isCompleted
+        });
+
+        console.log('📊 챌린지 진행률 업데이트:', {
+          challengeId,
+          currentDay,
+          completedDays: validCompletedDays,
+          totalDays,
+          progressPercentage: finalProgressPercentage,
+          isCompleted
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to update challenge progress:', error);
+    }
+  }, [currentChallenge]);
+
   useEffect(() => {
     const { isNew } = getUserIdInfo();
     if (isNew) {
@@ -618,6 +693,56 @@ function App() {
 
   // 이전 실행 추적을 위한 ref
   const lastFetchRef = useRef({ challengeId: null, startedAt: null });
+  
+  // 챌린지 완료 여부 확인 및 초기화
+  useEffect(() => {
+    if (!selectedChallengeId || !selectedChallengeStartedAt) {
+      return;
+    }
+    
+    // 챌린지 데이터를 가져와서 완료 여부 확인
+    const checkChallengeStatus = async () => {
+      try {
+        const userId = getUserId();
+        const headers = addStartedAtHeader({
+          'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+          'X-Client-Time': new Date().toISOString(),
+          'X-User-ID': userId
+        }, selectedChallengeId);
+        
+        const response = await fetch(`${API_URL}/api/challenges/${selectedChallengeId}`, {
+          headers
+        });
+        
+        if (response.ok) {
+          const challengeData = await response.json();
+          const challenge = {
+            id: challengeData.id,
+            total_days: challengeData.total_days
+          };
+          
+          // 챌린지 상태 계산
+          const { status } = calculateChallengeStatus(challenge, {});
+          
+          // 챌린지가 완료되었으면 Local Storage 초기화
+          if (status === 'completed') {
+            console.log('📝 [초기화] 챌린지가 완료되어 선택 초기화:', {
+              challengeId: selectedChallengeId,
+              status
+            });
+            clearSelectedChallenge();
+            setSelectedChallengeInfo(null);
+            setShowChallengeSelector(true);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to check challenge status:', error);
+        // 에러 발생 시에도 계속 진행 (네트워크 문제일 수 있음)
+      }
+    };
+    
+    checkChallengeStatus();
+  }, [selectedChallengeId, selectedChallengeStartedAt]);
   
   useEffect(() => {
     if (selectedChallengeId) {
@@ -788,7 +913,10 @@ function App() {
           });
         }
         
-        // fetchPracticeAndChallenge 제거 - 로컬 상태 업데이트만으로 충분
+        // 챌린지 진행률 업데이트
+        if (currentChallenge) {
+          updateChallengeProgress(currentChallenge.id);
+        }
       } else {
         throw new Error('빠른 완료 제출에 실패했습니다.');
       }
@@ -1232,6 +1360,11 @@ function App() {
                 ...practice,
                 isRecorded: true
               });
+            }
+            
+            // 챌린지 진행률 업데이트
+            if (currentChallenge) {
+              updateChallengeProgress(currentChallenge.id);
             }
             
             // fetchPracticeAndChallenge 제거 - 로컬 상태 업데이트만으로 충분

@@ -44,7 +44,7 @@ export const calculateChallengeDay = (challenge, options = {}) => {
     return Math.max(1, Math.min(totalDays, practiceDay));
   }
 
-  // 2. 선택한 챌린지인지 확인
+  // 2. 선택한 챌린지인지 확인 (일정형 챌린지 제거: 모든 챌린지는 선택형)
   const selectedChallengeInfo = getSelectedChallenge();
   const isSelectedChallenge = selectedChallengeInfo && 
     parseInt(selectedChallengeInfo.id) === parseInt(challenge.id);
@@ -63,16 +63,8 @@ export const calculateChallengeDay = (challenge, options = {}) => {
     }
   }
 
-  // 4. 선택하지 않은 챌린지의 경우: start_date 기준으로 계산
-  const startDate = normalizeDateOnly(challenge.start_date);
-  
-  if (startDate && today) {
-    const diffDays = Math.floor((today.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000));
-    const calculatedDay = diffDays + 1;
-    return Math.max(1, Math.min(totalDays, calculatedDay));
-  }
-
-  // 5. 계산 불가능한 경우 기본값 1일차
+  // 4. 선택하지 않은 챌린지의 경우: 기본값 1일차
+  // (일정형 챌린지 제거: 챌린지 선택 전에는 일차 계산 불가)
   return 1;
 };
 
@@ -115,10 +107,11 @@ export const calculateChallengeStatus = (challenge, options = {}) => {
   const totalDays = Math.max(1, challenge.total_days || 1);
   const currentDay = calculateChallengeDay(challenge, options);
   
-  if (currentDay >= 1 && currentDay <= totalDays) {
-    return { status: 'current', currentDay };
-  } else if (currentDay > totalDays) {
+  // currentDay >= totalDays인 경우 완료된 것으로 간주
+  if (currentDay >= totalDays) {
     return { status: 'completed', currentDay: totalDays };
+  } else if (currentDay >= 1) {
+    return { status: 'current', currentDay };
   } else {
     return { status: 'upcoming', currentDay: 1 };
   }

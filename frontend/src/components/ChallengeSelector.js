@@ -101,12 +101,8 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
       if (response.ok) {
         const data = await response.json();
         
-        // 모든 챌린지를 하나의 배열로 합치기 (current, completed, upcoming)
-        const allChallenges = [
-          ...(data.current ? [data.current] : []),
-          ...(data.completed || []),
-          ...(data.upcoming || [])
-        ];
+        // API 응답 형식 변경: current/completed/upcoming → challenges 배열
+        const allChallenges = data.challenges || [];
 
         // URL 파라미터에서 광고 매칭 챌린지 ID 확인
         const urlParams = getUrlParams();
@@ -146,10 +142,8 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
           if (aIsPopular && !bIsPopular) return -1;
           if (!aIsPopular && bIsPopular) return 1;
           
-          // 나머지는 최신순 (start_date 기준 내림차순)
-          const dateA = new Date(a.start_date);
-          const dateB = new Date(b.start_date);
-          return dateB - dateA;
+          // 나머지는 최신순 (id 기준 내림차순, 일정형 챌린지 제거)
+          return b.id - a.id;
         });
         
         // 추천/인기 챌린지는 데이터베이스에서 관리 (is_recommended, is_popular 필드)
