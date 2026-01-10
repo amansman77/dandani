@@ -139,7 +139,7 @@ async function getTodayPractice(env, request) {
   let challenge;
   try {
     challenge = await env.DB.prepare(`
-      SELECT id, name, description, total_days, is_recommended, is_popular, created_at, updated_at
+      SELECT id, name, description, is_recommended, is_popular, created_at
       FROM challenges WHERE id = ?
     `).bind(challengeId).first();
   } catch (dbError) {
@@ -167,20 +167,17 @@ async function getTodayPractice(env, request) {
     total_days: challenge.total_days
   });
 
-  // total_days는 DB에서 직접 가져오거나 practices 테이블에서 계산
-  let totalDays = challenge.total_days;
-  if (!totalDays || totalDays <= 0) {
-    // practices 테이블에서 최대 day 값으로 계산
-    try {
-      const maxDayResult = await env.DB.prepare(`
-        SELECT MAX(day) as max_day FROM practices WHERE challenge_id = ?
-      `).bind(challenge.id).first();
-      totalDays = Math.max(1, maxDayResult?.max_day || 1);
-      console.log('getTodayPractice - Calculated totalDays from practices:', totalDays);
-    } catch (dbError) {
-      console.error('getTodayPractice - Database error when calculating totalDays:', dbError);
-      totalDays = 1; // 기본값
-    }
+  // total_days를 practices 테이블에서 계산
+  let totalDays = 1;
+  try {
+    const maxDayResult = await env.DB.prepare(`
+      SELECT MAX(day) as max_day FROM practices WHERE challenge_id = ?
+    `).bind(challenge.id).first();
+    totalDays = Math.max(1, maxDayResult?.max_day || 1);
+    console.log('getTodayPractice - Calculated totalDays from practices:', totalDays);
+  } catch (dbError) {
+    console.error('getTodayPractice - Database error when calculating totalDays:', dbError);
+    totalDays = 1; // 기본값
   }
   totalDays = Math.max(1, totalDays);
   
@@ -282,20 +279,41 @@ async function getTodayPractice(env, request) {
 // 챌린지 목록 가져오기
 // 일정형 챌린지 제거: 모든 챌린지를 선택 가능한 목록으로 반환
 async function getChallenges(env, request) {
-  // 모든 챌린지 조회 (최신순 정렬: id 내림차순, start_date/end_date 제외)
+  // 모든 챌린지 조회 (최신순 정렬: id 내림차순)
+  // total_days는 practices 테이블에서 계산
   const allChallenges = await env.DB.prepare(`
-    SELECT id, name, description, total_days, is_recommended, is_popular, created_at, updated_at
+    SELECT id, name, description, is_recommended, is_popular, created_at
     FROM challenges 
     ORDER BY id DESC
   `).all();
 
+  // 각 챌린지의 total_days를 practices 테이블에서 계산
+  const challengesWithTotalDays = await Promise.all(
+    allChallenges.results.map(async (challenge) => {
+      let totalDays = 1;
+      try {
+        const maxDayResult = await env.DB.prepare(`
+          SELECT MAX(day) as max_day FROM practices WHERE challenge_id = ?
+        `).bind(challenge.id).first();
+        totalDays = Math.max(1, maxDayResult?.max_day || 1);
+      } catch (dbError) {
+        console.error('Failed to calculate total_days for challenge:', challenge.id, dbError);
+        totalDays = 1;
+      }
+      return {
+        ...challenge,
+        total_days: totalDays
+      };
+    })
+  );
+
   // 단순 목록 반환 (선택 가능한 챌린지 목록)
   // 상태 계산은 클라이언트에서 startedAt 기준으로 수행
-  const challenges = allChallenges.results.map(challenge => ({
+  const challenges = challengesWithTotalDays.map(challenge => ({
     id: challenge.id,
     name: challenge.name,
     description: challenge.description,
-    total_days: Math.max(1, challenge.total_days || 1),
+    total_days: challenge.total_days,
     is_recommended: challenge.is_recommended === 1,
     is_popular: challenge.is_popular === 1
   }));
@@ -313,9 +331,10 @@ async function getChallengeDetail(env, challengeId, request) {
     throw new Error('X-Started-At header is required');
   }
 
-  // 챌린지 기본 정보 조회 (start_date/end_date 제외)
+  // 챌린지 기본 정보 조회
+  // total_days는 practices 테이블에서 계산
   const challenge = await env.DB.prepare(`
-    SELECT id, name, description, total_days, is_recommended, is_popular, created_at, updated_at
+    SELECT id, name, description, is_recommended, is_popular, created_at
     FROM challenges WHERE id = ?
   `).bind(challengeId).first();
 
@@ -337,7 +356,17 @@ async function getChallengeDetail(env, challengeId, request) {
   // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산 (자정 기준)
   const currentDate = getClientLocalDate(clientTime, clientTimezone);
 
-  const totalDays = Math.max(1, challenge.total_days || 1);
+  // total_days를 practices 테이블에서 계산
+  let totalDays = 1;
+  try {
+    const maxDayResult = await env.DB.prepare(`
+      SELECT MAX(day) as max_day FROM practices WHERE challenge_id = ?
+    `).bind(challengeId).first();
+    totalDays = Math.max(1, maxDayResult?.max_day || 1);
+  } catch (dbError) {
+    console.error('Failed to calculate total_days for challenge:', challengeId, dbError);
+    totalDays = 1;
+  }
 
   // startedAt 기준으로 현재 일차 및 상태 계산
   const currentDay = calculateChallengeDayFromStart(startedAt, currentDate, totalDays);
