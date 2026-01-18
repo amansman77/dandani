@@ -14,8 +14,8 @@ import ChallengeSelector from './components/ChallengeSelector';
 import AlertModal from './components/AlertModal';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from './utils/challengeSelection';
-import { initAnalytics, logChallengeComplete, logPracticeComplete } from './utils/analytics';
-import { calculateChallengeDay, calculateChallengeProgress, calculateChallengeEndDate, addStartedAtHeader, calculateChallengeStatus } from './utils/challengeDay';
+import { logChallengeComplete, logPracticeComplete } from './utils/analytics';
+import { calculateChallengeDay, calculateChallengeProgress, calculateChallengeEndDate, addStartedAtHeader, calculateChallengeStatus, calculateChallengeMetrics } from './utils/challengeDay';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -189,6 +189,12 @@ function App() {
   const selectedChallengeId = selectedChallengeInfo?.id || null;
   const selectedChallengeStartedAt = selectedChallengeInfo?.startedAt || null;
   
+  // ADR-0002.01: 상태 전이 추적 (다음 챌린지 선택 UX 트리거용)
+  const [previousChallengeStatus, setPreviousChallengeStatus] = useState(null);
+  
+  // ADR-0002.01: 축하 UX 이벤트 기반 추적 (1회성 표시용)
+  const [celebrationShown, setCelebrationShown] = useState(false);
+  const celebrationShownRef = useRef(false); // 새로고침 방지를 위한 ref
 
   // 일차 계산은 utils/challengeDay.js의 공통 함수 사용
 
@@ -198,9 +204,12 @@ function App() {
     
     try {
       const userId = getUserId();
-      const practiceDay = calculateChallengeDay(challenge, { 
-        practiceDay: practiceData?.day 
-      });
+      // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
+      const actualDay = calculateChallengeDay(challenge);
+      const totalDays = Math.max(1, challenge?.total_days || 1);
+      const practiceDay = practiceData?.day 
+        ? Math.min(practiceData.day, totalDays)
+        : Math.min(actualDay, totalDays);
       
       const headers = addStartedAtHeader({
         'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -334,6 +343,7 @@ function App() {
               setSelectedChallengeInfo(selection);
             }
             
+            // ADR-0002.01: 실제 경과 일수 사용 (항상 제한 없음)
             const { currentDay, progressPercentage } = calculateChallengeProgress(selectedChallenge, {});
             
             // 실제 완료한 일수를 기반으로 진행률 재계산 (ChallengeDetail과 동일한 로직)
@@ -411,14 +421,24 @@ function App() {
               }
             });
             
-            // 챌린지 상태 확인: currentDay >= totalDays이면 완료된 것으로 간주
+            // ADR-0002.01: 상태 계산 및 전이 감지
+            // 상태 계산 시에는 실제 경과 일수를 사용 (practiceDay 사용 안 함)
             const challengeStatus = calculateChallengeStatus(updatedChallenge, {});
-            if (challengeStatus.status === 'completed') {
-              console.log('📝 [완료 감지] 챌린지가 완료되어 선택 초기화:', {
+            const previousStatus = previousChallengeStatus;
+            const statusTransitioned = previousStatus === 'current' && challengeStatus.status === 'completed';
+            
+            // 상태 업데이트
+            updatedChallenge.status = challengeStatus.status;
+            setPreviousChallengeStatus(challengeStatus.status);
+            
+            // ADR-0002.01: 상태 전이 감지 (current -> completed)
+            if (statusTransitioned) {
+              console.log('📝 [상태 전이] current -> completed 감지, 다음 챌린지 선택 UX 트리거:', {
                 challengeId: targetChallengeId,
                 currentDay,
                 totalDays: updatedChallenge.total_days,
-                status: challengeStatus.status
+                previousStatus,
+                currentStatus: challengeStatus.status
               });
               clearSelectedChallenge();
               setSelectedChallengeInfo(null);
@@ -427,6 +447,27 @@ function App() {
               setPractice(null);
               return; // 완료된 챌린지는 더 이상 처리하지 않음
             }
+            
+            // completed 상태이지만 전이가 아닌 경우 (이미 완료된 상태로 로드)
+            if (challengeStatus.status === 'completed' && !statusTransitioned) {
+              console.log('📝 [이미 완료] 챌린지가 이미 완료된 상태:', {
+                challengeId: targetChallengeId,
+                currentDay,
+                totalDays: updatedChallenge.total_days,
+                status: challengeStatus.status
+              });
+              // 이미 완료된 경우에도 선택 초기화 (다음 챌린지 선택 유도)
+              clearSelectedChallenge();
+              setSelectedChallengeInfo(null);
+              setShowChallengeSelector(true);
+              setCurrentChallenge(null);
+              setPractice(null);
+              return;
+            }
+            
+            // ADR-0002.01: 초기 상태 설정
+            const initialStatus = calculateChallengeStatus(updatedChallenge, { practiceDay: currentDay }).status;
+            setPreviousChallengeStatus(initialStatus);
             
             setCurrentChallenge(updatedChallenge);
             // 챌린지 설정 후 상세 기록 확인
@@ -547,9 +588,9 @@ function App() {
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [selectedChallengeId, selectedChallengeStartedAt, currentChallenge?.is_completed, checkDetailedRecord]);
+  }, [selectedChallengeId, selectedChallengeStartedAt, currentChallenge?.is_completed, checkDetailedRecord, previousChallengeStatus]);
 
-  // 챌린지 진행률 업데이트 함수
+  // 챌린지 진행률 업데이트 함수 (ADR-0002.01: 상태 전이 및 이벤트 기반 UX)
   const updateChallengeProgress = useCallback(async (challengeId) => {
     if (!challengeId || !currentChallenge) {
       return;
@@ -572,9 +613,8 @@ function App() {
         const completedDaysSet = new Set(feedbackData.map(feedback => feedback.practice_day));
         const completedDays = completedDaysSet.size;
         const totalDays = Math.max(1, currentChallenge.total_days || 1);
-        const actualProgressPercentage = Math.round((completedDays / totalDays) * 100);
 
-        // 현재 일차 계산
+        // ADR-0002.01: 실제 경과 일수 사용 (항상 제한 없음)
         const { currentDay } = calculateChallengeProgress(currentChallenge, {});
 
         // 진행률이 비정상적으로 높은 경우 자동으로 재계산
@@ -586,21 +626,55 @@ function App() {
         }
 
         const finalProgressPercentage = Math.round((validCompletedDays / totalDays) * 100);
-        const isCompleted = validCompletedDays >= totalDays;
-
-        // 챌린지 완료 이벤트 로깅
-        if (isCompleted && !currentChallenge.is_completed) {
+        
+        // ADR-0002.01: 완료·성과 지표 계산 (상태와 분리)
+        const metrics = calculateChallengeMetrics(currentChallenge, { completedDays: validCompletedDays });
+        
+        // ADR-0002.01: 상태 계산 (시간 기반만)
+        const previousStatus = previousChallengeStatus || 
+          (currentChallenge.status ? currentChallenge.status : 
+           calculateChallengeStatus(currentChallenge, {}).status);
+        const challengeForStatus = {
+          ...currentChallenge,
+          total_days: totalDays
+        };
+        // ADR-0002.01: 상태 계산 시에는 실제 경과 일수를 사용 (practiceDay 사용 안 함)
+        const { status: currentStatus } = calculateChallengeStatus(challengeForStatus, {});
+        
+        // ADR-0002.01: 상태 전이 감지 (current -> completed)
+        const statusTransitioned = previousStatus === 'current' && currentStatus === 'completed';
+        if (statusTransitioned) {
+          console.log('📝 [상태 전이] current -> completed 감지, 다음 챌린지 선택 UX 트리거');
+          // 다음 챌린지 선택 화면 표시
+          setShowChallengeSelector(true);
+        }
+        
+        // ADR-0002.01: 축하 UX 트리거 (이벤트 기반, 1회성)
+        // 조건: 현재 챌린지가 마지막 챌린지이며, 실천 기록 저장으로 completed_days === total_days가 되는 순간
+        const shouldShowCelebration = 
+          !celebrationShownRef.current && // 아직 표시하지 않음
+          metrics.isFullyCompleted && // 모든 일수 완료
+          !currentChallenge.is_completed; // 이전에 완료되지 않았음 (새로 완료된 경우)
+        
+        if (shouldShowCelebration) {
+          console.log('🎉 [축하 UX] 모든 챌린지 완료 이벤트 감지');
+          setCelebrationShown(true);
+          celebrationShownRef.current = true;
           logChallengeComplete(challengeId);
         }
 
         // 챌린지 상태 업데이트
-        setCurrentChallenge({
+        const updatedChallenge = {
           ...currentChallenge,
           current_day: currentDay,
           progress_percentage: finalProgressPercentage,
           completed_days: validCompletedDays,
-          is_completed: isCompleted
-        });
+          status: currentStatus, // ADR-0002.01: 시간 기반 상태
+          is_completed: metrics.isFullyCompleted // 지표 (상태와 분리)
+        };
+        
+        setCurrentChallenge(updatedChallenge);
+        setPreviousChallengeStatus(currentStatus);
 
         console.log('📊 챌린지 진행률 업데이트:', {
           challengeId,
@@ -608,13 +682,14 @@ function App() {
           completedDays: validCompletedDays,
           totalDays,
           progressPercentage: finalProgressPercentage,
-          isCompleted
+          isFullyCompleted: metrics.isFullyCompleted,
+          status: currentStatus
         });
       }
     } catch (error) {
       console.warn('Failed to update challenge progress:', error);
     }
-  }, [currentChallenge]);
+  }, [currentChallenge, previousChallengeStatus]);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
@@ -848,6 +923,10 @@ function App() {
 
   // 챌린지 선택 핸들러
   const handleChallengeSelected = (challenge) => {
+    // ADR-0002.01: 새 챌린지 선택 시 상태 및 축하 UX 초기화
+    setPreviousChallengeStatus(null);
+    setCelebrationShown(false);
+    celebrationShownRef.current = false;
     const startedAt = validateAndFixStartedAt(challenge.id, null);
     const selection = getSelectedChallenge();
     setSelectedChallengeInfo(selection);
@@ -864,9 +943,12 @@ function App() {
     try {
       const userId = getUserId();
 
-      const practiceDay = calculateChallengeDay(currentChallenge, { 
-        practiceDay: practice?.day 
-      });
+      // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
+      const actualDay = calculateChallengeDay(currentChallenge);
+      const totalDays = Math.max(1, currentChallenge?.total_days || 1);
+      const practiceDay = practice?.day 
+        ? Math.min(practice.day, totalDays)
+        : Math.min(actualDay, totalDays);
 
       const quickCompleteData = {
         challengeId: currentChallenge?.id,
@@ -1051,7 +1133,11 @@ function App() {
             )}
             
             {/* 선택한 챌린지가 있을 때만 실천 과제 표시 */}
-            {!showChallengeSelector && Boolean(selectedChallengeId) && !currentChallenge?.is_completed && (
+            {/* ADR-0002.01: 상태 기반 표시 (completed 상태가 아닐 때만) */}
+            {!showChallengeSelector && Boolean(selectedChallengeId) && currentChallenge && (() => {
+              const { status } = calculateChallengeStatus(currentChallenge, {});
+              return status !== 'completed';
+            })() && (
               <>
                 {/* 실천 완료 전: 오늘의 추천 실천 카드 */}
                 {!practice?.isRecorded && practice && (
@@ -1218,8 +1304,13 @@ function App() {
               </>
             )}
             
-            {/* 챌린지 완료 축하 화면 */}
-            {!showChallengeSelector && Boolean(selectedChallengeId) && currentChallenge?.is_completed && (
+            {/* ADR-0002.01: 챌린지 완료 축하 화면 (이벤트 기반, 1회성) */}
+            {!showChallengeSelector && Boolean(selectedChallengeId) && celebrationShown && currentChallenge && (() => {
+              const metrics = calculateChallengeMetrics(currentChallenge, { 
+                completedDays: currentChallenge.completed_days || 0 
+              });
+              return metrics.isFullyCompleted;
+            })() && (
               <StyledPaper elevation={3} sx={{ 
                 backgroundColor: '#579f59',
                 background: 'linear-gradient(135deg, #579f59, #7bb17d)',

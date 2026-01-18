@@ -72,10 +72,12 @@ const PracticeRecordModal = ({
       const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
       const userId = getUserId();
       
-      // 공통 유틸리티를 사용하여 일차 계산
-      const practiceDay = calculateChallengeDay(challenge, { 
-        practiceDay: practice?.day 
-      });
+      // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
+      const actualDay = calculateChallengeDay(challenge);
+      const totalDays = Math.max(1, challenge?.total_days || 1);
+      const practiceDay = practice?.day 
+        ? Math.min(practice.day, totalDays)
+        : Math.min(actualDay, totalDays);
       
       console.log('Fetching record with:', { 
         challengeId: challenge.id, 
@@ -139,10 +141,12 @@ const PracticeRecordModal = ({
       const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
       const userId = getUserId();
       
-      // 공통 유틸리티를 사용하여 일차 계산
-      const practiceDay = calculateChallengeDay(challenge, { 
-        practiceDay: practice?.day 
-      });
+      // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
+      const actualDay = calculateChallengeDay(challenge);
+      const totalDays = Math.max(1, challenge?.total_days || 1);
+      const practiceDay = practice?.day 
+        ? Math.min(practice.day, totalDays)
+        : Math.min(actualDay, totalDays);
       
       const response = await fetch(`${API_URL}/api/feedback/update`, {
         method: 'PUT',

@@ -59,10 +59,12 @@ const FeedbackModal = ({
       return;
     }
 
-    // 공통 유틸리티를 사용하여 일차 계산
-    const practiceDay = calculateChallengeDay(challenge, { 
-      practiceDay: practice?.day 
-    });
+    // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
+    const actualDay = calculateChallengeDay(challenge);
+    const totalDays = Math.max(1, challenge?.total_days || 1);
+    const practiceDay = practice?.day 
+      ? Math.min(practice.day, totalDays)
+      : Math.min(actualDay, totalDays);
 
     const feedback = {
       challengeId: challenge.id,

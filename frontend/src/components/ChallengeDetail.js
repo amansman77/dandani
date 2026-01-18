@@ -138,7 +138,10 @@ const ChallengeDetail = ({ challengeId, onBack }) => {
           id: challengeId,
           total_days: challengeData.total_days
         };
-        const maxPossibleDay = calculateChallengeDay(challengeForCalculation, {});
+        // 최대 가능 일차는 totalDays로 제한
+        const actualDay = calculateChallengeDay(challengeForCalculation);
+        const totalDays = Math.max(1, challengeData.total_days || 1);
+        const maxPossibleDay = Math.min(actualDay, totalDays);
         
         // 버그 복구: 완료 일수가 최대 가능 일차보다 많은 경우 제한
         let validCompletedDays = completedDays;

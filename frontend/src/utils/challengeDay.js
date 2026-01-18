@@ -23,48 +23,39 @@ export const normalizeDateOnly = (value) => {
 };
 
 /**
- * 챌린지의 현재 일차를 계산
+ * 챌린지의 현재 일차를 계산 (ADR-0002.01: 실제 경과 일수 반환)
  * 
- * @param {Object} challenge - 챌린지 객체 (id, start_date, total_days 포함)
- * @param {Object} options - 옵션
- * @param {number|string} options.practiceDay - 서버에서 받은 practice.day (우선 사용)
- * @param {Date|string} options.referenceDate - 기준 날짜 (기본값: 오늘)
- * @returns {number} 현재 일차 (1부터 시작, total_days를 초과하지 않음)
+ * 항상 startedAt 기준 실제 경과 일수를 반환합니다.
+ * totalDays 제한이 필요한 경우 호출하는 쪽에서 Math.min(day, totalDays)를 사용하세요.
+ * 
+ * @param {Object} challenge - 챌린지 객체 (id, total_days 포함)
+ * @param {Object} options - 옵션 (현재 사용되지 않음, 호환성을 위해 유지)
+ * @returns {number} 실제 경과 일수 (1부터 시작, totalDays 제한 없음)
  */
 export const calculateChallengeDay = (challenge, options = {}) => {
   if (!challenge) {
     return 1;
   }
-
-  const { practiceDay, referenceDate } = options;
   
-  // 1. 서버에서 받은 practice.day가 있으면 우선 사용 (가장 정확함)
-  if (practiceDay !== undefined && practiceDay !== null) {
-    const totalDays = Math.max(1, challenge.total_days || 1);
-    return Math.max(1, Math.min(totalDays, practiceDay));
-  }
-
-  // 2. 선택한 챌린지인지 확인 (일정형 챌린지 제거: 모든 챌린지는 선택형)
+  // 선택한 챌린지인지 확인
   const selectedChallengeInfo = getSelectedChallenge();
   const isSelectedChallenge = selectedChallengeInfo && 
     parseInt(selectedChallengeInfo.id) === parseInt(challenge.id);
 
-  const today = referenceDate ? normalizeDateOnly(referenceDate) : normalizeDateOnly(new Date());
-  const totalDays = Math.max(1, challenge.total_days || 1);
+  const today = normalizeDateOnly(new Date());
 
   if (isSelectedChallenge && selectedChallengeInfo.startedAt) {
-    // 3. 선택한 챌린지의 경우: startedAt 기준으로 계산
+    // startedAt 기준으로 실제 경과 일수 계산
     const startedAt = normalizeDateOnly(selectedChallengeInfo.startedAt);
     
     if (startedAt && today) {
       const diffDays = Math.floor((today.getTime() - startedAt.getTime()) / (24 * 60 * 60 * 1000));
       const calculatedDay = diffDays + 1;
-      return Math.max(1, Math.min(totalDays, calculatedDay));
+      return Math.max(1, calculatedDay);
     }
   }
 
-  // 4. 선택하지 않은 챌린지의 경우: 기본값 1일차
-  // (일정형 챌린지 제거: 챌린지 선택 전에는 일차 계산 불가)
+  // 선택하지 않은 챌린지의 경우: 기본값 1일차
   return 1;
 };
 
@@ -81,6 +72,7 @@ export const calculateChallengeProgress = (challenge, options = {}) => {
   }
 
   const totalDays = Math.max(1, challenge.total_days || 1);
+  // 항상 실제 경과 일수 사용
   const currentDay = calculateChallengeDay(challenge, options);
   const progressPercentage = Math.round((currentDay / totalDays) * 100);
 
@@ -91,13 +83,16 @@ export const calculateChallengeProgress = (challenge, options = {}) => {
 };
 
 /**
- * 챌린지의 상태(status) 계산
+ * 챌린지의 상태(status) 계산 (ADR-0002.01: Time-based Lifecycle)
+ * 
+ * 상태는 "시간의 흐름에서의 위치"만을 나타냅니다.
+ * 사용자의 실천 성과, 성취감, 완료 여부는 상태가 아닌 지표(metrics) 또는 이벤트(event)로 표현합니다.
  * 
  * @param {Object} challenge - 챌린지 객체
  * @param {Object} options - 옵션
  * @returns {Object} { status, currentDay }
  *   - status: 'current' | 'completed' | 'upcoming'
- *   - currentDay: 현재 일차
+ *   - currentDay: 현재 일차 (실제 경과 일수, totalDays 제한 없음)
  */
 export const calculateChallengeStatus = (challenge, options = {}) => {
   if (!challenge) {
@@ -105,16 +100,50 @@ export const calculateChallengeStatus = (challenge, options = {}) => {
   }
 
   const totalDays = Math.max(1, challenge.total_days || 1);
+  // ADR-0002.01: 실제 경과 일수 사용 (항상 제한 없음)
   const currentDay = calculateChallengeDay(challenge, options);
   
-  // currentDay >= totalDays인 경우 완료된 것으로 간주
-  if (currentDay >= totalDays) {
-    return { status: 'completed', currentDay: totalDays };
-  } else if (currentDay >= 1) {
-    return { status: 'current', currentDay };
-  } else {
+  // ADR-0002.01 규칙: 시간 기반 상태 판정
+  // 이 판정은 실천 여부, 기록 수와 무관합니다.
+  if (currentDay < 1) {
     return { status: 'upcoming', currentDay: 1 };
+  } else if (currentDay > totalDays) {
+    return { status: 'completed', currentDay: currentDay };
+  } else {
+    // 1 <= currentDay <= totalDays
+    return { status: 'current', currentDay };
   }
+};
+
+/**
+ * 챌린지의 완료·성과 지표 계산 (ADR-0002.01: Experience-based Metrics)
+ * 
+ * 상태와 완전히 분리된 개념으로 완료 일수와 진행률을 계산합니다.
+ * 이 지표들은 UI 피드백, 회고, 통계 용도로만 사용되며 상태를 변경하지 않습니다.
+ * 
+ * @param {Object} challenge - 챌린지 객체
+ * @param {Object} options - 옵션
+ * @param {number} options.completedDays - 완료된 일수 (practice_feedback 기록 수)
+ * @returns {Object} { completedDays, progressRate, isFullyCompleted }
+ *   - completedDays: 완료된 일수
+ *   - progressRate: 진행률 (0-100)
+ *   - isFullyCompleted: 모든 일수를 완료했는지 여부
+ */
+export const calculateChallengeMetrics = (challenge, options = {}) => {
+  if (!challenge) {
+    return { completedDays: 0, progressRate: 0, isFullyCompleted: false };
+  }
+
+  const totalDays = Math.max(1, challenge.total_days || 1);
+  const completedDays = options.completedDays || 0;
+  const progressRate = Math.round((completedDays / totalDays) * 100);
+  const isFullyCompleted = completedDays >= totalDays;
+
+  return {
+    completedDays,
+    progressRate,
+    isFullyCompleted
+  };
 };
 
 /**
