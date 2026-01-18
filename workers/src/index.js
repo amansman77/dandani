@@ -292,6 +292,7 @@ async function getChallenges(env, request) {
       name, 
       description, 
       COALESCE(is_recommended, 0) as is_recommended,
+      COALESCE(is_popular, 0) as is_popular,
       created_at
     FROM challenges 
     ORDER BY id DESC
@@ -324,7 +325,8 @@ async function getChallenges(env, request) {
     name: challenge.name,
     description: challenge.description,
     total_days: challenge.total_days,
-    is_recommended: challenge.is_recommended === 1
+    is_recommended: challenge.is_recommended === 1,
+    is_popular: challenge.is_popular === 1
   }));
 
   return {
