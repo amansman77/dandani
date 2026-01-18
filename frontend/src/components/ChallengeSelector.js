@@ -290,34 +290,40 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
                 )}
               </Box>
               
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box sx={{ flex: 1 }}>
+              <Box sx={{ width: '100%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, width: '100%' }}>
                   <Typography 
                     variant="h6" 
                     component="h2"
                     sx={{ 
                       fontWeight: 'bold',
                       color: 'text.primary',
-                      mb: 1
+                      flex: 1,
+                      pr: 2
                     }}
                   >
                     {challenge.name}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ lineHeight: 1.6 }}
-                  >
-                    {challenge.description}
-                  </Typography>
+                  <Chip
+                    label={formatDuration(challenge.total_days)}
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                    sx={{ flexShrink: 0 }}
+                  />
                 </Box>
-                <Chip
-                  label={formatDuration(challenge.total_days)}
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  sx={{ ml: 2 }}
-                />
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{ 
+                    lineHeight: 1.6, 
+                    width: '100%',
+                    display: 'block',
+                    wordBreak: 'break-word'
+                  }}
+                >
+                  {challenge.description}
+                </Typography>
               </Box>
             </Box>
           </ChallengeCard>
