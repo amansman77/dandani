@@ -86,7 +86,7 @@ export const logEvent = async (eventType, eventData = {}) => {
     
     // PostHog 이벤트 로깅 (주요 이벤트만)
     const posthogEventMap = {
-      'page_visit': 'page_visit',
+      'page_visit': '$pageview', // PostHog 표준 페이지뷰 이벤트
       'challenge_selected': 'challenge_selected',
       'practice_complete': 'practice_complete',
       'feedback_submit': 'practice_recorded',
