@@ -19,6 +19,27 @@ const getUserId = () => {
   return localStorage.getItem('dandani_user_id') || 'anonymous';
 };
 
+// 환경 변수 가져오기
+const getEnvironment = () => {
+  // REACT_APP_ENVIRONMENT가 명시적으로 설정되어 있으면 사용
+  if (process.env.REACT_APP_ENVIRONMENT) {
+    return process.env.REACT_APP_ENVIRONMENT;
+  }
+  // NODE_ENV 기반으로 환경 결정
+  if (process.env.NODE_ENV === 'production') {
+    return 'prod';
+  }
+  return 'dev';
+};
+
+// PostHog 공통 속성 생성
+const getPostHogCommonProperties = () => {
+  return {
+    service_id: 'dandani',
+    environment: getEnvironment(),
+  };
+};
+
 // PostHog 이벤트 로깅 헬퍼 함수
 // PostHogProvider를 통해 초기화되므로 직접 init할 필요 없음
 const logPostHogEvent = (eventName, properties = {}) => {
@@ -38,14 +59,21 @@ const logPostHogEvent = (eventName, properties = {}) => {
             window.posthog.identify(userId);
           }
           
+          // 공통 속성과 이벤트별 속성 병합
+          const commonProperties = getPostHogCommonProperties();
+          
           // 이벤트 전송
           window.posthog.capture(eventName, {
+            ...commonProperties,
             ...properties,
             timestamp: new Date().toISOString(),
           });
           
           // 프로덕션에서도 주요 이벤트는 로그로 확인
-          console.log(`[PostHog] Event captured: ${eventName}`, properties);
+          console.log(`[PostHog] Event captured: ${eventName}`, {
+            ...commonProperties,
+            ...properties,
+          });
           return true;
         }
         return false;
