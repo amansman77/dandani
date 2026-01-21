@@ -1,6 +1,8 @@
 // 클라이언트 사이드 이벤트 로깅 유틸리티
 // PostHog는 PostHogProvider를 통해 초기화되며 window.posthog로 접근 가능
 
+import { writeFirstUTMOnce } from './posthog-first-utm';
+
 // Production API URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -223,11 +225,13 @@ export const initAnalytics = () => {
   analyticsInitialized = true;
   
   // PostHog는 PostHogProvider를 통해 자동 초기화됨
-  // PostHog 초기화를 기다린 후 페이지 방문 이벤트 로깅
+  // PostHog 초기화를 기다린 후 페이지 방문 이벤트 로깅 및 first_utm_* 저장
   const waitForPostHog = () => {
     if (typeof window !== 'undefined' && window.posthog) {
       console.log('[Analytics] Initializing analytics, logging page_visit event');
       logPageVisit('app_load');
+      // PostHog 초기화 완료 후 first_utm_* 저장 시도
+      writeFirstUTMOnce();
     } else {
       // PostHog가 아직 초기화되지 않았다면 잠시 후 재시도 (최대 3초)
       const maxWaitTime = 3000;
@@ -237,10 +241,14 @@ export const initAnalytics = () => {
           clearInterval(checkInterval);
           console.log('[Analytics] Initializing analytics, logging page_visit event');
           logPageVisit('app_load');
+          // PostHog 초기화 완료 후 first_utm_* 저장 시도
+          writeFirstUTMOnce();
         } else if (Date.now() - startTime > maxWaitTime) {
           clearInterval(checkInterval);
           console.warn('[Analytics] PostHog initialization timeout, logging page_visit anyway');
           logPageVisit('app_load');
+          // 타임아웃이어도 first_utm_* 저장 시도 (내부에서 PostHog 확인)
+          writeFirstUTMOnce();
         }
       }, 100);
     }
