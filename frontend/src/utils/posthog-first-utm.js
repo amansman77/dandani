@@ -67,11 +67,18 @@ export function writeFirstUTMOnce() {
 
     // 4) set_once로 Person 속성 저장
     // set_once는 이미 값이 있으면 덮어쓰지 않으므로 안전하게 호출 가능
-    window.posthog.people.set_once({
+    const personProperties = {
       first_utm_source: utm.utm_source,
       first_utm_medium: utm.utm_medium,
       first_utm_campaign: utm.utm_campaign,
-    });
+    };
+    
+    // utm_campaign이 있으면 initial_utm_campaign도 설정
+    if (utm.utm_campaign) {
+      personProperties.initial_utm_campaign = utm.utm_campaign;
+    }
+    
+    window.posthog.people.set_once(personProperties);
 
     // 5) 가드 기록 (중복 호출 방지)
     localStorage.setItem(STORAGE_KEY, '1');
@@ -80,6 +87,7 @@ export function writeFirstUTMOnce() {
       first_utm_source: utm.utm_source,
       first_utm_medium: utm.utm_medium,
       first_utm_campaign: utm.utm_campaign,
+      ...(utm.utm_campaign && { initial_utm_campaign: utm.utm_campaign }),
     });
   } catch (error) {
     // 실패해도 사용자 경험에 영향 없게 (silent fail)
