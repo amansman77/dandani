@@ -1,7 +1,3 @@
 # Cloudflare Pages redirects
-# Privacy policy (must be before catch-all rule)
-/privacy    /privacy.html   200
-
 # SPA fallback for React app (must be last)
 /*    /index.html   200
-
