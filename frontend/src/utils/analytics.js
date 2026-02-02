@@ -230,7 +230,7 @@ export const initAnalytics = () => {
     if (typeof window !== 'undefined' && window.posthog) {
       console.log('[Analytics] Initializing analytics, logging page_visit event');
       logPageVisit('app_load');
-      // PostHog 초기화 완료 후 first_utm_* 저장 시도
+      // PostHog 초기화 완료 후 first_utm_* 저장 (URL UTM 또는 Capacitor 시 ios_app/android_app, ADR-0004)
       writeFirstUTMOnce();
     } else {
       // PostHog가 아직 초기화되지 않았다면 잠시 후 재시도 (최대 3초)
@@ -241,13 +241,12 @@ export const initAnalytics = () => {
           clearInterval(checkInterval);
           console.log('[Analytics] Initializing analytics, logging page_visit event');
           logPageVisit('app_load');
-          // PostHog 초기화 완료 후 first_utm_* 저장 시도
+          // PostHog 초기화 완료 후 first_utm_* 저장 (URL UTM 또는 Capacitor 시 ios_app/android_app)
           writeFirstUTMOnce();
         } else if (Date.now() - startTime > maxWaitTime) {
           clearInterval(checkInterval);
           console.warn('[Analytics] PostHog initialization timeout, logging page_visit anyway');
           logPageVisit('app_load');
-          // 타임아웃이어도 first_utm_* 저장 시도 (내부에서 PostHog 확인)
           writeFirstUTMOnce();
         }
       }, 100);

@@ -1,28 +1,32 @@
 // PostHog Person 속성으로 first_utm_* 저장 유틸리티
 // 최초 1회만 저장하기 위해 set_once를 사용하며, 로컬스토리지로 중복 호출을 방지합니다.
+// URL에 UTM이 없어도 Capacitor(iOS/Android) 앱이면 utm_source=ios_app|android_app 로 저장합니다.
 
 import { getUTMFromURL, hasAnyUTM } from './utm';
+import { getAppUtmFromCapacitor } from './execution-platform';
 
 const STORAGE_KEY = 'dandani:first_utm_written';
 
 /**
  * PostHog Person 속성으로 first_utm_* 값을 저장합니다.
  * - set_once를 사용하여 이미 값이 있으면 덮어쓰지 않습니다.
- * - 로컬스토리지로 중복 호출을 방지합니다.
- * - UTM 파라미터가 없으면 저장하지 않습니다.
+ * - URL에 UTM이 있으면 URL 기준, 없으면 Capacitor 앱일 때 ios_app/android_app 으로 저장합니다.
  */
 export function writeFirstUTMOnce() {
   try {
-    // 브라우저 환경 확인
     if (typeof window === 'undefined') {
       return;
     }
 
-    // 1) UTM 파싱
-    const utm = getUTMFromURL(window.location.href);
+    // 1) URL에서 UTM 파싱, 없으면 Capacitor 앱일 때 앱 UTM 사용 (ios_app / android_app)
+    let utm = getUTMFromURL(window.location.href);
     if (!hasAnyUTM(utm)) {
-      // UTM이 없으면 저장하지 않음
-      return;
+      const appUtm = getAppUtmFromCapacitor();
+      if (appUtm && hasAnyUTM(appUtm)) {
+        utm = appUtm;
+      } else {
+        return;
+      }
     }
 
     // 2) 중복 실행 가드 (로컬스토리지 확인)
