@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
-import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip, Fade, Divider } from '@mui/material';
+import { Container, Box, Typography, Paper, CircularProgress, Tabs, Tab, Button, IconButton, Tooltip, Fade, Divider, Alert } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { Help as HelpIcon } from '@mui/icons-material';
 import ChatInterface from './components/ChatInterface';
 import ChallengeContext from './components/ChallengeContext';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
+import PracticeCompletionModal from './components/PracticeCompletionModal';
 import PracticeHistory from './components/PracticeHistory';
 import OnboardingModal from './components/OnboardingModal';
 import EnvelopeModal from './components/EnvelopeModal';
@@ -14,8 +15,8 @@ import ChallengeSelector from './components/ChallengeSelector';
 import AlertModal from './components/AlertModal';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from './utils/challengeSelection';
-import { logChallengeComplete, logPracticeComplete } from './utils/analytics';
-import { calculateChallengeDay, calculateChallengeProgress, calculateChallengeEndDate, addStartedAtHeader, calculateChallengeStatus, calculateChallengeMetrics } from './utils/challengeDay';
+import { logChallengeComplete, logOnboardingComplete, logReturnNextDay } from './utils/analytics';
+import { calculateChallengeDay, calculateChallengeProgress, calculateChallengeEndDate, addStartedAtHeader, calculateChallengeStatus, calculateChallengeMetrics, parseDatabaseDate } from './utils/challengeDay';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -146,7 +147,10 @@ function App() {
   const [chatSessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
+  const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [hasDetailedRecord, setHasDetailedRecord] = useState(false); // 상세 기록 여부
+  const [yesterdayRecord, setYesterdayRecord] = useState(null);
+  const [isNonKoreanUser, setIsNonKoreanUser] = useState(false);
   
   // 알림 모달 상태
   const [alertModal, setAlertModal] = useState({
@@ -195,6 +199,26 @@ function App() {
   // ADR-0002.01: 축하 UX 이벤트 기반 추적 (1회성 표시용)
   const [celebrationShown, setCelebrationShown] = useState(false);
   const celebrationShownRef = useRef(false); // 새로고침 방지를 위한 ref
+
+  const formatDateKey = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const isYesterdayRecord = (recordDate) => {
+    const parsedDate = parseDatabaseDate(recordDate);
+    if (!parsedDate) {
+      return false;
+    }
+
+    const target = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate()).getTime();
+    const yesterday = new Date();
+    yesterday.setHours(0, 0, 0, 0);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return target === yesterday.getTime();
+  };
 
   // 일차 계산은 utils/challengeDay.js의 공통 함수 사용
 
@@ -703,6 +727,11 @@ function App() {
     }
   }, [selectedChallengeId]);
 
+  useEffect(() => {
+    const browserLanguage = navigator.language || '';
+    setIsNonKoreanUser(!browserLanguage.toLowerCase().startsWith('ko'));
+  }, []);
+
   // 오늘의 추천 실천 카드 애니메이션 처리
   useLayoutEffect(() => {
     if (practice && !practice.isRecorded) {
@@ -850,6 +879,70 @@ function App() {
     }
   }, [selectedChallengeId, selectedChallengeStartedAt, fetchPracticeAndChallenge]);
 
+  useEffect(() => {
+    const fetchYesterdayRecord = async () => {
+      if (!selectedChallengeId) {
+        setYesterdayRecord(null);
+        return;
+      }
+
+      try {
+        const userId = getUserId();
+        const headers = addStartedAtHeader({
+          'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+          'X-Client-Time': new Date().toISOString(),
+          'X-User-ID': userId
+        }, selectedChallengeId);
+
+        const response = await fetch(`${API_URL}/api/feedback/history?challengeId=${selectedChallengeId}`, {
+          headers
+        });
+
+        if (!response.ok) {
+          setYesterdayRecord(null);
+          return;
+        }
+
+        const history = await response.json();
+        const yesterdayRecords = (history || []).filter((record) => {
+          return record?.practice_description && isYesterdayRecord(record.created_at);
+        });
+
+        if (yesterdayRecords.length === 0) {
+          setYesterdayRecord(null);
+          return;
+        }
+
+        yesterdayRecords.sort((a, b) => {
+          const aTime = parseDatabaseDate(a.created_at)?.getTime() || 0;
+          const bTime = parseDatabaseDate(b.created_at)?.getTime() || 0;
+          return bTime - aTime;
+        });
+        setYesterdayRecord(yesterdayRecords[0]);
+      } catch (error) {
+        console.warn('Failed to fetch yesterday record:', error);
+        setYesterdayRecord(null);
+      }
+    };
+
+    fetchYesterdayRecord();
+  }, [selectedChallengeId, practice?.isRecorded]);
+
+  useEffect(() => {
+    if (!yesterdayRecord || !selectedChallengeId) {
+      return;
+    }
+
+    const todayKey = formatDateKey(new Date());
+    const dedupeKey = `dandani_return_next_day_logged_${selectedChallengeId}_${todayKey}`;
+    if (localStorage.getItem(dedupeKey) === 'true') {
+      return;
+    }
+
+    logReturnNextDay(selectedChallengeId, yesterdayRecord.practice_day || null);
+    localStorage.setItem(dedupeKey, 'true');
+  }, [yesterdayRecord, selectedChallengeId]);
+
   // 챌린지 완료 핸들러
   const handleChallengeCompletion = () => {
     clearSelectedChallenge();
@@ -878,6 +971,7 @@ function App() {
   // 온보딩 완료 핸들러
   const handleOnboardingComplete = () => {
     markUserInitialized();
+    logOnboardingComplete();
     setShowOnboarding(false);
   };
 
@@ -938,78 +1032,32 @@ function App() {
     fetchPracticeAndChallenge(challenge.id, startedAt);
   };
 
-  // 빠른 완료 핸들러 (빈 값으로 저장)
-  const handleQuickComplete = async () => {
-    try {
-      const userId = getUserId();
+  const handleOpenCompletionFlow = () => {
+    setCompletionModalOpen(true);
+  };
 
-      // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
-      const actualDay = calculateChallengeDay(currentChallenge);
-      const totalDays = Math.max(1, currentChallenge?.total_days || 1);
-      const practiceDay = practice?.day 
-        ? Math.min(practice.day, totalDays)
-        : Math.min(actualDay, totalDays);
+  const handleCompletionSaved = () => {
+    setHasDetailedRecord(true);
 
-      const quickCompleteData = {
-        challengeId: currentChallenge?.id,
-        practiceDay: practiceDay,
-        moodChange: null,
-        wasHelpful: null,
-        practiceDescription: null
-      };
-
-      const response = await fetch(`${API_URL}/api/feedback/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-User-ID': userId
-        },
-        body: JSON.stringify(quickCompleteData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setAlertModal({
-          open: true,
-          message: '좋아요! 오늘 실천 완료했어요',
-          type: 'success'
-        });
-        console.log('Quick complete submitted:', result);
-
-        // 실천 완료 이벤트 로깅 (PostHog 포함)
-        logPracticeComplete(
-          currentChallenge?.id,
-          practiceDay,
-          null, // 빠른 완료는 moodChange 없음
-          null  // 빠른 완료는 wasHelpful 없음
-        );
-
-        // 빠른 완료는 상세 기록이 아니므로 false로 유지
-        setHasDetailedRecord(false);
-
-        // 로컬 상태만 업데이트 (페이지 리로딩 방지)
-        if (practice) {
-          setPractice({
-            ...practice,
-            isRecorded: true
-          });
-        }
-        
-        // 챌린지 진행률 업데이트
-        if (currentChallenge) {
-          updateChallengeProgress(currentChallenge.id);
-        }
-      } else {
-        throw new Error('빠른 완료 제출에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error('Quick complete error:', error);
-      setAlertModal({
-        open: true,
-        message: '빠른 완료 중 오류가 발생했습니다.',
-        type: 'error'
+    if (practice) {
+      setPractice({
+        ...practice,
+        isRecorded: true
       });
     }
+
+    if (currentChallenge) {
+      updateChallengeProgress(currentChallenge.id);
+    }
+  };
+
+  const handleCompletionError = (error) => {
+    console.error('Completion flow error:', error);
+    setAlertModal({
+      open: true,
+      message: '실천 기록 중 오류가 발생했습니다.',
+      type: 'error'
+    });
   };
 
 
@@ -1084,6 +1132,12 @@ function App() {
           </Tooltip>
         </Box>
 
+        {isNonKoreanUser && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            이 서비스는 한국어로 제공됩니다.
+          </Alert>
+        )}
+
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={activeTab} onChange={handleTabChange} centered>
             <Tab 
@@ -1139,6 +1193,40 @@ function App() {
               return status !== 'completed';
             })() && (
               <>
+                {yesterdayRecord?.practice_description && (
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      p: 3,
+                      mt: 2,
+                      borderRadius: '14px',
+                      background: 'linear-gradient(135deg, #f8fbff, #eef4fb)',
+                      border: '1px solid #d7e3f3'
+                    }}
+                  >
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+                      어제 남긴 한 줄
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        mb: 2,
+                        whiteSpace: 'pre-wrap',
+                        fontStyle: 'italic',
+                        lineHeight: 1.7
+                      }}
+                    >
+                      "{yesterdayRecord.practice_description}"
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 2, color: 'text.secondary' }}>
+                      오늘도 이어볼까요?
+                    </Typography>
+                    <Button variant="outlined" onClick={() => practiceCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+                      오늘 실천 이어가기
+                    </Button>
+                  </Paper>
+                )}
+
                 {/* 실천 완료 전: 오늘의 추천 실천 카드 */}
                 {!practice?.isRecorded && practice && (
                   <PracticeCardContainer
@@ -1181,7 +1269,7 @@ function App() {
                         <AnimatedButton 
                           variant="contained" 
                           size="large"
-                          onClick={handleQuickComplete}
+                          onClick={handleOpenCompletionFlow}
                           sx={{ 
                             borderRadius: '10px',
                             padding: '22px 44px',
@@ -1460,6 +1548,15 @@ function App() {
             
             // fetchPracticeAndChallenge 제거 - 로컬 상태 업데이트만으로 충분
           }}
+        />
+
+        <PracticeCompletionModal
+          open={completionModalOpen}
+          practice={practice}
+          challenge={currentChallenge}
+          onClose={() => setCompletionModalOpen(false)}
+          onCompleted={handleCompletionSaved}
+          onError={handleCompletionError}
         />
 
         {/* 온보딩 모달 */}

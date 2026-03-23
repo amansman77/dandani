@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
   Paper,
   CircularProgress,
   Alert,
-  Chip
+  Chip,
+  Button
 } from '@mui/material';
 import { Star, TrendingUp } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
@@ -70,12 +71,57 @@ const ChallengeCard = styled(Paper, {
   };
 });
 
+const RecommendedBlock = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+  borderRadius: theme.spacing(2),
+  border: `2px solid ${theme.palette.primary.main}`,
+  background: 'linear-gradient(135deg, #f3f8ff 0%, #e8f1ff 100%)',
+}));
+
 const ChallengeSelector = ({ onChallengeSelected }) => {
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [isAdLanding, setIsAdLanding] = useState(false);
+
+  const getChallengeFrictionScore = (challenge) => {
+    const title = (challenge?.name || '').toLowerCase();
+    const description = (challenge?.description || '').toLowerCase();
+    const totalDays = Number(challenge?.total_days) || 30;
+
+    let score = totalDays * 10;
+
+    if (title.includes('숨') || description.includes('숨')) {
+      score -= 40;
+    }
+    if (title.includes('호흡') || description.includes('호흡')) {
+      score -= 30;
+    }
+    if (title.includes('1분') || description.includes('1분')) {
+      score -= 25;
+    }
+    if (title.includes('짧') || description.includes('짧')) {
+      score -= 10;
+    }
+
+    return score;
+  };
+
+  const recommendedChallenge = useMemo(() => {
+    if (!challenges.length) {
+      return null;
+    }
+
+    return [...challenges].sort((a, b) => {
+      const scoreDiff = getChallengeFrictionScore(a) - getChallengeFrictionScore(b);
+      if (scoreDiff !== 0) {
+        return scoreDiff;
+      }
+      return (Number(a?.id) || 0) - (Number(b?.id) || 0);
+    })[0];
+  }, [challenges]);
 
   // URL 파라미터에서 광고 소스 정보 추출
   const getUrlParams = () => {
@@ -249,9 +295,35 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
             초대된 챌린지에 바로 참여해 보세요.
           </Typography>
         )}
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontWeight: 600 }}>
+          👉 오늘은 딱 하나만 하면 됩니다
+        </Typography>
       </TitleBox>
 
       <Box>
+        {recommendedChallenge && (
+          <RecommendedBlock elevation={0}>
+            <Typography
+              variant="subtitle1"
+              sx={{ fontWeight: 800, color: 'primary.main', mb: 1 }}
+            >
+              오늘의 추천
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+              👉 {recommendedChallenge.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {recommendedChallenge.description}
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => handleChallengeSelect(recommendedChallenge)}
+            >
+              바로 시작하기
+            </Button>
+          </RecommendedBlock>
+        )}
+
         {challenges.map((challenge) => (
           <ChallengeCard
             key={challenge.id}
@@ -334,4 +406,3 @@ const ChallengeSelector = ({ onChallengeSelected }) => {
 };
 
 export default ChallengeSelector;
-

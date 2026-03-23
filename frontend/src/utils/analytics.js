@@ -167,22 +167,30 @@ export const logPracticeView = (practiceId, challengeId, day) => {
 
 // 실천 완료 이벤트
 export const logPracticeComplete = (challengeId, practiceDay, moodChange, wasHelpful) => {
-  logEvent('practice_complete', { 
+  const eventProperties = {
     challenge_id: challengeId, 
     practice_day: practiceDay,
     mood_change: moodChange,
     was_helpful: wasHelpful
-  });
+  };
+
+  logEvent('practice_complete', eventProperties);
+  // 신규 퍼널 이벤트명 병행 추적 (PostHog 전용)
+  logPostHogEvent('practice_completed', eventProperties);
 };
 
 // 피드백 제출 이벤트
 export const logFeedbackSubmit = (challengeId, practiceDay, moodChange, wasHelpful) => {
-  logEvent('feedback_submit', { 
+  const eventProperties = {
     challenge_id: challengeId, 
     practice_day: practiceDay,
     mood_change: moodChange,
     was_helpful: wasHelpful
-  });
+  };
+
+  logEvent('feedback_submit', eventProperties);
+  // 신규 퍼널 이벤트명 병행 추적 (PostHog 전용)
+  logPostHogEvent('record_submitted', eventProperties);
 };
 
 // AI 상담 시작 이벤트
@@ -203,6 +211,16 @@ export const logChallengeComplete = (challengeId) => {
 // 온보딩 완료 이벤트
 export const logOnboardingComplete = () => {
   logEvent('onboarding_complete', {});
+  // 신규 퍼널 이벤트명 병행 추적 (PostHog 전용)
+  logPostHogEvent('onboarding_completed', {});
+};
+
+// 다음날 재방문 훅 이벤트 (PostHog 전용)
+export const logReturnNextDay = (challengeId, practiceDay) => {
+  logPostHogEvent('return_next_day', {
+    challenge_id: challengeId,
+    practice_day: practiceDay
+  });
 };
 
 // Timefold 봉투 생성 이벤트
@@ -291,6 +309,7 @@ const analytics = {
   logChallengeComplete,
   logChallengeSelected,
   logOnboardingComplete,
+  logReturnNextDay,
   logTimefoldEnvelopeCreate,
   initAnalytics
 };
