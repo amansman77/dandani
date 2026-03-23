@@ -39,6 +39,14 @@ const ALLOWED_EVENT_TYPES = [
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+function getRequiredUserId(request) {
+  const userId = request.headers.get('X-User-ID');
+  if (!userId || !userId.trim()) {
+    throw new Error('X-User-ID header is required');
+  }
+  return userId.trim();
+}
+
 // 이벤트 로깅 유틸리티 함수
 async function logUserEvent(env, request, eventType, eventData = {}) {
   try {
@@ -130,7 +138,7 @@ async function getTodayPractice(env, request) {
   const currentDate = getClientLocalDate(clientTime, clientTimezone);
 
   // 사용자 ID를 헤더에서 받기
-  const userId = request.headers.get('X-User-ID') || 'user123';
+  const userId = getRequiredUserId(request);
 
   // challengeId로 챌린지 조회
   const challengeId = parseInt(challengeIdParam);
@@ -406,7 +414,7 @@ async function getChallengeDetail(env, challengeId, request) {
   });
 
   // 사용자 ID 가져오기
-  const userId = request.headers.get('X-User-ID') || 'user123';
+  const userId = getRequiredUserId(request);
   
   // 사용자의 실천 기록 조회 (startedAt 이후 기록만)
   const startedAtDateStr = startedAt.split('T')[0];
@@ -448,7 +456,7 @@ async function submitFeedback(env, request) {
   const { challengeId, practiceDay, moodChange, wasHelpful, practiceDescription } = body;
   
   // 사용자 ID를 헤더에서 받기
-  const userId = request.headers.get('X-User-ID') || 'user123';
+  const userId = getRequiredUserId(request);
   
   console.log('Submitting feedback:', { userId, challengeId, practiceDay, moodChange, wasHelpful, practiceDescription });
   
@@ -489,7 +497,7 @@ async function submitFeedback(env, request) {
 
 // 특정 실천 기록 조회
 async function getPracticeRecord(env, challengeId, practiceDay, request) {
-  const userId = request.headers.get('X-User-ID') || 'user123';
+  const userId = getRequiredUserId(request);
   const startedAt = request.headers.get('X-Started-At');
   
   // practiceDay가 null이거나 undefined인 경우 처리
@@ -529,7 +537,7 @@ async function getPracticeRecord(env, challengeId, practiceDay, request) {
 
 // 실천 기록 히스토리 조회
 async function getPracticeHistory(env, challengeId, request) {
-  const userId = request.headers.get('X-User-ID') || 'user123';
+  const userId = getRequiredUserId(request);
   const startedAt = request.headers.get('X-Started-At');
   
   let query = `
@@ -561,7 +569,7 @@ async function updatePracticeRecord(env, request) {
   const body = await request.json();
   const { challengeId, practiceDay, moodChange, wasHelpful, practiceDescription } = body;
   
-  const userId = request.headers.get('X-User-ID') || 'user123';
+  const userId = getRequiredUserId(request);
   
   try {
     const result = await env.DB.prepare(`
@@ -587,7 +595,7 @@ async function createTimefoldEnvelope(env, request) {
   const body = await request.json();
   const { challengeId, message, unlockDate } = body;
   
-  const userId = request.headers.get('X-User-ID') || 'user123';
+  const userId = getRequiredUserId(request);
   
   try {
     // timefold API 호출
@@ -851,68 +859,37 @@ async function getUserActivityStats(env, days = 30) {
 
 // 클라이언트 로컬 시간 기준으로 "오늘" 날짜 계산
 function getClientLocalDate(clientTime, clientTimezone) {
-  if (clientTime) {
-    // 클라이언트가 보낸 시간을 Date 객체로 파싱 (UTC 시간)
-    const clientDate = new Date(clientTime);
-    if (!isNaN(clientDate.getTime())) {
-      // 클라이언트 시간대 정보가 있으면 해당 시간대의 로컬 날짜 계산
-      if (clientTimezone) {
-        // 클라이언트 시간대 오프셋 계산 (밀리초)
-        // 주요 시간대 매핑
-        let timezoneOffsetMs = 0;
-        const timezoneLower = clientTimezone.toLowerCase();
-        
-        // Asia/Seoul, Asia/Tokyo 등 주요 시간대 처리
-        if (timezoneLower.includes('seoul') || timezoneLower.includes('korea')) {
-          timezoneOffsetMs = 9 * 60 * 60 * 1000; // UTC+9
-        } else if (timezoneLower.includes('tokyo') || timezoneLower.includes('japan')) {
-          timezoneOffsetMs = 9 * 60 * 60 * 1000; // UTC+9
-        } else if (timezoneLower.includes('beijing') || timezoneLower.includes('shanghai') || timezoneLower.includes('hongkong')) {
-          timezoneOffsetMs = 8 * 60 * 60 * 1000; // UTC+8
-        } else if (timezoneLower.includes('new_york') || timezoneLower.includes('america/new_york')) {
-          // EST/EDT는 계절에 따라 다르지만, 대략 UTC-5
-          timezoneOffsetMs = -5 * 60 * 60 * 1000;
-        } else if (timezoneLower.includes('london') || timezoneLower.includes('europe/london')) {
-          // GMT/BST는 계절에 따라 다르지만, 대략 UTC+0
-          timezoneOffsetMs = 0;
-        } else {
-          // 시간대 문자열에서 직접 오프셋 추출 시도 (예: "+09:00", "GMT+9")
-          const offsetMatch = clientTimezone.match(/([+-])(\d{1,2}):?(\d{2})?/);
-        if (offsetMatch) {
-          const sign = offsetMatch[1] === '+' ? 1 : -1;
-            const hours = parseInt(offsetMatch[2]) || 0;
-            const minutes = parseInt(offsetMatch[3]) || 0;
-            timezoneOffsetMs = sign * (hours * 60 * 60 + minutes * 60) * 1000;
-          }
-        }
-        
-        // UTC 시간에 오프셋을 더하여 로컬 시간 계산
-        const localTimeMs = clientDate.getTime() + timezoneOffsetMs;
-        const localDate = new Date(localTimeMs);
-        
-        // 로컬 날짜만 반환 (자정 기준, UTC로 저장)
-        return new Date(Date.UTC(
-          localDate.getUTCFullYear(),
-          localDate.getUTCMonth(),
-          localDate.getUTCDate()
-        ));
+  const fallbackDate = new Date();
+  const baseDate = clientTime ? new Date(clientTime) : fallbackDate;
+  const validBaseDate = Number.isNaN(baseDate.getTime()) ? fallbackDate : baseDate;
+
+  if (clientTimezone) {
+    try {
+      // IANA timezone 기반으로 연/월/일 추출하여 DST를 포함한 실제 로컬 날짜를 계산
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: clientTimezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(validBaseDate);
+
+      const getPart = (type) => parts.find((part) => part.type === type)?.value;
+      const year = parseInt(getPart('year'), 10);
+      const month = parseInt(getPart('month'), 10);
+      const day = parseInt(getPart('day'), 10);
+
+      if (Number.isFinite(year) && Number.isFinite(month) && Number.isFinite(day)) {
+        return new Date(Date.UTC(year, month - 1, day));
       }
-      
-      // 시간대 정보가 없으면 클라이언트 시간의 날짜 부분만 사용 (UTC 날짜)
-      return new Date(Date.UTC(
-        clientDate.getUTCFullYear(),
-        clientDate.getUTCMonth(),
-        clientDate.getUTCDate()
-      ));
+    } catch (error) {
+      console.warn('Invalid client timezone, fallback to UTC date:', clientTimezone);
     }
   }
-  
-  // 클라이언트 시간이 없으면 UTC 기준으로 계산
-  const now = new Date();
+
   return new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate()
+    validBaseDate.getUTCFullYear(),
+    validBaseDate.getUTCMonth(),
+    validBaseDate.getUTCDate()
   ));
 }
 
