@@ -39,6 +39,16 @@ const ALLOWED_EVENT_TYPES = [
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders
+    }
+  });
+}
+
 function getRequiredUserId(request) {
   const userId = request.headers.get('X-User-ID');
   if (!userId || !userId.trim()) {
@@ -292,47 +302,28 @@ async function getTodayPractice(env, request) {
 // 챌린지 목록 가져오기
 // 일정형 챌린지 제거: 모든 챌린지를 선택 가능한 목록으로 반환
 async function getChallenges(env, request) {
-  // 모든 챌린지 조회 (최신순 정렬: id 내림차순)
-  // total_days는 practices 테이블에서 계산
-  const allChallenges = await env.DB.prepare(`
-    SELECT 
-      id, 
-      name, 
-      description, 
-      COALESCE(is_recommended, 0) as is_recommended,
-      COALESCE(is_popular, 0) as is_popular,
-      created_at
-    FROM challenges 
-    ORDER BY id DESC
+  // 단일 집계 쿼리로 total_days 계산 (N+1 쿼리 제거)
+  const challengesQuery = await env.DB.prepare(`
+    SELECT
+      c.id,
+      c.name,
+      c.description,
+      COALESCE(c.is_recommended, 0) AS is_recommended,
+      COALESCE(c.is_popular, 0) AS is_popular,
+      c.created_at,
+      COALESCE(MAX(p.day), 1) AS total_days
+    FROM challenges c
+    LEFT JOIN practices p ON p.challenge_id = c.id
+    GROUP BY c.id, c.name, c.description, c.is_recommended, c.is_popular, c.created_at
+    ORDER BY c.id DESC
   `).all();
 
-  // 각 챌린지의 total_days를 practices 테이블에서 계산
-  const challengesWithTotalDays = await Promise.all(
-    allChallenges.results.map(async (challenge) => {
-      let totalDays = 1;
-      try {
-        const maxDayResult = await env.DB.prepare(`
-          SELECT MAX(day) as max_day FROM practices WHERE challenge_id = ?
-        `).bind(challenge.id).first();
-        totalDays = Math.max(1, maxDayResult?.max_day || 1);
-      } catch (dbError) {
-        console.error('Failed to calculate total_days for challenge:', challenge.id, dbError);
-        totalDays = 1;
-      }
-      return {
-        ...challenge,
-        total_days: totalDays
-      };
-    })
-  );
-
   // 단순 목록 반환 (선택 가능한 챌린지 목록)
-  // 상태 계산은 클라이언트에서 startedAt 기준으로 수행
-  const challenges = challengesWithTotalDays.map(challenge => ({
+  const challenges = challengesQuery.results.map(challenge => ({
     id: challenge.id,
     name: challenge.name,
     description: challenge.description,
-    total_days: challenge.total_days,
+    total_days: Math.max(1, Number(challenge.total_days) || 1),
     is_recommended: challenge.is_recommended === 1,
     is_popular: challenge.is_popular === 1
   }));
@@ -1310,35 +1301,20 @@ async function handleRequest(request, env) {
       // 오늘의 실천 과제 엔드포인트
       if (url.pathname === '/api/practice/today') {
         const practice = await getTodayPractice(env, request);
-        return new Response(JSON.stringify(practice), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(practice);
       }
 
       // 챌린지 목록 엔드포인트
       if (url.pathname === '/api/challenges') {
         const challenges = await getChallenges(env, request);
-        return new Response(JSON.stringify(challenges), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(challenges);
       }
 
       // 챌린지 상세 조회 엔드포인트
       if (url.pathname.startsWith('/api/challenges/')) {
         const challengeId = url.pathname.split('/')[3];
         const challengeDetail = await getChallengeDetail(env, challengeId, request);
-        return new Response(JSON.stringify(challengeDetail), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(challengeDetail);
       }
 
       // 실천 기록 조회 엔드포인트
@@ -1347,24 +1323,13 @@ async function handleRequest(request, env) {
         const practiceDay = url.searchParams.get('practiceDay');
         
         if (!challengeId || !practiceDay) {
-          return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            }
-          });
+          return jsonResponse({ error: 'Missing required parameters' }, 400);
         }
         
         const record = await getPracticeRecord(env, challengeId, practiceDay, request);
         
         // 기록이 없는 경우 null 반환 (에러가 아님)
-        return new Response(JSON.stringify(record), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(record);
       }
 
       // 실천 기록 히스토리 조회 엔드포인트
@@ -1372,84 +1337,42 @@ async function handleRequest(request, env) {
         const challengeId = url.searchParams.get('challengeId');
         
         if (!challengeId) {
-          return new Response(JSON.stringify({ error: 'Missing challengeId parameter' }), {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-              ...corsHeaders
-            }
-          });
+          return jsonResponse({ error: 'Missing challengeId parameter' }, 400);
         }
         
         const history = await getPracticeHistory(env, challengeId, request);
-        return new Response(JSON.stringify(history), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(history);
       }
 
       // timefold 봉투 조회 엔드포인트
       if (url.pathname.startsWith('/api/timefold/envelope/')) {
         const envelopeData = await getTimefoldEnvelope(env, request);
-        return new Response(JSON.stringify(envelopeData), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(envelopeData);
       }
 
       // 리텐션 지표 조회 엔드포인트
       if (url.pathname === '/api/analytics/retention') {
         const retentionMetrics = await calculateRetentionMetrics(env, request);
-        return new Response(JSON.stringify(retentionMetrics), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(retentionMetrics);
       }
 
       // 사용자 활동 통계 조회 엔드포인트
       if (url.pathname === '/api/analytics/activity') {
         const days = parseInt(url.searchParams.get('days')) || 30;
         const activityStats = await getUserActivityStats(env, days);
-        return new Response(JSON.stringify(activityStats), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(activityStats);
       }
 
       // 일일 보고서 데이터 조회 엔드포인트
       if (url.pathname === '/api/analytics/daily-report') {
         const targetDate = url.searchParams.get('date');
         const reportData = await getDailyReportData(env, targetDate);
-        return new Response(JSON.stringify(reportData), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(reportData);
       }
 
       // 클라이언트 이벤트 로깅 엔드포인트
       if (url.pathname === '/api/analytics/event') {
-        const body = await request.json();
-        const { event_type, event_data, timestamp } = body;
-        
-        // 이벤트 로깅
-        await logUserEvent(env, request, event_type, event_data);
-        
-        return new Response(JSON.stringify({ success: true }), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse({ error: 'Method Not Allowed. Use POST.' }, 405);
       }
 
       // 디스코드 일일 보고서 전송 엔드포인트
@@ -1459,12 +1382,7 @@ async function handleRequest(request, env) {
         const discordMessage = formatDiscordMessage(reportData);
         const result = await sendDiscordMessage(env, discordMessage);
         
-        return new Response(JSON.stringify(result), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(result);
       }
 
       // 특정 날짜 디스코드 보고서 전송 엔드포인트
@@ -1473,30 +1391,13 @@ async function handleRequest(request, env) {
         const discordMessage = formatDiscordMessage(reportData);
         const result = await sendDiscordMessage(env, discordMessage);
         
-        return new Response(JSON.stringify(result), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(result);
       }
 
       // 404 처리
-      return new Response(JSON.stringify({ error: 'Not Found' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      });
+      return jsonResponse({ error: 'Not Found' }, 404);
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      });
+      return jsonResponse({ error: error.message }, 400);
     }
   }
 
@@ -1506,23 +1407,13 @@ async function handleRequest(request, env) {
       // 피드백 제출 엔드포인트
       if (url.pathname === '/api/feedback/submit') {
         const result = await submitFeedback(env, request);
-        return new Response(JSON.stringify(result), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(result);
       }
 
       // timefold 봉투 생성 엔드포인트
       if (url.pathname === '/api/timefold/envelope') {
         const result = await createTimefoldEnvelope(env, request);
-        return new Response(JSON.stringify(result), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(result);
       }
 
       // 클라이언트 이벤트 로깅 엔드포인트
@@ -1533,30 +1424,13 @@ async function handleRequest(request, env) {
         // 이벤트 로깅
         await logUserEvent(env, request, event_type, event_data);
         
-        return new Response(JSON.stringify({ success: true }), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse({ success: true });
       }
 
       // 404 처리
-      return new Response(JSON.stringify({ error: 'Not Found' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      });
+      return jsonResponse({ error: 'Not Found' }, 404);
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      });
+      return jsonResponse({ error: error.message }, 400);
     }
   }
 
@@ -1566,41 +1440,18 @@ async function handleRequest(request, env) {
       // 실천 기록 수정 엔드포인트
       if (url.pathname === '/api/feedback/update') {
         const result = await updatePracticeRecord(env, request);
-        return new Response(JSON.stringify(result), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders
-          }
-        });
+        return jsonResponse(result);
       }
 
       // 404 처리
-      return new Response(JSON.stringify({ error: 'Not Found' }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      });
+      return jsonResponse({ error: 'Not Found' }, 404);
     } catch (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      });
+      return jsonResponse({ error: error.message }, 400);
     }
   }
 
   // 405 Method Not Allowed
-  return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-    status: 405,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders
-    }
-  });
+  return jsonResponse({ error: 'Method Not Allowed' }, 405);
 }
 
 export default {

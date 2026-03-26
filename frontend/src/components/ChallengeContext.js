@@ -41,7 +41,7 @@ const progressShimmer = keyframes`
   }
 `;
 
-const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope, onViewEnvelopeList }) => {
+const ChallengeContext = ({ challenge, userState, onViewCurrentChallenge, onCreateEnvelope, onViewEnvelopeList }) => {
   const [isCreatingEnvelope, setIsCreatingEnvelope] = useState(false);
   
   if (!challenge) return null;
@@ -56,6 +56,11 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
       }
     }
   };
+
+  const streakDays = userState?.streakDays || 0;
+  const totalActions = userState?.totalActions || 0;
+  const completedDays = challenge.completed_days || 0;
+  const totalDays = challenge.total_days || 1;
 
   return (
     <ContextContainer elevation={1}>
@@ -110,24 +115,32 @@ const ChallengeContext = ({ challenge, onViewCurrentChallenge, onCreateEnvelope,
       
       <Box sx={{ marginBottom: '20px' }}>
         <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: '10px' 
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '8px',
+          marginBottom: '10px'
         }}>
           <Typography sx={{ 
             fontSize: '0.9rem', 
-            fontWeight: 600, 
+            fontWeight: 700,
             color: 'inherit' 
           }}>
-            진행률
+            🔥 {streakDays}일째 중심 유지 중
           </Typography>
           <Typography sx={{ 
             fontSize: '0.9rem', 
-            fontWeight: 700, 
+            fontWeight: 600,
+            color: 'inherit'
+          }}>
+            🌱 이번 챌린지 {completedDays}/{totalDays}일 진행
+          </Typography>
+          <Typography sx={{
+            fontSize: '0.9rem',
+            fontWeight: 600,
             color: 'inherit' 
           }}>
-            {challenge.progress_percentage || 0}%
+            💪 총 {totalActions}번 실천
           </Typography>
         </Box>
         <Box sx={{ 

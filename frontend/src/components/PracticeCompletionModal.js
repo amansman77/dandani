@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,8 +13,9 @@ import {
   Typography
 } from '@mui/material';
 import { getUserId } from '../utils/userId';
-import { calculateChallengeDay } from '../utils/challengeDay';
+import { addStartedAtHeader, calculateChallengeDay } from '../utils/challengeDay';
 import { logFeedbackSubmit, logPracticeComplete } from '../utils/analytics';
+import { deriveRetentionState, generateFeedback, getStreakMessage } from '../utils/retention';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const REMINDER_PREFERENCE_KEY = 'dandani_same_time_reminder_enabled';
@@ -24,11 +26,16 @@ const PracticeCompletionModal = ({
   challenge,
   onClose,
   onCompleted,
-  onError
+  onError,
+  onViewHistory
 }) => {
   const [reflection, setReflection] = useState('');
   const [saving, setSaving] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [completionSummary, setCompletionSummary] = useState({
+    streakDays: 0,
+    feedbackMessage: ''
+  });
   const [sameTimeReminder, setSameTimeReminder] = useState(() => {
     return localStorage.getItem(REMINDER_PREFERENCE_KEY) === 'true';
   });
@@ -49,6 +56,10 @@ const PracticeCompletionModal = ({
     setReflection('');
     setSaving(false);
     setCompleted(false);
+    setCompletionSummary({
+      streakDays: 0,
+      feedbackMessage: ''
+    });
   };
 
   useEffect(() => {
@@ -100,6 +111,30 @@ const PracticeCompletionModal = ({
 
       const savedRecord = await response.json();
 
+      let streakDays = 1;
+      try {
+        const summaryHeaders = addStartedAtHeader({
+          'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+          'X-Client-Time': new Date().toISOString(),
+          'X-User-ID': userId
+        }, challenge.id);
+        const historyResponse = await fetch(`${API_URL}/api/feedback/history?challengeId=${challenge.id}`, {
+          headers: summaryHeaders
+        });
+        if (historyResponse.ok) {
+          const history = await historyResponse.json();
+          const state = deriveRetentionState(Array.isArray(history) ? history : []);
+          streakDays = Math.max(1, state.streakDays || 1);
+        }
+      } catch (summaryError) {
+        console.warn('Failed to compute completion summary:', summaryError);
+      }
+
+      setCompletionSummary({
+        streakDays,
+        feedbackMessage: generateFeedback(streakDays)
+      });
+
       logPracticeComplete(challenge.id, practiceDay, 'unknown', 'unknown');
       logFeedbackSubmit(challenge.id, practiceDay, 'unknown', 'unknown');
 
@@ -123,6 +158,15 @@ const PracticeCompletionModal = ({
     onClose();
   };
 
+  const handleViewRecords = () => {
+    localStorage.setItem(REMINDER_PREFERENCE_KEY, sameTimeReminder ? 'true' : 'false');
+    resetState();
+    if (onViewHistory) {
+      onViewHistory();
+    }
+    onClose();
+  };
+
   return (
     <Dialog
       open={open}
@@ -135,7 +179,7 @@ const PracticeCompletionModal = ({
       disableRestoreFocus
     >
       <DialogTitle>
-        {completed ? '내일도 이어서 해볼까요?' : '🌱 오늘의 단단함이 쌓였어요'}
+        {completed ? '오늘의 실천 완료 🎉' : '🌱 오늘의 단단함이 쌓였어요'}
       </DialogTitle>
 
       <DialogContent>
@@ -173,9 +217,17 @@ const PracticeCompletionModal = ({
 
         {completed && (
           <Box sx={{ mt: 1 }}>
-            <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
-              오늘 남긴 한 줄이 내일의 나를 다시 붙잡아줄 거예요.
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
+              {getStreakMessage(completionSummary.streakDays)}
             </Typography>
+            <Typography variant="body1" sx={{ mb: 2, color: 'text.secondary' }}>
+              {completionSummary.feedbackMessage || generateFeedback(1)}
+            </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+              <Chip label={`이번 챌린지 ${Math.min(practiceDay, challenge?.total_days || 1)}/${challenge?.total_days || 1}일 진행`} color="success" variant="outlined" />
+              <Chip label={`총 ${completionSummary.streakDays || 1}일 연속`} color="warning" variant="outlined" />
+            </Box>
 
             <FormControlLabel
               control={(
@@ -200,9 +252,14 @@ const PracticeCompletionModal = ({
             {saving ? '저장 중...' : '기록 저장하기'}
           </Button>
         ) : (
-          <Button variant="contained" onClick={handleConfirmContinue}>
-            좋아요, 내일도 이어갈게요
-          </Button>
+          <>
+            <Button variant="outlined" onClick={handleViewRecords}>
+              내 기록 보기
+            </Button>
+            <Button variant="contained" onClick={handleConfirmContinue}>
+              내일도 이어가기
+            </Button>
+          </>
         )}
       </DialogActions>
     </Dialog>
