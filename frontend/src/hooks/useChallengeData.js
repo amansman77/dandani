@@ -3,11 +3,11 @@ import { getUserId } from '../utils/userId';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from '../utils/challengeSelection';
 import { logChallengeComplete } from '../utils/analytics';
 import {
-  calculateChallengeDay,
   calculateChallengeProgress,
   addStartedAtHeader,
   calculateChallengeStatus,
-  calculateChallengeMetrics
+  calculateChallengeMetrics,
+  getClampedPracticeDay
 } from '../utils/challengeDay';
 
 export const useChallengeData = ({
@@ -35,11 +35,7 @@ export const useChallengeData = ({
 
     try {
       const userId = getUserId();
-      const actualDay = calculateChallengeDay(challenge);
-      const totalDays = Math.max(1, challenge?.total_days || 1);
-      const practiceDay = practiceData?.day
-        ? Math.min(practiceData.day, totalDays)
-        : Math.min(actualDay, totalDays);
+      const practiceDay = getClampedPracticeDay(practiceData, challenge);
 
       const headers = addStartedAtHeader({
         'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,

@@ -13,9 +13,17 @@ import {
   Typography
 } from '@mui/material';
 import { getUserId } from '../utils/userId';
-import { addStartedAtHeader, calculateChallengeDay } from '../utils/challengeDay';
-import { logFeedbackSubmit, logPracticeComplete } from '../utils/analytics';
+import { addStartedAtHeader, getClampedPracticeDay } from '../utils/challengeDay';
+import {
+  logAssistantOpened,
+  logAssistantSkipped,
+  logChallengeCompleted,
+  logFeedbackSubmit,
+  logPracticeComplete
+} from '../utils/analytics';
 import { deriveRetentionState, generateFeedback, getStreakMessage } from '../utils/retention';
+import CompletionFeedbackCard from './CompletionFeedbackCard';
+import AssistantSheet from './AssistantSheet';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const REMINDER_PREFERENCE_KEY = 'dandani_same_time_reminder_enabled';
@@ -36,6 +44,8 @@ const PracticeCompletionModal = ({
     streakDays: 0,
     feedbackMessage: ''
   });
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [completedAt, setCompletedAt] = useState(null);
   const [sameTimeReminder, setSameTimeReminder] = useState(() => {
     return localStorage.getItem(REMINDER_PREFERENCE_KEY) === 'true';
   });
@@ -45,11 +55,7 @@ const PracticeCompletionModal = ({
   }, [reflection]);
 
   const practiceDay = useMemo(() => {
-    const actualDay = calculateChallengeDay(challenge);
-    const totalDays = Math.max(1, challenge?.total_days || 1);
-    return practice?.day
-      ? Math.min(practice.day, totalDays)
-      : Math.min(actualDay, totalDays);
+    return getClampedPracticeDay(practice, challenge);
   }, [practice, challenge]);
 
   const resetState = () => {
@@ -60,6 +66,8 @@ const PracticeCompletionModal = ({
       streakDays: 0,
       feedbackMessage: ''
     });
+    setAssistantOpen(false);
+    setCompletedAt(null);
   };
 
   useEffect(() => {
@@ -69,6 +77,8 @@ const PracticeCompletionModal = ({
     setReflection('');
     setSaving(false);
     setCompleted(false);
+    setAssistantOpen(false);
+    setCompletedAt(null);
   }, [open]);
 
   const handleDialogClose = (event, reason) => {
@@ -137,8 +147,10 @@ const PracticeCompletionModal = ({
 
       logPracticeComplete(challenge.id, practiceDay, 'unknown', 'unknown');
       logFeedbackSubmit(challenge.id, practiceDay, 'unknown', 'unknown');
+      logChallengeCompleted(challenge.id, practiceDay);
 
       setCompleted(true);
+      setCompletedAt(new Date().toISOString());
       setSaving(false);
 
       if (onCompleted) {
@@ -165,6 +177,20 @@ const PracticeCompletionModal = ({
       onViewHistory();
     }
     onClose();
+  };
+
+  const handleOpenAssistant = () => {
+    setAssistantOpen(true);
+    if (challenge?.id) {
+      logAssistantOpened(challenge.id, practiceDay);
+    }
+  };
+
+  const handleSkipAssistant = () => {
+    if (challenge?.id) {
+      logAssistantSkipped(challenge.id, practiceDay);
+    }
+    handleConfirmContinue();
   };
 
   return (
@@ -238,6 +264,13 @@ const PracticeCompletionModal = ({
               )}
               label="내일 같은 시간에 다시 해볼래요"
             />
+
+            <CompletionFeedbackCard
+              challengeTitle={challenge?.name}
+              completedAt={completedAt || new Date().toISOString()}
+              onOpenAssistant={handleOpenAssistant}
+              onSkip={handleSkipAssistant}
+            />
           </Box>
         )}
       </DialogContent>
@@ -262,6 +295,15 @@ const PracticeCompletionModal = ({
           </>
         )}
       </DialogActions>
+
+      <AssistantSheet
+        open={assistantOpen}
+        challenge={challenge}
+        practiceDay={practiceDay}
+        onClose={() => setAssistantOpen(false)}
+        onSaved={handleConfirmContinue}
+        onError={onError}
+      />
     </Dialog>
   );
 };

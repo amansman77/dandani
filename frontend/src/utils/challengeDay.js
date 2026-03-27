@@ -147,6 +147,29 @@ export const calculateChallengeMetrics = (challenge, options = {}) => {
 };
 
 /**
+ * 실천 기록 API에 전달할 일차를 안전하게 계산
+ * - practice.day가 있으면 우선 사용
+ * - 없으면 startedAt 기반 실제 경과 일차 사용
+ * - 항상 totalDays 범위로 제한
+ *
+ * @param {Object|null} practice - 실천 데이터(선택)
+ * @param {Object} challenge - 챌린지 데이터
+ * @param {Object} options - calculateChallengeDay 옵션
+ * @returns {number} 1 이상 totalDays 이하의 일차
+ */
+export const getClampedPracticeDay = (practice, challenge, options = {}) => {
+  const totalDays = Math.max(1, challenge?.total_days || 1);
+  const practiceDay = Number(practice?.day);
+
+  if (Number.isFinite(practiceDay) && practiceDay > 0) {
+    return Math.min(practiceDay, totalDays);
+  }
+
+  const calculatedDay = calculateChallengeDay(challenge, options);
+  return Math.min(Math.max(1, calculatedDay), totalDays);
+};
+
+/**
  * 챌린지 종료일 계산
  * 
  * @param {string|Date} startedAt - 챌린지 시작일
@@ -286,4 +309,3 @@ export const formatDateToKorean = (dateValue, options = {}) => {
 
   return `${localYear}년 ${localMonth}월 ${localDay}일`;
 };
-

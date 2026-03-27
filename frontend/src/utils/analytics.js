@@ -103,6 +103,25 @@ const logPostHogEvent = (eventName, properties = {}) => {
   }
 };
 
+const BACKEND_ALLOWED_EVENT_TYPES = new Set([
+  'page_visit',
+  'practice_view',
+  'practice_complete',
+  'feedback_submit',
+  'challenge_start',
+  'challenge_complete',
+  'challenge_selected',
+  'ai_chat_start',
+  'ai_chat_message',
+  'timefold_envelope_create',
+  'onboarding_complete'
+]);
+
+const BACKEND_EVENT_TYPE_ALIAS = {
+  challenge_completed: 'challenge_complete',
+  record_created: 'feedback_submit'
+};
+
 // 이벤트 로깅 함수
 export const logEvent = async (eventType, eventData = {}) => {
   try {
@@ -120,6 +139,11 @@ export const logEvent = async (eventType, eventData = {}) => {
       'challenge_selected': 'challenge_selected',
       'practice_complete': 'practice_complete',
       'feedback_submit': 'practice_recorded',
+      'assistant_opened': 'assistant_opened',
+      'assistant_skipped': 'assistant_skipped',
+      'assistant_completed': 'assistant_completed',
+      'record_created': 'record_created',
+      'challenge_completed': 'challenge_completed',
     };
     
     const posthogEventName = posthogEventMap[eventType];
@@ -130,6 +154,11 @@ export const logEvent = async (eventType, eventData = {}) => {
       });
     }
     
+    const backendEventType = BACKEND_EVENT_TYPE_ALIAS[eventType] || eventType;
+    if (!BACKEND_ALLOWED_EVENT_TYPES.has(backendEventType)) {
+      return;
+    }
+
     // 백엔드로 이벤트 전송 (비동기, 실패해도 서비스에 영향 없음)
     fetch(`${API_BASE_URL}/api/analytics/event`, {
       method: 'POST',
@@ -141,7 +170,7 @@ export const logEvent = async (eventType, eventData = {}) => {
         'X-Client-Time': new Date().toISOString()
       },
       body: JSON.stringify({
-        event_type: eventType,
+        event_type: backendEventType,
         event_data: eventData,
         timestamp: new Date().toISOString()
       })
@@ -206,6 +235,43 @@ export const logAIChatMessage = (messageLength) => {
 // 챌린지 완료 이벤트
 export const logChallengeComplete = (challengeId) => {
   logEvent('challenge_complete', { challenge_id: challengeId });
+};
+
+export const logChallengeCompleted = (challengeId, practiceDay) => {
+  logEvent('challenge_completed', {
+    challenge_id: challengeId,
+    practice_day: practiceDay
+  });
+};
+
+export const logAssistantOpened = (challengeId, practiceDay) => {
+  logEvent('assistant_opened', {
+    challenge_id: challengeId,
+    practice_day: practiceDay
+  });
+};
+
+export const logAssistantSkipped = (challengeId, practiceDay) => {
+  logEvent('assistant_skipped', {
+    challenge_id: challengeId,
+    practice_day: practiceDay
+  });
+};
+
+export const logAssistantCompleted = (challengeId, practiceDay, emotion) => {
+  logEvent('assistant_completed', {
+    challenge_id: challengeId,
+    practice_day: practiceDay,
+    emotion
+  });
+};
+
+export const logRecordCreated = (challengeId, practiceDay, source) => {
+  logEvent('record_created', {
+    challenge_id: challengeId,
+    practice_day: practiceDay,
+    source
+  });
 };
 
 // 온보딩 완료 이벤트
@@ -307,7 +373,12 @@ const analytics = {
   logAIChatStart,
   logAIChatMessage,
   logChallengeComplete,
+  logChallengeCompleted,
   logChallengeSelected,
+  logAssistantOpened,
+  logAssistantSkipped,
+  logAssistantCompleted,
+  logRecordCreated,
   logOnboardingComplete,
   logReturnNextDay,
   logTimefoldEnvelopeCreate,

@@ -75,15 +75,6 @@ const ChallengeCard = ({ challenge, type, onClick }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-  };
-
   const getProgressText = () => {
     if (type === 'upcoming') {
       return `시작까지 ${challenge.days_until_start}일 남음`;

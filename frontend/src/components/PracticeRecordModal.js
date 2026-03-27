@@ -17,7 +17,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { Edit, Check, Close } from '@mui/icons-material';
 import { getUserId } from '../utils/userId';
-import { calculateChallengeDay, isPastRecord, addStartedAtHeader, formatDateToKorean } from '../utils/challengeDay';
+import { getClampedPracticeDay, isPastRecord, addStartedAtHeader, formatDateToKorean } from '../utils/challengeDay';
 import { logFeedbackSubmit } from '../utils/analytics';
 import AlertModal from './AlertModal';
 
@@ -72,12 +72,7 @@ const PracticeRecordModal = ({
       const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
       const userId = getUserId();
       
-      // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
-      const actualDay = calculateChallengeDay(challenge);
-      const totalDays = Math.max(1, challenge?.total_days || 1);
-      const practiceDay = practice?.day 
-        ? Math.min(practice.day, totalDays)
-        : Math.min(actualDay, totalDays);
+      const practiceDay = getClampedPracticeDay(practice, challenge);
       
       console.log('Fetching record with:', { 
         challengeId: challenge.id, 
@@ -141,12 +136,7 @@ const PracticeRecordModal = ({
       const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
       const userId = getUserId();
       
-      // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
-      const actualDay = calculateChallengeDay(challenge);
-      const totalDays = Math.max(1, challenge?.total_days || 1);
-      const practiceDay = practice?.day 
-        ? Math.min(practice.day, totalDays)
-        : Math.min(actualDay, totalDays);
+      const practiceDay = getClampedPracticeDay(practice, challenge);
       
       const response = await fetch(`${API_URL}/api/feedback/update`, {
         method: 'PUT',

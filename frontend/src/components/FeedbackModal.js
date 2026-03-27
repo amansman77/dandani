@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { calculateChallengeDay } from '../utils/challengeDay';
+import { getClampedPracticeDay } from '../utils/challengeDay';
 import {
   Dialog,
   DialogTitle,
@@ -59,12 +59,7 @@ const FeedbackModal = ({
       return;
     }
 
-    // 오늘의 실천 과제용: 서버의 practice.day를 사용하거나 totalDays로 제한
-    const actualDay = calculateChallengeDay(challenge);
-    const totalDays = Math.max(1, challenge?.total_days || 1);
-    const practiceDay = practice?.day 
-      ? Math.min(practice.day, totalDays)
-      : Math.min(actualDay, totalDays);
+    const practiceDay = getClampedPracticeDay(practice, challenge);
 
     const feedback = {
       challengeId: challenge.id,
