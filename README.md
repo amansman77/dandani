@@ -1,75 +1,277 @@
-# Dandani
+# Dandani V2
 
-✅ **Goal**: 감정적으로 단단해지는 습관을 돕는 챌린지 서비스
-✅ **Core Values**: 중심을 잃지 않음, 작은 실천의 힘, 지속적 성장, 자기 연민, 연결 속 단단함
-✅ **Service Concept**: *“매일 하나의 챌린지로 감정 근육을 키운다”*
+## 🌱 Overview
 
-## 소개
+Dandani V2 is a personalized behavior agent.
 
-**단단이**는 하루 한 가지 작은 실천을 통해 감정 회복력(Resilience)을 키우는 **습관형 감정 훈련 서비스**입니다.
-우리는 **“상황이 나를 흔들더라도, 내가 중심을 잃지 않는 것”**을 목표로 합니다.
+It does not recommend content.  
+It does not track habits.
 
-## 서비스 방향
+It:
 
-### 1. 하루 챌린지 제공
+> learns a person's emotional state and behavioral responses  
+> and suggests a small, executable action for that moment.
 
-* 매일 **“오늘의 단단이가 되는 법”** 1개 자동 제공
-* 챌린지는 자기연민, 감정 관찰, 관계 속 연결 등 다양한 주제 포함
-* 30일 챌린지 완주 경험을 통해 자기 신뢰와 회복탄력성 강화
+---
 
-### 2. 간단하고 직관적인 UX
+## 🎯 Goal
 
-* 불필요한 기능을 배제, **하루 1개 미션**만 보여주는 극단적 단순화
-* 초심자도 “어디서 시작할지” 고민하지 않고 바로 참여 가능
+Validate whether:
 
-### 3. 개인화 및 피드백 (확장 단계)
+> A system can personalize action (not content)  
+> using a user’s emotion and past response data.
 
-* 챌린지 수행률·감정 기록 기반 개인화 피드백 제공
-* *예: “지난주보다 회복탄력성이 12% 향상됐습니다.”*
+---
 
-### 4. 커뮤니티 & 확장
+## 💬 One-line Definition
 
-* 비교/평가 없는 응원 기반 커뮤니티
-* 필요 시 전문가 상담·코칭 연계로 **셀프케어 ↔ 전문가케어** 하이브리드 구조
+> Dandani is an agent that suggests the smallest actionable step  
+> based on a user’s current emotion and past behavior.
 
-## 개발 계획
+---
 
-1. **MVP (프리토타입)**
+## 🧠 Core Concept
 
-   * 오늘의 챌린지 자동 노출
-   * “완료하기” 버튼 및 간단한 피드백 메시지
-   * Day1/Day7 리텐션 데이터 수집
+Dandani operates on a simple loop:
 
-2. **기능 확장**
+id="loopcore" State → Action → Response → Update
 
-   * 기록 저장, 진행률 시각화
-   * 개인화 피드백, 감정 회복 지표 제공
+- State: current emotion + situation
+- Action: one small executable behavior
+- Response: user result + feeling
+- Update: pattern learning for next action
 
-3. **커뮤니티 & 전문가 연계**
+---
 
-   * 챌린지 결과 공유 커뮤니티
-   * 전문가 상담·코칭 연결
+## 👤 User Experience (Single Cycle)
 
-## 비즈니스 모델 (BM)
+### 1. Greeting
 
-* **B2C Freemium + 구독**: 기본 무료 30일 챌린지, 프리미엄(개인화/기록/전문가 피드백) 구독 제공
-* **인앱 상품**: 테마 챌린지, 캐릭터/배지 아이템
-* **B2B 확장**: 기업 EAP, 교육 기관 프로그램, 정신건강 리포트
-* **장기 확장**: 감정 회복 데이터 기반 멘탈케어 플랫폼
+Dandani appears:
 
-## 실험 설계 (MVP 검증 지표)
+> "왔구나. 지금 어떤 상태야?"
 
-* **Day1 리텐션 ≥ 40%**
-* **Week1 챌린지 완료율 ≥ 50%**
-* **7일차 잔존율 ≥ 25%**
-* **30일 완주율 ≥ 10%**
-* 긍정 후기 ≥ 70%
+---
 
-## 기여 방법
+### 2. Current State
 
-* 개선 아이디어나 기능 제안은 Issue로 등록해주세요.
-* 디자인/개발/콘텐츠 기여 모두 환영합니다.
+User inputs one line:
 
-## 라이선스
+- "피곤하고 아무것도 하기 싫다"
+- "짜증나고 집중이 안 된다"
+- "그냥 아무 느낌 없다"
 
-본 프로젝트는 [Apache License 2.0](LICENSE)에 따라 배포됩니다.
+---
+
+### 3. Desired State
+
+Dandani asks:
+
+> "오늘은 어떤 상태가 되고 싶어?"
+
+Examples:
+- "조금이라도 해냈다는 느낌"
+- "조금 편안해지고 싶다"
+
+---
+
+### 4. Action Suggestion
+
+Dandani generates one action.
+
+Constraints:
+- ≤ 10 minutes
+- single step
+- immediately executable
+
+Examples:
+- "딱 3분만 가장 하기 싫은 일을 시작해보기"
+- "지금 감정을 한 문장으로 적어보기"
+- "오늘 기억나는 순간 하나 떠올리기"
+
+---
+
+### 5. User Feedback
+
+User selects:
+- 완료
+- 부분 완료
+- 못함
+
++ optional feeling input
+
+---
+
+### 6. Reflection
+
+Dandani summarizes:
+
+> "오늘 너는 완벽하게 하려 하지 않고, 시작하는 걸 선택했어."
+
+---
+
+### 7. Next Commitment
+
+Dandani closes the cycle:
+
+> "다음에도 지금 상태에서 할 수 있는 가장 작은 한 걸음을 같이 찾아보자."
+
+---
+
+## 🔁 System Flow
+
+id="systemflow" Input (state) → Interpret → Generate Action → User Response → Reflection → Pattern Update → Store
+
+---
+
+## 🧩 Core Components
+
+### 1. Behavior Agent
+
+- interprets emotional state
+- generates action
+- creates reflection
+- updates next strategy
+
+---
+
+### 2. User Context Store
+
+Stores:
+- past states
+- actions
+- results
+- pattern notes
+
+---
+
+### 3. Policy / Constraints
+
+Defines:
+- action size (≤ 10 min)
+- cognitive load limits
+- emotional safety boundaries
+
+---
+
+### 4. Action Log DB
+
+Example:
+
+json id="actionlog" {   "current_state": "피로 + 회피",   "desired_state": "조금 해냈다는 느낌",   "action": "미뤄둔 일 첫 줄 열어보기",   "result": "완료",   "after_feeling": "조금 덜 찝찝함",   "pattern_note": "낮은 진입 장벽에서는 실행 가능",   "next_hint": "시간 제한 기반 행동 유지" } 
+
+---
+
+## 📊 MVP Scope
+
+### Included
+
+- one-line state input
+- desired state input
+- single action generation
+- simple feedback (완료 / 부분 / 실패)
+- reflection generation
+- pattern note storage
+
+---
+
+### Excluded
+
+- multi-step plans
+- complex AI models
+- long-term analytics UI
+- social features
+
+---
+
+## ⚙️ Design Principles
+
+### 1. Action First
+
+Focus on behavior, not interpretation.
+
+---
+
+### 2. Smallest Step
+
+Every action must be:
+- short
+- simple
+- immediately doable
+
+---
+
+### 3. One Action Only
+
+No choices, no branching.
+
+---
+
+### 4. Measurable Outcome
+
+Every cycle produces:
+- result
+- feeling
+
+---
+
+## ⚠️ Risks
+
+### 1. Fake Empathy
+
+LLM may generate comforting but useless responses.
+
+→ prioritize action over wording
+
+---
+
+### 2. Poor Early Personalization
+
+Lack of data may lead to bad suggestions.
+
+→ apply rule-based constraints early
+
+---
+
+### 3. User Drop-off
+
+User may stop returning.
+
+→ keep interaction extremely lightweight
+
+---
+
+## 🧭 Positioning
+
+Dandani is not:
+
+- a motivation app
+- a habit tracker
+- a journaling tool
+
+It is:
+
+> a system that personalizes behavior using emotion and response data.
+
+---
+
+## 🧪 Experiment Name
+
+Dandani V2 — Personalized Behavior Agent MVP
+
+---
+
+## 🚀 Next Steps
+
+1. Define action generation rules
+2. Define pattern learning schema
+3. Create 10 sample user cycles
+4. Implement loop
+5. Validate action effectiveness
+
+---
+
+## 🔑 Final Insight
+
+> Personalization is not about what users consume.  
+> It is about what users can do next
