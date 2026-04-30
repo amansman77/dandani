@@ -66,6 +66,7 @@ const AppHeaderSection = ({
           <Tab label="오늘의 챌린지" sx={tabStyle} />
           <Tab label="챌린지 도우미" sx={tabStyle} />
           <Tab label="내 기록" sx={tabStyle} />
+          <Tab label="행동 시작" sx={tabStyle} />
         </Tabs>
       </Box>
     </>

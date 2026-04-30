@@ -16,7 +16,8 @@ const ALLOWED_EVENT_TYPES = [
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
-  'onboarding_complete'
+  'onboarding_complete',
+  'action_flow_complete'
 ];
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;

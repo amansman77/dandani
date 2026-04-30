@@ -1,4 +1,5 @@
 import { corsHeaders, jsonResponse, logUserEvent } from './core.js';
+import { suggestAction, generateReflection, saveActionSession } from './action-flow-service.js';
 import {
   getChallengeDetail,
   getChallenges,
@@ -84,6 +85,15 @@ async function handlePost(url, request, env) {
     const { event_type, event_data } = body;
     await logUserEvent(env, request, event_type, event_data);
     return jsonResponse({ success: true });
+  }
+  if (url.pathname === '/api/action-flow/suggest') {
+    return jsonResponse(await suggestAction(env, request));
+  }
+  if (url.pathname === '/api/action-flow/reflect') {
+    return jsonResponse(await generateReflection(env, request));
+  }
+  if (url.pathname === '/api/action-flow/save') {
+    return jsonResponse(await saveActionSession(env, request));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }

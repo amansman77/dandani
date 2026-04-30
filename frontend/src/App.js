@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Box, Typography, CircularProgress } from '@mui/material';
 import ChatInterface from './components/ChatInterface';
+import ActionFlow from './components/ActionFlow';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeCompletionModal from './components/PracticeCompletionModal';
@@ -424,13 +425,17 @@ function App() {
         )}
 
         {activeTab === 2 && (
-          <PracticeHistory 
+          <PracticeHistory
             challengeId={selectedChallengeId || currentChallenge?.id}
             onViewRecord={(record) => {
               // 기록 상세 보기 기능 (필요시 구현)
               console.log('View record:', record);
             }}
           />
+        )}
+
+        {activeTab === 3 && (
+          <ActionFlow />
         )}
 
 
