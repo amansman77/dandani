@@ -1,5 +1,5 @@
 import { corsHeaders, jsonResponse, logUserEvent } from './core.js';
-import { suggestAction, generateReflection, saveActionFlow } from './action-flow-service.js';
+import { suggestAction, generateReflection, saveActionFlow, getActionFlowHistory } from './action-flow-service.js';
 import {
   getChallengeDetail,
   getChallenges,
@@ -60,6 +60,9 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname === '/api/analytics/event') {
     return jsonResponse({ error: 'Method Not Allowed. Use POST.' }, 405);
+  }
+  if (url.pathname === '/api/action-flow/history') {
+    return jsonResponse(await getActionFlowHistory(env, request));
   }
   if (url.pathname === '/api/discord/daily-report') {
     const targetDate = url.searchParams.get('date');

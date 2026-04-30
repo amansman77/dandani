@@ -125,6 +125,34 @@ export async function generateReflection(env, request) {
   return { success: true, data: parsed };
 }
 
+export async function getActionFlowHistory(env, request) {
+  const anonymousId = request.headers.get('X-User-ID') || null;
+  if (!anonymousId) {
+    return { flows: [] };
+  }
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20', 10), 50);
+
+  const result = await env.DB.prepare(`
+    SELECT id, current_state, desired_state, suggested_action,
+           result, started, completed, after_feeling, reflection, next_hint, created_at
+    FROM action_flows
+    WHERE anonymous_id = ?
+    ORDER BY created_at DESC
+    LIMIT ?
+  `).bind(anonymousId, limit).all();
+
+  const flows = result.results.map((row) => ({
+    ...row,
+    suggested_action: (() => { try { return JSON.parse(row.suggested_action); } catch { return {}; } })(),
+    started: row.started === 1,
+    completed: row.completed === 1,
+  }));
+
+  return { flows };
+}
+
 export async function saveActionFlow(env, request) {
   const body = await request.json();
   const {

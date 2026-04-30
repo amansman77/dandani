@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Box, Typography, CircularProgress } from '@mui/material';
-import ChatInterface from './components/ChatInterface';
 import ActionFlow from './components/ActionFlow';
+import ActionFlowHistory from './components/ActionFlowHistory';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeCompletionModal from './components/PracticeCompletionModal';
@@ -390,52 +390,12 @@ function App() {
           onRestartOnboarding={handleRestartOnboarding}
         />
 
-        {activeTab === 0 && !showCurrentChallengeDetail && (
-          <TodayChallengeTab
-            showChallengeSelector={showChallengeSelector}
-            selectedChallengeId={selectedChallengeId}
-            currentChallenge={currentChallenge}
-            userState={userState}
-            practice={practice}
-            hasDetailedRecord={hasDetailedRecord}
-            celebrationShown={celebrationShown}
-            yesterdayRecord={yesterdayRecord}
-            practiceCardRef={practiceCardRef}
-            practiceCardInnerRef={practiceCardInnerRef}
-            practiceCardHeight={practiceCardHeight}
-            shouldAnimateCard={shouldAnimateCard}
-            isMeasuringHeight={isMeasuringHeight}
-            onChallengeSelected={handleChallengeSelected}
-            onOpenCompletionFlow={handleOpenCompletionFlow}
-            onOpenRecordModal={() => setRecordModalOpen(true)}
-            onViewCurrentChallenge={handleViewCurrentChallenge}
-            onCreateEnvelope={handleCreateEnvelope}
-            onViewEnvelopeList={handleViewEnvelopeList}
-            onChallengeCompletion={handleChallengeCompletion}
-          />
+        {activeTab === 0 && (
+          <ActionFlow />
         )}
 
         {activeTab === 1 && (
-          <ChatInterface 
-            practice={practice} 
-            messages={chatMessages}
-            setMessages={setChatMessages}
-            sessionId={chatSessionId}
-          />
-        )}
-
-        {activeTab === 2 && (
-          <PracticeHistory
-            challengeId={selectedChallengeId || currentChallenge?.id}
-            onViewRecord={(record) => {
-              // 기록 상세 보기 기능 (필요시 구현)
-              console.log('View record:', record);
-            }}
-          />
-        )}
-
-        {activeTab === 3 && (
-          <ActionFlow />
+          <ActionFlowHistory />
         )}
 
 
