@@ -1,31 +1,32 @@
 import { logUserEvent } from './core.js';
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-haiku-4-5-20251001';
+const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
+const MODEL = 'meta/llama-4-maverick-17b-128e-instruct';
 
-async function callClaude(env, systemPrompt, userMessage, maxTokens = 500) {
-  const response = await fetch(ANTHROPIC_API_URL, {
+async function callLLM(env, systemPrompt, userMessage, maxTokens = 500) {
+  const response = await fetch(NVIDIA_API_URL, {
     method: 'POST',
     headers: {
-      'anthropic-version': '2023-06-01',
       'content-type': 'application/json',
-      'x-api-key': env.ANTHROPIC_API_KEY,
+      'Authorization': `Bearer ${env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: maxTokens,
-      messages: [{ role: 'user', content: userMessage }],
-      system: systemPrompt,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+    throw new Error(`NVIDIA API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  return data.content[0].text;
+  return data.choices[0].message.content;
 }
 
 function parseJsonFromText(raw, fallback) {
@@ -64,7 +65,7 @@ export async function suggestAction(env, request) {
 }`;
 
   const userMessage = `현재 상태: ${currentState}\n원하는 상태: ${desiredState}`;
-  const raw = await callClaude(env, systemPrompt, userMessage, 400);
+  const raw = await callLLM(env, systemPrompt, userMessage, 400);
 
   const parsed = parseJsonFromText(raw, {
     message: '좋아. 지금 상태에서 크게 바꾸려 하지 말고, 딱 하나만 해보자.',
@@ -112,7 +113,7 @@ export async function generateReflection(env, request) {
 결과: ${resultLabel}
 느낌: ${afterFeeling}`;
 
-  const raw = await callClaude(env, systemPrompt, userMessage, 400);
+  const raw = await callLLM(env, systemPrompt, userMessage, 400);
 
   const parsed = parseJsonFromText(raw, {
     reflection: '오늘도 시도해줘서 고마워. 작은 한 걸음이 쌓이면 달라져.',
