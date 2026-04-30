@@ -31,7 +31,7 @@ const ExpandButton = styled(IconButton, {
 function FlowCard({ flow }) {
   const [expanded, setExpanded] = useState(false);
 
-  const date = new Date(flow.created_at);
+  const date = new Date(flow.created_at.endsWith('Z') ? flow.created_at : flow.created_at + 'Z');
   const dateStr = date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
   const timeStr = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
   const resultCfg = RESULT_CONFIG[flow.result] || { label: flow.result, color: 'default' };
