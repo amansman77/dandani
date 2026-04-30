@@ -1,4 +1,4 @@
-# ADR-0001: 시간대 관리 정책 (Timezone Management Policy)
+# ADR-TECH-001: 시간대 관리 정책 (Timezone Management Policy)
 
 ## Status
 **Accepted** - 2025-12-05

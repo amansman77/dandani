@@ -1,4 +1,4 @@
-# ADR-0002-01: 챌린지 상태 정의 (Challenge Status Definition – Final)
+# ADR-TECH-002-01: 챌린지 상태 정의 (Challenge Status Definition – Final)
 
 ## Status
 

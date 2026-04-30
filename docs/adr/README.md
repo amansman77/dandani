@@ -12,7 +12,7 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 
 ## ADR 목록
 
-### 0001: 시간대 관리 정책 (Timezone Management Policy)
+### ADR-TECH-001: 시간대 관리 정책 (Timezone Management Policy)
 **Status**: Accepted (2025-12-05)
 
 서버는 UTC 기준으로 처리하되, 클라이언트에서 로컬 시간 기준으로 전환하는 시간대 관리 정책을 정의합니다.
@@ -21,28 +21,42 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 - `startedAt` 필터링 시 로컬 시간대 고려
 - 챌린지 일차 계산은 로컬 시간 기준
 
-[상세 내용](./0001-timezone-management-policy.md)
+[상세 내용](./ADR-TECH-001-timezone-management-policy.md)
 
-### 0002: 챌린지 상태 정의 (Challenge Status Definition)
+### ADR-TECH-002: 챌린지 상태 정의 (Challenge Status Definition)
 **Status**: Accepted (2026-01-10)
 
 `current` / `completed` / `upcoming` 상태 집합과 판정 규칙을 정의하고, 모든 챌린지에 적용되는 일차/진행률 계산 기준을 문서화합니다.
 
-[상세 내용](./0002-challenge-status-definition.md)
+[상세 내용](./ADR-TECH-002-challenge-status-definition.md)
 
-### 0003: 챌린지 모델 통일 (Challenge Model Unification)
+### ADR-TECH-002-01: 챌린지 상태 정의 Final (Challenge Status Definition – Final)
+**Status**: Accepted (2026-01-18)
+
+ADR-TECH-002의 최종 확정 버전입니다.
+
+[상세 내용](./ADR-TECH-002-01-challenge-status-definition.md)
+
+### ADR-TECH-003: 챌린지 모델 통일 (Challenge Model Unification)
 **Status**: Accepted (2026-01-10)
 
 일정형 챌린지(`start_date`/`end_date`)를 제거하고 모든 챌린지를 선택형 모델(`startedAt` 기반)로 통일한 결정입니다. X-Started-At 헤더 필수 요구사항, 기존 데이터 처리 전략, DB 스키마 변경 전략을 포함합니다.
 
-[상세 내용](./0003-challenge-model-unification.md)
+[상세 내용](./ADR-TECH-003-challenge-model-unification.md)
+
+### ADR-TECH-004: UTM 표준 및 PostHog 저장 전략
+**Status**: Accepted (2026-01-21)
+
+단단이 UTM 표준 및 PostHog Person Properties 저장 전략을 정의합니다.
+
+[상세 내용](./ADR-TECH-004-utm-standard-and-posthog-person-properties.md)
 
 ## ADR 작성 가이드
 
 새로운 ADR을 작성할 때는 다음 템플릿을 사용하세요:
 
 ```markdown
-# ADR-XXXX: [제목]
+# ADR-TECH-000: [제목]
 
 ## Status
 [Proposed | Accepted | Rejected | Deprecated | Superseded]

@@ -1,4 +1,4 @@
-# ADR-0004: 단단이 UTM 표준 및 PostHog 저장 전략
+# ADR-TECH-004: 단단이 UTM 표준 및 PostHog 저장 전략
 
 ## Status
 Accepted  

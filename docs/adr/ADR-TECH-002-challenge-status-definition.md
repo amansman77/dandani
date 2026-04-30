@@ -1,4 +1,4 @@
-# ADR-0002: 챌린지 상태 정의 (Challenge Status Definition)
+# ADR-TECH-002: 챌린지 상태 정의 (Challenge Status Definition)
 
 ## Status
 **Accepted** - 2026-01-10
