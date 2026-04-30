@@ -17,6 +17,7 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 | ID | 제목 | 상태 |
 |----|------|------|
 | [ADR-PROD-000](./ADR-PROD-000-dandani-v2-action-personalization-agent.md) | Dandani V2 — Action Personalization Agent | 제안 |
+| [ADR-PROD-001](./ADR-PROD-001-action-flow-mvp.md) | Action Flow MVP | 제안 |
 
 ### 기술 (TECH)
 
