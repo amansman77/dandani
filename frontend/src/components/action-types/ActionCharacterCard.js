@@ -3,7 +3,7 @@ import { Box, Paper, Typography } from '@mui/material';
 
 const CHARACTER_IMAGE_MAP = {
   START: 'character-coding.png',
-  CALM: 'character-reading.png',
+  CALM: 'character-breathing.png',
   FOCUS: 'character-coding.png',
   MOVE: 'character-hiking.png',
   RELEASE: 'character-writing.png',
