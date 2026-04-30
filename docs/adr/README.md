@@ -20,6 +20,7 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 | [ADR-PROD-001](./ADR-PROD-001-action-flow-mvp.md) | Action Flow MVP | 제안 |
 | [ADR-PROD-002](./ADR-PROD-002-navigation-structure.md) | Navigation Structure — Action-Centric UI | 제안 |
 | [ADR-PROD-003](./ADR-PROD-003-action-taxonomy.md) | Action Taxonomy — 행동 타입 시스템 | 제안 |
+| [ADR-PROD-004](./ADR-PROD-004-action-ui-components.md) | Action UI Components | 제안 |
 
 ### 기술 (TECH)
 
