@@ -54,8 +54,17 @@ export async function suggestAction(env, request) {
 - 즉시 시작 가능
 - 완료 기준이 명확
 
+행동 유형(action_type) 선택 기준:
+- START: 미루기, 무기력, 회피 상태일 때 — 작은 시작을 유도
+- CALM: 피로, 불안, 스트레스, 긴장 상태일 때 — 호흡·이완으로 진정
+- FOCUS: 산만함, 집중 저하 상태일 때 — 짧은 집중 세션
+- MOVE: 무기력, 답답함, 몸 움직임이 필요할 때 — 가볍게 몸 쓰기
+- RELEASE: 화남, 답답함, 억눌림, 감정 배출이 필요할 때 — 감정 표현
+- REFLECT: 행동 이후, 하루 마무리 — 돌아보고 기록
+
 반드시 아래 JSON 형식만 응답해. 다른 텍스트 없이 JSON만:
 {
+  "action_type": "START|CALM|FOCUS|MOVE|RELEASE|REFLECT 중 하나",
   "message": "사용자에게 건네는 말 (1-2문장, 따뜻하고 공감적으로)",
   "action": {
     "description": "행동 설명 (구체적으로, 1-2문장)",
@@ -68,6 +77,7 @@ export async function suggestAction(env, request) {
   const raw = await callLLM(env, systemPrompt, userMessage, 400);
 
   const parsed = parseJsonFromText(raw, {
+    action_type: 'START',
     message: '좋아. 지금 상태에서 크게 바꾸려 하지 말고, 딱 하나만 해보자.',
     action: {
       description: raw,
@@ -159,6 +169,7 @@ export async function saveActionFlow(env, request) {
     currentState,
     desiredState,
     suggestedAction,
+    actionType,
     result,
     started,
     completed,
@@ -176,14 +187,15 @@ export async function saveActionFlow(env, request) {
 
   await env.DB.prepare(`
     INSERT INTO action_flows (
-      anonymous_id, current_state, desired_state, suggested_action,
+      anonymous_id, current_state, desired_state, suggested_action, action_type,
       result, started, completed, after_feeling, reflection, next_hint, pattern_note
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     anonymousId,
     currentState,
     desiredState,
     JSON.stringify(suggestedAction || {}),
+    actionType || null,
     result || '',
     started ? 1 : 0,
     completed ? 1 : 0,

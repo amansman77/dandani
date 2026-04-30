@@ -15,6 +15,7 @@ import { styled } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import PersonIcon from '@mui/icons-material/Person';
 import { getUserId } from '../utils/userId';
+import ActionDispatcher from './action-types/ActionDispatcher';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const DANDANI_AVATAR = '/assets/images/dandani-character/단단이-32x32.png';
@@ -23,8 +24,7 @@ const STEPS = {
   CURRENT_INPUT: 'current_input',
   DESIRED_INPUT: 'desired_input',
   SUGGESTING: 'suggesting',
-  ACTION_DISPLAY: 'action_display',
-  PERFORMING: 'performing',
+  ACTION_ACTIVE: 'action_active',
   RESULT_SELECT: 'result_select',
   FEELING_INPUT: 'feeling_input',
   REFLECTING: 'reflecting',
@@ -88,6 +88,8 @@ const initialSession = {
   currentState: '',
   desiredState: '',
   suggestedAction: null,
+  actionType: null,
+  actionMessage: '',
   result: '',
   started: false,
   completed: false,
@@ -149,32 +151,31 @@ const ActionFlow = () => {
       const data = await res.json();
       if (!data.success) throw new Error('suggest failed');
 
-      const { message, action } = data.data;
-      setSession((prev) => ({ ...prev, suggestedAction: action }));
+      const { action_type, message, action } = data.data;
+      setSession((prev) => ({
+        ...prev,
+        suggestedAction: action,
+        actionType: action_type || 'START',
+        actionMessage: message,
+      }));
 
-      const display = [
+      // Show a brief preview in chat before switching to action UI
+      const preview = [
         message,
         '',
         `💡 ${action.description}`,
         `⏱ ${action.estimated_minutes}분 이내 · ${action.completion_condition}`,
       ].join('\n');
-      addBotMsg(display);
-      setStep(STEPS.ACTION_DISPLAY);
+      addBotMsg(preview);
+
+      setStep(STEPS.ACTION_ACTIVE);
     } catch {
       addBotMsg('지금은 행동을 제안하기 어려워. 잠시 후 다시 시도해줄래?');
       setStep(STEPS.DONE);
     }
   };
 
-  const handleStartAction = () => {
-    addUserMsg('시작해볼게.');
-    setTimeout(() => {
-      addBotMsg('천천히. 할 수 있는 만큼만.\n다 하고 나면 알려줘.');
-      setStep(STEPS.PERFORMING);
-    }, 300);
-  };
-
-  const handleReportResult = () => {
+  const handleActionComplete = () => {
     addBotMsg('어땠어?');
     setStep(STEPS.RESULT_SELECT);
   };
@@ -232,6 +233,7 @@ const ActionFlow = () => {
           currentState: snap.currentState,
           desiredState: snap.desiredState,
           suggestedAction: snap.suggestedAction,
+          actionType: snap.actionType,
           result: snap.result,
           started: snap.started,
           completed: snap.completed,
@@ -277,6 +279,20 @@ const ActionFlow = () => {
     else if (step === STEPS.DESIRED_INPUT) handleDesiredStateSubmit();
     else if (step === STEPS.FEELING_INPUT) handleFeelingSubmit();
   };
+
+  // ACTION_ACTIVE: full-width replacement of chat UI
+  if (step === STEPS.ACTION_ACTIVE) {
+    return (
+      <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto', p: 2 }}>
+        <ActionDispatcher
+          actionType={session.actionType}
+          action={session.suggestedAction}
+          message={session.actionMessage}
+          onComplete={handleActionComplete}
+        />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto' }}>
@@ -325,18 +341,6 @@ const ActionFlow = () => {
         </MessagesContainer>
 
         <InputContainer>
-          {step === STEPS.ACTION_DISPLAY && (
-            <Button fullWidth variant="contained" size="large" onClick={handleStartAction}>
-              시작해볼게
-            </Button>
-          )}
-
-          {step === STEPS.PERFORMING && (
-            <Button fullWidth variant="outlined" size="large" onClick={handleReportResult}>
-              결과 알려줄게
-            </Button>
-          )}
-
           {step === STEPS.RESULT_SELECT && (
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
               {Object.keys(RESULT_MAP).map((r) => (
