@@ -2,19 +2,19 @@ import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 
 const CHARACTER_IMAGE_MAP = {
-  START: '코딩하는 단단이.png',
-  CALM: '비오는 날 책을 읽는 단단이.png',
-  FOCUS: '코딩하는 단단이.png',
-  MOVE: '등산로를 걷는 단단이.png',
-  RELEASE: '일기쓰는 단단이.png',
-  REFLECT: '캠핑하는 단단이.png',
+  START: 'character-coding.png',
+  CALM: 'character-reading.png',
+  FOCUS: 'character-coding.png',
+  MOVE: 'character-hiking.png',
+  RELEASE: 'character-writing.png',
+  REFLECT: 'character-camping.png',
 };
 
 const BASE_PATH = '/assets/images/dandani-character/';
 
 const ActionCharacterCard = ({ actionType, message }) => {
   const filename = CHARACTER_IMAGE_MAP[actionType] || '단단이.png';
-  const imageSrc = BASE_PATH + encodeURIComponent(filename);
+  const imageSrc = BASE_PATH + filename;
 
   return (
     <Paper
