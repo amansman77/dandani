@@ -1,4 +1,4 @@
-import { getRequiredUserId, logUserEvent } from './core.js';
+import { logUserEvent } from './core.js';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20251001';
@@ -124,7 +124,7 @@ export async function generateReflection(env, request) {
   return { success: true, data: parsed };
 }
 
-export async function saveActionSession(env, request) {
+export async function saveActionFlow(env, request) {
   const body = await request.json();
   const {
     currentState,
@@ -143,15 +143,15 @@ export async function saveActionSession(env, request) {
     throw new Error('currentState and desiredState are required');
   }
 
-  const userId = getRequiredUserId(request);
+  const anonymousId = request.headers.get('X-User-ID') || null;
 
   await env.DB.prepare(`
-    INSERT INTO action_sessions (
-      user_id, current_state, desired_state, suggested_action,
+    INSERT INTO action_flows (
+      anonymous_id, current_state, desired_state, suggested_action,
       result, started, completed, after_feeling, reflection, next_hint, pattern_note
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
-    userId,
+    anonymousId,
     currentState,
     desiredState,
     JSON.stringify(suggestedAction || {}),

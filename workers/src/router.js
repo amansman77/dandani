@@ -1,5 +1,5 @@
 import { corsHeaders, jsonResponse, logUserEvent } from './core.js';
-import { suggestAction, generateReflection, saveActionSession } from './action-flow-service.js';
+import { suggestAction, generateReflection, saveActionFlow } from './action-flow-service.js';
 import {
   getChallengeDetail,
   getChallenges,
@@ -93,7 +93,7 @@ async function handlePost(url, request, env) {
     return jsonResponse(await generateReflection(env, request));
   }
   if (url.pathname === '/api/action-flow/save') {
-    return jsonResponse(await saveActionSession(env, request));
+    return jsonResponse(await saveActionFlow(env, request));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }

@@ -1,8 +1,8 @@
--- ADR-PROD-001: Action Flow MVP 세션 데이터 저장 테이블
+-- ADR-PROD-001: Action Flow MVP 흐름 데이터 저장 테이블
 
-CREATE TABLE IF NOT EXISTS action_sessions (
+CREATE TABLE IF NOT EXISTS action_flows (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id TEXT NOT NULL,
+  anonymous_id TEXT,
   current_state TEXT NOT NULL,
   desired_state TEXT NOT NULL,
   suggested_action TEXT NOT NULL,
