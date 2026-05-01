@@ -3,6 +3,25 @@ import { logUserEvent } from './core.js';
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const MODEL = 'meta/llama-4-maverick-17b-128e-instruct';
 
+const ACTION_TYPE_DESCRIPTIONS = {
+  START: '미루기·무기력 상태에서 작은 시작을 유도하는 행동',
+  CALM: '피로·불안·긴장 상태를 호흡·이완으로 진정시키는 행동',
+  FOCUS: '산만함을 줄이고 짧은 집중을 시작하는 행동',
+  MOVE: '무기력·답답함 상태에서 몸을 가볍게 움직이는 행동',
+  RELEASE: '화남·억눌림 상태에서 감정을 밖으로 꺼내는 행동',
+  REFLECT: '행동 이후 또는 하루 마무리에 의미를 정리하는 행동',
+};
+
+const PATTERN_DELTA = {
+  '해냈어': { success: 1, fail: 0 },
+  '조금 했어': { success: 0.5, fail: 0.5 },
+  '못했어': { success: 0, fail: 1 },
+};
+
+const MIN_ATTEMPTS = 3;
+const LOW_THRESHOLD = 0.3;
+const HIGH_THRESHOLD = 0.7;
+
 async function callLLM(env, systemPrompt, userMessage, maxTokens = 500) {
   const response = await fetch(NVIDIA_API_URL, {
     method: 'POST',
@@ -78,12 +97,90 @@ function selectActionType(emotionVector) {
   // Rule 1: 에너지 낮고 의지 없으면 Emotion Character
   if (energy === 'LOW') return 'CALM';
 
-  // 기본값
   if (emotion === 'SCATTERED' || emotion === 'STRESSED') return 'FOCUS';
   if (emotion === 'CALM') return 'REFLECT';
   if (emotion === 'EMPTY') return 'CALM';
 
   return 'START';
+}
+
+async function getUserPatterns(env, anonymousId) {
+  if (!anonymousId) return {};
+
+  const result = await env.DB.prepare(`
+    SELECT action_type, success, fail
+    FROM action_patterns
+    WHERE anonymous_id = ?
+  `).bind(anonymousId).all();
+
+  const patterns = {};
+  for (const row of result.results) {
+    const total = row.success + row.fail;
+    patterns[row.action_type] = {
+      success: row.success,
+      fail: row.fail,
+      successRate: total > 0 ? row.success / total : null,
+      total,
+    };
+  }
+  return patterns;
+}
+
+function applyPatternToActionType(baseActionType, patterns) {
+  const base = patterns[baseActionType];
+
+  // Cold start or not enough data: use base
+  if (!base || base.total < MIN_ATTEMPTS) {
+    return { actionType: baseActionType, patternContext: null };
+  }
+
+  // Rule 2: base is working well → keep it
+  if (base.successRate > HIGH_THRESHOLD) {
+    return { actionType: baseActionType, patternContext: null };
+  }
+
+  // Rule 1: base has low success → find better alternative
+  if (base.successRate < LOW_THRESHOLD) {
+    let bestType = null;
+    let bestRate = -1;
+
+    for (const [type, p] of Object.entries(patterns)) {
+      if (type === baseActionType) continue;
+      if (p.total < 2) continue;
+      if (p.successRate > bestRate) {
+        bestRate = p.successRate;
+        bestType = type;
+      }
+    }
+
+    if (bestType && bestRate > 0.5) {
+      return {
+        actionType: bestType,
+        patternContext: {
+          avoided: baseActionType,
+          chosen: bestType,
+          reason: `${baseActionType} 성공률 ${Math.round(base.successRate * 100)}%로 낮아 ${bestType}로 전환`,
+        },
+      };
+    }
+  }
+
+  return { actionType: baseActionType, patternContext: null };
+}
+
+async function updatePattern(env, anonymousId, actionType, result) {
+  if (!anonymousId || !actionType || !PATTERN_DELTA[result]) return;
+
+  const { success, fail } = PATTERN_DELTA[result];
+
+  await env.DB.prepare(`
+    INSERT INTO action_patterns (anonymous_id, action_type, success, fail)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(anonymous_id, action_type) DO UPDATE SET
+      success = success + excluded.success,
+      fail = fail + excluded.fail,
+      updated_at = CURRENT_TIMESTAMP
+  `).bind(anonymousId, actionType, success, fail).run();
 }
 
 export async function suggestAction(env, request) {
@@ -94,17 +191,19 @@ export async function suggestAction(env, request) {
     throw new Error('currentState and desiredState are required');
   }
 
-  const emotionVector = await extractEmotionVector(env, currentState, desiredState);
-  const actionType = selectActionType(emotionVector);
+  const anonymousId = request.headers.get('X-User-ID') || null;
 
-  const ACTION_TYPE_DESCRIPTIONS = {
-    START: '미루기·무기력 상태에서 작은 시작을 유도하는 행동',
-    CALM: '피로·불안·긴장 상태를 호흡·이완으로 진정시키는 행동',
-    FOCUS: '산만함을 줄이고 짧은 집중을 시작하는 행동',
-    MOVE: '무기력·답답함 상태에서 몸을 가볍게 움직이는 행동',
-    RELEASE: '화남·억눌림 상태에서 감정을 밖으로 꺼내는 행동',
-    REFLECT: '행동 이후 또는 하루 마무리에 의미를 정리하는 행동',
-  };
+  const [emotionVector, patterns] = await Promise.all([
+    extractEmotionVector(env, currentState, desiredState),
+    getUserPatterns(env, anonymousId),
+  ]);
+
+  const baseActionType = selectActionType(emotionVector);
+  const { actionType, patternContext } = applyPatternToActionType(baseActionType, patterns);
+
+  const patternNote = patternContext
+    ? `\n\n참고 (내부 패턴): 이 사용자에게 ${patternContext.avoided} 유형은 잘 맞지 않았어. 이번엔 ${patternContext.chosen}를 시도해. 메시지에서 이전과 다른 방법을 짧게 언급해줘. (예: "이번엔 다른 방법으로 해보자")`
+    : '';
 
   const systemPrompt = `너는 단단이야. 사용자의 상태와 행동 유형이 결정됐어. 해당 유형에 맞는 구체적인 행동 하나를 제안해.
 
@@ -114,7 +213,7 @@ export async function suggestAction(env, request) {
 - 하나의 행동만 제안
 - 10분 이내
 - 즉시 시작 가능
-- 완료 기준이 명확
+- 완료 기준이 명확${patternNote}
 
 반드시 아래 JSON 형식만 응답해. 다른 텍스트 없이 JSON만:
 {
@@ -269,6 +368,11 @@ export async function saveActionFlow(env, request) {
     nextHint || '',
     patternNote || ''
   ).run();
+
+  // Update pattern learning
+  if (anonymousId && actionType && result) {
+    await updatePattern(env, anonymousId, actionType, result);
+  }
 
   await logUserEvent(env, request, 'action_flow_complete', {
     result,
