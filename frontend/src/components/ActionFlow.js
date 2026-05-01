@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Button, CircularProgress, IconButton, TextField, Typography } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { getUserId } from '../utils/userId';
@@ -93,16 +93,31 @@ const ActionFlow = () => {
   const [inputText, setInputText] = useState('');
   const [session, setSession] = useState(initialSession);
   const [doneText, setDoneText] = useState('오늘도 한 걸음 했어.');
+  const [greeting, setGreeting] = useState('왔구나. 지금 어떤 상태야?');
+  const [greetingSceneType, setGreetingSceneType] = useState('DEFAULT');
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/action-flow/greeting`, {
+      headers: { 'X-User-ID': getUserId() },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.greeting) setGreeting(data.greeting);
+        if (data.scene_type) setGreetingSceneType(data.scene_type);
+      })
+      .catch(() => {});
+  }, []);
 
   const isLoading = [STEPS.SUGGESTING, STEPS.REFLECTING].includes(step);
   const showTextInput = [STEPS.CURRENT_INPUT, STEPS.DESIRED_INPUT, STEPS.FEELING_INPUT].includes(step);
 
-  const sceneImage = [STEPS.RESULT_SELECT, STEPS.FEELING_INPUT, STEPS.REFLECTING, STEPS.DONE].includes(step)
-    ? (CHARACTER_IMAGES[session.actionType] || CHARACTER_IMAGES.DEFAULT)
-    : CHARACTER_IMAGES.DEFAULT;
+  const sceneImage =
+    [STEPS.RESULT_SELECT, STEPS.FEELING_INPUT, STEPS.REFLECTING, STEPS.DONE].includes(step)
+      ? (CHARACTER_IMAGES[session.actionType] || CHARACTER_IMAGES.DEFAULT)
+      : (CHARACTER_IMAGES[greetingSceneType] || CHARACTER_IMAGES.DEFAULT);
 
   const overlayText =
-    step === STEPS.CURRENT_INPUT ? '왔구나. 지금 어떤 상태야?' :
+    step === STEPS.CURRENT_INPUT ? greeting :
     step === STEPS.DESIRED_INPUT ? '그럼 어떻게 되고 싶어?' :
     step === STEPS.SUGGESTING ? '단단이가 생각하고 있어...' :
     step === STEPS.RESULT_SELECT ? '어땠어?' :
@@ -223,6 +238,15 @@ const ActionFlow = () => {
     setInputText('');
     setDoneText('오늘도 한 걸음 했어.');
     setStep(STEPS.CURRENT_INPUT);
+    fetch(`${API_URL}/api/action-flow/greeting`, {
+      headers: { 'X-User-ID': getUserId() },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.greeting) setGreeting(data.greeting);
+        if (data.scene_type) setGreetingSceneType(data.scene_type);
+      })
+      .catch(() => {});
   };
 
   const handleKeyPress = (e) => {

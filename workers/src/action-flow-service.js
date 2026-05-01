@@ -22,6 +22,15 @@ const MIN_ATTEMPTS = 3;
 const LOW_THRESHOLD = 0.3;
 const HIGH_THRESHOLD = 0.7;
 
+const ACTION_TYPE_KOREAN = {
+  START: '시작 연습',
+  CALM: '숨 고르기',
+  FOCUS: '집중하기',
+  MOVE: '몸 움직이기',
+  RELEASE: '감정 털기',
+  REFLECT: '돌아보기',
+};
+
 async function callLLM(env, systemPrompt, userMessage, maxTokens = 500) {
   const response = await fetch(NVIDIA_API_URL, {
     method: 'POST',
@@ -320,6 +329,142 @@ export async function getActionFlowHistory(env, request) {
   }));
 
   return { flows };
+}
+
+function buildGreetingText(ctx) {
+  const { has_history, last_action_type, last_result, last_feeling, best_action_type, weak_action_type, partial_progress, time_of_day, consecutive_days } = ctx;
+  const koreanName = (type) => ACTION_TYPE_KOREAN[type] || type;
+
+  // Phase 3: 연속 방문 인사 (3일 이상)
+  if (consecutive_days >= 3) {
+    return `${consecutive_days}일 연속으로 왔어.\n지금은 어떤 상태야?`;
+  }
+
+  // 시간대 prefix
+  let timePrefix = '';
+  if (time_of_day === 'morning') timePrefix = '좋은 아침이야. ';
+  else if (time_of_day === 'night') timePrefix = '늦은 밤에 왔구나. ';
+
+  // Priority 1: Failure Recovery
+  if (weak_action_type && last_result === '못했어') {
+    return `${timePrefix}지난번 방식이 잘 안 맞았지.\n오늘은 조금 다르게 해볼까?`;
+  }
+
+  // Priority 2: Pattern Recognition
+  if (best_action_type) {
+    return `${timePrefix}요즘은 ${koreanName(best_action_type)}가 잘 맞는 것 같아.\n지금은 어떤 상태야?`;
+  }
+
+  // Priority 3: Success Recognition
+  if (last_result === '해냈어') {
+    const hint = last_feeling ? last_feeling.slice(0, 14) : '잘 해냈지';
+    return `${timePrefix}지난번엔 ${hint}.\n오늘도 같이 볼까?`;
+  }
+
+  // Priority 4: Partial Progress
+  if (partial_progress) {
+    return `${timePrefix}요즘은 시작은 잘하고 있어.\n오늘도 아주 작게 가볼까?`;
+  }
+
+  // Priority 5: Recent Recall
+  if (has_history && last_action_type) {
+    return `${timePrefix}지난번엔 ${koreanName(last_action_type)}를 해봤지.\n지금은 어떤 상태야?`;
+  }
+
+  // Cold Start
+  return `${timePrefix}왔구나. 지금 어떤 상태야?`;
+}
+
+export async function getPersonalizedGreeting(env, request) {
+  const anonymousId = request.headers.get('X-User-ID') || null;
+
+  // Phase 3: 시간대 (KST = UTC+9)
+  const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const hourKST = nowKST.getUTCHours();
+  let time_of_day = 'afternoon';
+  if (hourKST >= 5 && hourKST < 12) time_of_day = 'morning';
+  else if (hourKST >= 17 && hourKST < 21) time_of_day = 'evening';
+  else if (hourKST >= 21 || hourKST < 5) time_of_day = 'night';
+
+  if (!anonymousId) {
+    return {
+      greeting: time_of_day === 'morning' ? '좋은 아침이야. 지금 어떤 상태야?' : '왔구나. 지금 어떤 상태야?',
+      scene_type: 'DEFAULT',
+    };
+  }
+
+  // 최근 기록 + 패턴 병렬 조회
+  const [flowsResult, patternsResult] = await Promise.all([
+    env.DB.prepare(`
+      SELECT result, after_feeling, action_type, DATE(created_at) as flow_date
+      FROM action_flows
+      WHERE anonymous_id = ?
+      ORDER BY created_at DESC
+      LIMIT 10
+    `).bind(anonymousId).all(),
+    env.DB.prepare(`
+      SELECT action_type, success, fail
+      FROM action_patterns
+      WHERE anonymous_id = ?
+    `).bind(anonymousId).all(),
+  ]);
+
+  const flows = flowsResult.results || [];
+  const patterns = patternsResult.results || [];
+
+  const has_history = flows.length > 0;
+  const last = flows[0] || null;
+
+  // 연속 방문일 계산 (KST 기준 날짜)
+  let consecutive_days = 0;
+  if (has_history) {
+    const uniqueDates = [...new Set(flows.map(f => f.flow_date))].sort().reverse();
+    const todayKST = nowKST.toISOString().slice(0, 10);
+    let checkDate = new Date(todayKST);
+    for (const d of uniqueDates) {
+      const diff = Math.round((checkDate - new Date(d)) / (1000 * 60 * 60 * 24));
+      if (diff === 0 || diff === 1) {
+        consecutive_days++;
+        checkDate = new Date(d);
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+  }
+
+  // 패턴 분석
+  let best_action_type = null;
+  let weak_action_type = null;
+  for (const p of patterns) {
+    const total = p.success + p.fail;
+    if (total < MIN_ATTEMPTS) continue;
+    const rate = p.success / total;
+    if (rate >= HIGH_THRESHOLD) best_action_type = p.action_type;
+    if (rate <= LOW_THRESHOLD) weak_action_type = p.action_type;
+  }
+
+  // Partial progress: 최근 5개 결과 중 "조금 했어" 비율
+  const recent5 = flows.slice(0, 5).map(f => f.result);
+  const partialCount = recent5.filter(r => r === '조금 했어').length;
+  const partial_progress = recent5.length >= 3 && partialCount / recent5.length > 0.5;
+
+  const ctx = {
+    has_history,
+    last_action_type: last?.action_type || null,
+    last_result: last?.result || null,
+    last_feeling: last?.after_feeling || null,
+    best_action_type,
+    weak_action_type,
+    partial_progress,
+    time_of_day,
+    consecutive_days,
+  };
+
+  const greeting = buildGreetingText(ctx);
+  const scene_type = best_action_type || (last?.action_type) || 'DEFAULT';
+
+  return { greeting, scene_type };
 }
 
 export async function saveActionFlow(env, request) {
