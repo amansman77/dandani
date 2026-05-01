@@ -119,10 +119,10 @@ const ActionFlow = () => {
   const overlayText =
     step === STEPS.CURRENT_INPUT ? greeting :
     step === STEPS.DESIRED_INPUT ? '그럼 어떻게 되고 싶어?' :
-    step === STEPS.SUGGESTING ? '단단이가 생각하고 있어...' :
+    step === STEPS.SUGGESTING ? '같이 생각해볼게...' :
     step === STEPS.RESULT_SELECT ? '어땠어?' :
-    step === STEPS.FEELING_INPUT ? '하고 나니까 어떤 느낌이야?' :
-    step === STEPS.REFLECTING ? '단단이가 정리하고 있어...' :
+    step === STEPS.FEELING_INPUT ? '하고 나니까 어때?' :
+    step === STEPS.REFLECTING ? '잠깐, 같이 정리해볼게...' :
     step === STEPS.DONE ? doneText : '';
 
   const placeholder =

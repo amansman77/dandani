@@ -335,44 +335,51 @@ function buildGreetingText(ctx) {
   const { has_history, last_action_type, last_result, last_feeling, best_action_type, weak_action_type, partial_progress, time_of_day, consecutive_days } = ctx;
   const koreanName = (type) => ACTION_TYPE_KOREAN[type] || type;
 
-  // Phase 3: 연속 방문 인사 (3일 이상)
+  // Streak: 흐름 강조, 숫자 강조 X
   if (consecutive_days >= 3) {
-    return `${consecutive_days}일 연속으로 왔어.\n지금은 어떤 상태야?`;
+    if (consecutive_days >= 5) {
+      return `벌써 ${consecutive_days}일째네.\n오늘도 한 걸음만 같이 가보자.`;
+    }
+    return `오늘도 왔구나.\n이 흐름, 괜찮다.`;
   }
 
-  // 시간대 prefix
-  let timePrefix = '';
-  if (time_of_day === 'morning') timePrefix = '좋은 아침이야. ';
-  else if (time_of_day === 'night') timePrefix = '늦은 밤에 왔구나. ';
+  // 시간대 문맥 (단독으로도 쓰임)
+  const timeLine = time_of_day === 'morning'
+    ? '좋은 아침이야.'
+    : time_of_day === 'night'
+      ? '늦은 밤에 왔구나.'
+      : null;
 
-  // Priority 1: Failure Recovery
+  // Priority 1: Failure Recovery — 실패=문제 ❌, 안 맞았다=자연스러운 변화 ⭕
   if (weak_action_type && last_result === '못했어') {
-    return `${timePrefix}지난번 방식이 잘 안 맞았지.\n오늘은 조금 다르게 해볼까?`;
+    return `지난번 방식은 좀 안 맞았지.\n오늘은 조금 다르게 가볼까?`;
   }
 
-  // Priority 2: Pattern Recognition
+  // Priority 2: Pattern Recognition — 분석 느낌 X, 자연스러운 관찰
   if (best_action_type) {
-    return `${timePrefix}요즘은 ${koreanName(best_action_type)}가 잘 맞는 것 같아.\n지금은 어떤 상태야?`;
+    return `요즘은 ${koreanName(best_action_type)}가 잘 맞는 것 같아.\n지금은 어떤 상태야?`;
   }
 
-  // Priority 3: Success Recognition
+  // Priority 3: Success Recognition — 결과 강조 X, 느낌 강조 O
   if (last_result === '해냈어') {
-    const hint = last_feeling ? last_feeling.slice(0, 14) : '잘 해냈지';
-    return `${timePrefix}지난번엔 ${hint}.\n오늘도 같이 볼까?`;
+    const hint = last_feeling ? last_feeling.slice(0, 14) : '조금 편해졌었지';
+    return `지난번엔 ${hint}.\n오늘도 지금 상태부터 같이 볼까?`;
   }
 
-  // Priority 4: Partial Progress
+  // Priority 4: Partial Progress — 작은 진전 강조
   if (partial_progress) {
-    return `${timePrefix}요즘은 시작은 잘하고 있어.\n오늘도 아주 작게 가볼까?`;
+    return `요즘은 시작은 잘하고 있어.\n오늘도 아주 작게 가볼까?`;
   }
 
-  // Priority 5: Recent Recall
+  // Priority 5: Recent Recall — 기억하되 집착 X
   if (has_history && last_action_type) {
-    return `${timePrefix}지난번엔 ${koreanName(last_action_type)}를 해봤지.\n지금은 어떤 상태야?`;
+    const line2 = timeLine ? `${timeLine} 지금은 어때?` : '지금은 어때?';
+    return `지난번엔 ${koreanName(last_action_type)}를 해봤지.\n${line2}`;
   }
 
-  // Cold Start
-  return `${timePrefix}왔구나. 지금 어떤 상태야?`;
+  // Cold Start + 시간대
+  if (timeLine) return `${timeLine}\n지금 어떤 상태야?`;
+  return `왔구나. 지금 어떤 상태야?`;
 }
 
 export async function getPersonalizedGreeting(env, request) {
