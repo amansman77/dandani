@@ -13,7 +13,7 @@ const CHARACTER_IMAGES = {
   MOVE: '/assets/images/dandani-character/character-hiking.png',
   RELEASE: '/assets/images/dandani-character/character-writing.png',
   REFLECT: '/assets/images/dandani-character/character-camping.png',
-  DEFAULT: '/assets/images/dandani-character/단단이.png',
+  DEFAULT: '/assets/images/dandani-character/character-default.png',
 };
 
 const STEPS = {

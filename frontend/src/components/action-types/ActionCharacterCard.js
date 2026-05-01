@@ -13,7 +13,7 @@ const CHARACTER_IMAGE_MAP = {
 const BASE_PATH = '/assets/images/dandani-character/';
 
 const ActionCharacterCard = ({ actionType, message }) => {
-  const filename = CHARACTER_IMAGE_MAP[actionType] || '단단이.png';
+  const filename = CHARACTER_IMAGE_MAP[actionType] || 'character-default.png';
   const imageSrc = BASE_PATH + filename;
 
   return (
