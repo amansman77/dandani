@@ -13,10 +13,6 @@ const ReflectionAction = ({ message, onComplete }) => {
     <Box>
       <ActionCharacterCard actionType="REFLECT" message={message} />
 
-      <Typography variant="body1" sx={{ mb: 2, fontWeight: 500 }}>
-        오늘 조금이라도 달라진 점이 있었어?
-      </Typography>
-
       <TextField
         fullWidth
         multiline

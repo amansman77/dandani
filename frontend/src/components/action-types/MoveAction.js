@@ -46,10 +46,6 @@ const MoveAction = ({ action, message, onComplete }) => {
     <Box>
       <ActionCharacterCard actionType="MOVE" message={message} />
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {action?.description}
-      </Typography>
-
       {phase === 'idle' && (
         <Button fullWidth variant="contained" size="large" onClick={handleStart}>
           같이 걷기
