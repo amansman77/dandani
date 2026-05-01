@@ -90,6 +90,7 @@ const initialSession = {
   suggestedAction: null,
   actionType: null,
   actionMessage: '',
+  emotionVector: null,
   result: '',
   started: false,
   completed: false,
@@ -151,12 +152,13 @@ const ActionFlow = () => {
       const data = await res.json();
       if (!data.success) throw new Error('suggest failed');
 
-      const { action_type, message, action } = data.data;
+      const { action_type, emotion_vector, message, action } = data.data;
       setSession((prev) => ({
         ...prev,
         suggestedAction: action,
         actionType: action_type || 'START',
         actionMessage: message,
+        emotionVector: emotion_vector || null,
       }));
 
       // Show a brief preview in chat before switching to action UI
@@ -234,6 +236,7 @@ const ActionFlow = () => {
           desiredState: snap.desiredState,
           suggestedAction: snap.suggestedAction,
           actionType: snap.actionType,
+          emotionVector: snap.emotionVector,
           result: snap.result,
           started: snap.started,
           completed: snap.completed,

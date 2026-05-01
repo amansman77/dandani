@@ -38,6 +38,54 @@ function parseJsonFromText(raw, fallback) {
   }
 }
 
+async function extractEmotionVector(env, currentState, desiredState) {
+  const systemPrompt = `사용자의 현재 상태와 원하는 상태를 분석해서 감정 벡터를 추출해.
+
+반드시 아래 JSON 형식만 응답해. 다른 텍스트 없이 JSON만:
+{
+  "energy": "LOW | MID | HIGH",
+  "emotion": "TIRED | CALM | STRESSED | ANXIOUS | IRRITATED | RESISTANCE | SCATTERED | EMPTY",
+  "intent": "NONE | WEAK | STRONG"
+}
+
+기준:
+- energy: 전반적인 에너지 수준 (LOW=피곤/무기력, MID=보통, HIGH=활발)
+- emotion: 주된 감정 상태 (TIRED=졸림/피로, CALM=편안, STRESSED=스트레스, ANXIOUS=불안, IRRITATED=짜증/화남, RESISTANCE=하기 싫음/미루기, SCATTERED=산만/집중안됨, EMPTY=멍함/공허)
+- intent: 무언가를 하려는 의지 (NONE=없음, WEAK=약간 있음, STRONG=강함)`;
+
+  const userMessage = `현재 상태: ${currentState}\n원하는 상태: ${desiredState}`;
+  const raw = await callLLM(env, systemPrompt, userMessage, 100);
+
+  return parseJsonFromText(raw, { energy: 'LOW', emotion: 'TIRED', intent: 'NONE' });
+}
+
+function selectActionType(emotionVector) {
+  const { energy, emotion, intent } = emotionVector;
+
+  // Rule 3: 강한 감정은 먼저 안정
+  if (emotion === 'ANXIOUS') return 'CALM';
+  if (emotion === 'IRRITATED') return 'RELEASE';
+
+  // Rule 2: 의지가 있으면 Action Character
+  if (intent === 'WEAK' || intent === 'STRONG') {
+    if (emotion === 'SCATTERED') return 'FOCUS';
+    if (emotion === 'RESISTANCE') return 'START';
+    if (emotion === 'TIRED') return 'CALM';
+    if (emotion === 'STRESSED') return 'CALM';
+    return 'START';
+  }
+
+  // Rule 1: 에너지 낮고 의지 없으면 Emotion Character
+  if (energy === 'LOW') return 'CALM';
+
+  // 기본값
+  if (emotion === 'SCATTERED' || emotion === 'STRESSED') return 'FOCUS';
+  if (emotion === 'CALM') return 'REFLECT';
+  if (emotion === 'EMPTY') return 'CALM';
+
+  return 'START';
+}
+
 export async function suggestAction(env, request) {
   const body = await request.json();
   const { currentState, desiredState } = body;
@@ -46,7 +94,21 @@ export async function suggestAction(env, request) {
     throw new Error('currentState and desiredState are required');
   }
 
-  const systemPrompt = `너는 단단이야. 사용자의 현재 감정 상태와 원하는 상태를 듣고, 지금 당장 실행할 수 있는 작은 행동 하나를 제안해.
+  const emotionVector = await extractEmotionVector(env, currentState, desiredState);
+  const actionType = selectActionType(emotionVector);
+
+  const ACTION_TYPE_DESCRIPTIONS = {
+    START: '미루기·무기력 상태에서 작은 시작을 유도하는 행동',
+    CALM: '피로·불안·긴장 상태를 호흡·이완으로 진정시키는 행동',
+    FOCUS: '산만함을 줄이고 짧은 집중을 시작하는 행동',
+    MOVE: '무기력·답답함 상태에서 몸을 가볍게 움직이는 행동',
+    RELEASE: '화남·억눌림 상태에서 감정을 밖으로 꺼내는 행동',
+    REFLECT: '행동 이후 또는 하루 마무리에 의미를 정리하는 행동',
+  };
+
+  const systemPrompt = `너는 단단이야. 사용자의 상태와 행동 유형이 결정됐어. 해당 유형에 맞는 구체적인 행동 하나를 제안해.
+
+행동 유형: ${actionType} — ${ACTION_TYPE_DESCRIPTIONS[actionType]}
 
 행동 조건:
 - 하나의 행동만 제안
@@ -54,17 +116,8 @@ export async function suggestAction(env, request) {
 - 즉시 시작 가능
 - 완료 기준이 명확
 
-행동 유형(action_type) 선택 기준:
-- START: 미루기, 무기력, 회피 상태일 때 — 작은 시작을 유도
-- CALM: 피로, 불안, 스트레스, 긴장 상태일 때 — 호흡·이완으로 진정
-- FOCUS: 산만함, 집중 저하 상태일 때 — 짧은 집중 세션
-- MOVE: 무기력, 답답함, 몸 움직임이 필요할 때 — 가볍게 몸 쓰기
-- RELEASE: 화남, 답답함, 억눌림, 감정 배출이 필요할 때 — 감정 표현
-- REFLECT: 행동 이후, 하루 마무리 — 돌아보고 기록
-
 반드시 아래 JSON 형식만 응답해. 다른 텍스트 없이 JSON만:
 {
-  "action_type": "START|CALM|FOCUS|MOVE|RELEASE|REFLECT 중 하나",
   "message": "사용자에게 건네는 말 (1-2문장, 따뜻하고 공감적으로)",
   "action": {
     "description": "행동 설명 (구체적으로, 1-2문장)",
@@ -74,10 +127,9 @@ export async function suggestAction(env, request) {
 }`;
 
   const userMessage = `현재 상태: ${currentState}\n원하는 상태: ${desiredState}`;
-  const raw = await callLLM(env, systemPrompt, userMessage, 400);
+  const raw = await callLLM(env, systemPrompt, userMessage, 300);
 
   const parsed = parseJsonFromText(raw, {
-    action_type: 'START',
     message: '좋아. 지금 상태에서 크게 바꾸려 하지 말고, 딱 하나만 해보자.',
     action: {
       description: raw,
@@ -86,7 +138,15 @@ export async function suggestAction(env, request) {
     }
   });
 
-  return { success: true, data: parsed };
+  return {
+    success: true,
+    data: {
+      action_type: actionType,
+      emotion_vector: emotionVector,
+      message: parsed.message,
+      action: parsed.action,
+    }
+  };
 }
 
 export async function generateReflection(env, request) {
@@ -170,6 +230,7 @@ export async function saveActionFlow(env, request) {
     desiredState,
     suggestedAction,
     actionType,
+    emotionVector,
     result,
     started,
     completed,
@@ -188,14 +249,18 @@ export async function saveActionFlow(env, request) {
   await env.DB.prepare(`
     INSERT INTO action_flows (
       anonymous_id, current_state, desired_state, suggested_action, action_type,
+      emotion_energy, emotion_type, emotion_intent,
       result, started, completed, after_feeling, reflection, next_hint, pattern_note
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     anonymousId,
     currentState,
     desiredState,
     JSON.stringify(suggestedAction || {}),
     actionType || null,
+    emotionVector?.energy || null,
+    emotionVector?.emotion || null,
+    emotionVector?.intent || null,
     result || '',
     started ? 1 : 0,
     completed ? 1 : 0,
