@@ -23,6 +23,7 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 | [ADR-PROD-004](./ADR-PROD-004-action-ui-components.md) | Action UI Components | 제안 |
 | [ADR-PROD-005](./ADR-PROD-005-emotion-character-state-mapping.md) | Emotion → Character State Mapping | 제안 |
 | [ADR-PROD-006](./ADR-PROD-006-character-scene-rendering.md) | Character Scene Rendering | 제안 |
+| [ADR-PROD-007](./ADR-PROD-007-pattern-learning-strategy.md) | Pattern Learning Strategy | 제안 |
 
 ### 기술 (TECH)
 
