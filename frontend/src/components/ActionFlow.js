@@ -17,6 +17,7 @@ const CHARACTER_IMAGES = {
 };
 
 const STEPS = {
+  NAME_INPUT: 'name_input',
   CURRENT_INPUT: 'current_input',
   DESIRED_INPUT: 'desired_input',
   SUGGESTING: 'suggesting',
@@ -95,8 +96,9 @@ const ActionFlow = () => {
   const [doneText, setDoneText] = useState('오늘도 한 걸음 했어.');
   const [greeting, setGreeting] = useState('왔구나. 지금 어떤 상태야?');
   const [greetingSceneType, setGreetingSceneType] = useState('DEFAULT');
+  const [userName, setUserName] = useState(() => localStorage.getItem('dandaniUserName') || '');
 
-  useEffect(() => {
+  const fetchGreeting = () => {
     fetch(`${API_URL}/api/action-flow/greeting`, {
       headers: { 'X-User-ID': getUserId() },
     })
@@ -106,10 +108,20 @@ const ActionFlow = () => {
         if (data.scene_type) setGreetingSceneType(data.scene_type);
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    const storedName = localStorage.getItem('dandaniUserName');
+    if (!storedName) {
+      setStep(STEPS.NAME_INPUT);
+    } else {
+      fetchGreeting();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isLoading = [STEPS.SUGGESTING, STEPS.REFLECTING].includes(step);
-  const showTextInput = [STEPS.CURRENT_INPUT, STEPS.DESIRED_INPUT, STEPS.FEELING_INPUT].includes(step);
+  const showTextInput = [STEPS.NAME_INPUT, STEPS.CURRENT_INPUT, STEPS.DESIRED_INPUT, STEPS.FEELING_INPUT].includes(step);
 
   const sceneImage =
     [STEPS.RESULT_SELECT, STEPS.FEELING_INPUT, STEPS.REFLECTING, STEPS.DONE].includes(step)
@@ -117,6 +129,7 @@ const ActionFlow = () => {
       : (CHARACTER_IMAGES[greetingSceneType] || CHARACTER_IMAGES.DEFAULT);
 
   const overlayText =
+    step === STEPS.NAME_INPUT ? '나는 단단이야.\n너를 어떻게 부르면 좋을까?' :
     step === STEPS.CURRENT_INPUT ? greeting :
     step === STEPS.DESIRED_INPUT ? '그럼 어떻게 되고 싶어?' :
     step === STEPS.SUGGESTING ? '같이 생각해볼게...' :
@@ -126,9 +139,25 @@ const ActionFlow = () => {
     step === STEPS.DONE ? doneText : '';
 
   const placeholder =
+    step === STEPS.NAME_INPUT ? '이름이나 별명을 써줘...' :
     step === STEPS.CURRENT_INPUT ? '지금 어떤 상태인지 써줘...' :
     step === STEPS.DESIRED_INPUT ? '어떻게 되고 싶은지 써줘...' :
     '느낌을 한 줄로...';
+
+  const handleNameSubmit = () => {
+    const name = inputText.trim();
+    const finalName = name || '친구';
+    localStorage.setItem('dandaniUserName', finalName);
+    setUserName(finalName);
+    setInputText('');
+    fetch(`${API_URL}/api/user/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+      body: JSON.stringify({ name: finalName }),
+    }).catch(() => {});
+    fetchGreeting();
+    setStep(STEPS.CURRENT_INPUT);
+  };
 
   const handleCurrentStateSubmit = () => {
     const value = inputText.trim();
@@ -238,28 +267,22 @@ const ActionFlow = () => {
     setInputText('');
     setDoneText('오늘도 한 걸음 했어.');
     setStep(STEPS.CURRENT_INPUT);
-    fetch(`${API_URL}/api/action-flow/greeting`, {
-      headers: { 'X-User-ID': getUserId() },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.greeting) setGreeting(data.greeting);
-        if (data.scene_type) setGreetingSceneType(data.scene_type);
-      })
-      .catch(() => {});
+    fetchGreeting();
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (step === STEPS.CURRENT_INPUT) handleCurrentStateSubmit();
+      if (step === STEPS.NAME_INPUT) handleNameSubmit();
+      else if (step === STEPS.CURRENT_INPUT) handleCurrentStateSubmit();
       else if (step === STEPS.DESIRED_INPUT) handleDesiredStateSubmit();
       else if (step === STEPS.FEELING_INPUT) handleFeelingSubmit();
     }
   };
 
   const handleSend = () => {
-    if (step === STEPS.CURRENT_INPUT) handleCurrentStateSubmit();
+    if (step === STEPS.NAME_INPUT) handleNameSubmit();
+    else if (step === STEPS.CURRENT_INPUT) handleCurrentStateSubmit();
     else if (step === STEPS.DESIRED_INPUT) handleDesiredStateSubmit();
     else if (step === STEPS.FEELING_INPUT) handleFeelingSubmit();
   };

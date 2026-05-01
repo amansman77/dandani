@@ -26,6 +26,7 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 | [ADR-PROD-007](./ADR-PROD-007-pattern-learning-strategy.md) | Pattern Learning Strategy | 제안 |
 | [ADR-PROD-008](./ADR-PROD-008-personalized-greeting.md) | Personalized Greeting | 제안 |
 | [ADR-PROD-009](./ADR-PROD-009-greeting-voice-and-tone.md) | Greeting Voice & Tone | 제안 |
+| [ADR-PROD-010](./ADR-PROD-010-user-addressing-and-naming.md) | User Addressing & Naming | 제안 |
 
 ### 기술 (TECH)
 

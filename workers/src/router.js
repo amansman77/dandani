@@ -1,5 +1,5 @@
 import { corsHeaders, jsonResponse, logUserEvent } from './core.js';
-import { suggestAction, generateReflection, saveActionFlow, getActionFlowHistory, getPersonalizedGreeting } from './action-flow-service.js';
+import { suggestAction, generateReflection, saveActionFlow, getActionFlowHistory, getPersonalizedGreeting, getUserProfile, saveUserProfile } from './action-flow-service.js';
 import {
   getChallengeDetail,
   getChallenges,
@@ -67,6 +67,9 @@ async function handleGet(url, request, env) {
   if (url.pathname === '/api/action-flow/greeting') {
     return jsonResponse(await getPersonalizedGreeting(env, request));
   }
+  if (url.pathname === '/api/user/profile') {
+    return jsonResponse(await getUserProfile(env, request));
+  }
   if (url.pathname === '/api/discord/daily-report') {
     const targetDate = url.searchParams.get('date');
     const reportData = await getDailyReportData(env, targetDate);
@@ -91,6 +94,9 @@ async function handlePost(url, request, env) {
     const { event_type, event_data } = body;
     await logUserEvent(env, request, event_type, event_data);
     return jsonResponse({ success: true });
+  }
+  if (url.pathname === '/api/user/profile') {
+    return jsonResponse(await saveUserProfile(env, request));
   }
   if (url.pathname === '/api/action-flow/suggest') {
     return jsonResponse(await suggestAction(env, request));

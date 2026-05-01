@@ -382,6 +382,34 @@ function buildGreetingText(ctx) {
   return `왔구나. 지금 어떤 상태야?`;
 }
 
+export async function getUserProfile(env, request) {
+  const anonymousId = request.headers.get('X-User-ID') || null;
+  if (!anonymousId) return { name: null };
+
+  const row = await env.DB.prepare(`
+    SELECT name FROM user_profiles WHERE anonymous_id = ?
+  `).bind(anonymousId).first();
+
+  return { name: row?.name || null };
+}
+
+export async function saveUserProfile(env, request) {
+  const body = await request.json();
+  const { name } = body;
+  const anonymousId = request.headers.get('X-User-ID') || null;
+  if (!anonymousId) throw new Error('X-User-ID required');
+
+  await env.DB.prepare(`
+    INSERT INTO user_profiles (anonymous_id, name)
+    VALUES (?, ?)
+    ON CONFLICT(anonymous_id) DO UPDATE SET
+      name = excluded.name,
+      updated_at = CURRENT_TIMESTAMP
+  `).bind(anonymousId, name || null).run();
+
+  return { success: true };
+}
+
 export async function getPersonalizedGreeting(env, request) {
   const anonymousId = request.headers.get('X-User-ID') || null;
 
@@ -400,8 +428,8 @@ export async function getPersonalizedGreeting(env, request) {
     };
   }
 
-  // 최근 기록 + 패턴 병렬 조회
-  const [flowsResult, patternsResult] = await Promise.all([
+  // 최근 기록 + 패턴 + 프로필 병렬 조회
+  const [flowsResult, patternsResult, profileRow] = await Promise.all([
     env.DB.prepare(`
       SELECT result, after_feeling, action_type, DATE(created_at) as flow_date
       FROM action_flows
@@ -414,6 +442,7 @@ export async function getPersonalizedGreeting(env, request) {
       FROM action_patterns
       WHERE anonymous_id = ?
     `).bind(anonymousId).all(),
+    env.DB.prepare(`SELECT name FROM user_profiles WHERE anonymous_id = ?`).bind(anonymousId).first(),
   ]);
 
   const flows = flowsResult.results || [];
@@ -468,10 +497,13 @@ export async function getPersonalizedGreeting(env, request) {
     consecutive_days,
   };
 
-  const greeting = buildGreetingText(ctx);
+  const userName = profileRow?.name || null;
+  const baseGreeting = buildGreetingText(ctx);
+  // 이름이 있을 경우 첫 줄 앞에 이름 추가 (1회만, 자연스럽게)
+  const greeting = userName ? `${userName}, ${baseGreeting}` : baseGreeting;
   const scene_type = best_action_type || (last?.action_type) || 'DEFAULT';
 
-  return { greeting, scene_type };
+  return { greeting, scene_type, has_name: !!userName };
 }
 
 export async function saveActionFlow(env, request) {
