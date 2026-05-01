@@ -47,6 +47,39 @@ const initialSession = {
   afterFeeling: '',
 };
 
+function extractName(raw) {
+  let name = raw.trim();
+
+  // 앞쪽 주어 제거: "나는", "저는", "이름은" 등
+  name = name.replace(/^(나는\s+|저는\s+|제\s+이름은\s+|이름은\s+|나\s+|저\s+)/u, '');
+
+  // 뒤쪽 어미 제거 (긴 것부터 순서대로)
+  const suffixes = [
+    /이라고\s*불러줘\.?$/u,
+    /라고\s*불러줘\.?$/u,
+    /이라고\s*해줘\.?$/u,
+    /라고\s*해줘\.?$/u,
+    /이라고\s*해\.?$/u,
+    /라고\s*해\.?$/u,
+    /이라고\.?$/u,
+    /라고\.?$/u,
+    /입니다\.?$/u,
+    /이에요\.?$/u,
+    /에요\.?$/u,
+    /이야\.?$/u,
+    /야\.?$/u,
+  ];
+
+  for (const suffix of suffixes) {
+    if (suffix.test(name)) {
+      name = name.replace(suffix, '').trim();
+      break;
+    }
+  }
+
+  return name || raw.trim();
+}
+
 const SceneLayout = ({ imageSrc, overlayText, isLoading, children }) => (
   <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto', p: 2 }}>
     <Box sx={{ position: 'relative', width: '100%', mb: 2 }}>
@@ -145,8 +178,8 @@ const ActionFlow = () => {
     '느낌을 한 줄로...';
 
   const handleNameSubmit = () => {
-    const name = inputText.trim();
-    const finalName = name || '친구';
+    const raw = inputText.trim();
+    const finalName = raw ? extractName(raw) : '친구';
     localStorage.setItem('dandaniUserName', finalName);
     setUserName(finalName);
     setInputText('');
