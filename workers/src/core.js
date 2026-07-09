@@ -1,7 +1,7 @@
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID, X-Session-ID, X-Session-Token, X-Started-At, User-Agent, CF-Connecting-IP',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID, X-Session-ID, X-Started-At, User-Agent, CF-Connecting-IP',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -16,8 +16,7 @@ const ALLOWED_EVENT_TYPES = [
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
-  'onboarding_complete',
-  'action_flow_complete'
+  'onboarding_complete'
 ];
 
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;

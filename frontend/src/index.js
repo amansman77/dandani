@@ -100,20 +100,17 @@ const posthogOptions = {
   },
 };
 
-const appContent = (
-  <ThemeProvider theme={theme}>
-    <CssBaseline />
-    <App />
-  </ThemeProvider>
-);
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    {posthogApiKey ? (
-      <PostHogProvider apiKey={posthogApiKey} options={posthogOptions}>
-        {appContent}
-      </PostHogProvider>
-    ) : appContent}
+    <PostHogProvider 
+      apiKey={posthogApiKey}
+      options={posthogOptions}
+    >
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </PostHogProvider>
   </React.StrictMode>
 ); 

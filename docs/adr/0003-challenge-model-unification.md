@@ -1,4 +1,4 @@
-# ADR-TECH-003: 챌린지 모델 통일 (Challenge Model Unification)
+# ADR-0003: 챌린지 모델 통일 (Challenge Model Unification)
 
 ## Status
 **Accepted** - 2026-01-10

@@ -1,7 +1,4 @@
 import { corsHeaders, jsonResponse, logUserEvent } from './core.js';
-import { suggestAction, generateReflection, saveActionFlow, getActionFlowHistory, getPersonalizedGreeting, getUserProfile, saveUserProfile, detectName } from './action-flow-service.js';
-import { checkEligibility, generateIdentityDandani, saveIdentityDandani, getIdentityCollection } from './identity-service.js';
-import { initiateGoogleAuth, handleGoogleCallback, getMe, logout } from './auth-service.js';
 import {
   getChallengeDetail,
   getChallenges,
@@ -63,30 +60,6 @@ async function handleGet(url, request, env) {
   if (url.pathname === '/api/analytics/event') {
     return jsonResponse({ error: 'Method Not Allowed. Use POST.' }, 405);
   }
-  if (url.pathname === '/api/action-flow/history') {
-    return jsonResponse(await getActionFlowHistory(env, request));
-  }
-  if (url.pathname === '/api/action-flow/greeting') {
-    return jsonResponse(await getPersonalizedGreeting(env, request));
-  }
-  if (url.pathname === '/api/identity/eligibility') {
-    return jsonResponse(await checkEligibility(env, request));
-  }
-  if (url.pathname === '/api/identity/collection') {
-    return jsonResponse(await getIdentityCollection(env, request));
-  }
-  if (url.pathname === '/api/auth/google') {
-    return initiateGoogleAuth(env, request);
-  }
-  if (url.pathname === '/api/auth/google/callback') {
-    return handleGoogleCallback(env, request);
-  }
-  if (url.pathname === '/api/auth/me') {
-    return jsonResponse(await getMe(env, request));
-  }
-  if (url.pathname === '/api/user/profile') {
-    return jsonResponse(await getUserProfile(env, request));
-  }
   if (url.pathname === '/api/discord/daily-report') {
     const targetDate = url.searchParams.get('date');
     const reportData = await getDailyReportData(env, targetDate);
@@ -111,30 +84,6 @@ async function handlePost(url, request, env) {
     const { event_type, event_data } = body;
     await logUserEvent(env, request, event_type, event_data);
     return jsonResponse({ success: true });
-  }
-  if (url.pathname === '/api/user/profile') {
-    return jsonResponse(await saveUserProfile(env, request));
-  }
-  if (url.pathname === '/api/action-flow/detect-name') {
-    return jsonResponse(await detectName(env, request));
-  }
-  if (url.pathname === '/api/action-flow/suggest') {
-    return jsonResponse(await suggestAction(env, request));
-  }
-  if (url.pathname === '/api/action-flow/reflect') {
-    return jsonResponse(await generateReflection(env, request));
-  }
-  if (url.pathname === '/api/action-flow/save') {
-    return jsonResponse(await saveActionFlow(env, request));
-  }
-  if (url.pathname === '/api/identity/generate') {
-    return jsonResponse(await generateIdentityDandani(env, request));
-  }
-  if (url.pathname === '/api/identity/save') {
-    return jsonResponse(await saveIdentityDandani(env, request));
-  }
-  if (url.pathname === '/api/auth/logout') {
-    return jsonResponse(await logout(env, request));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }
