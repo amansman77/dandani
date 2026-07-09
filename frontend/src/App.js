@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Box, Typography, CircularProgress } from '@mui/material';
 import ActionFlow from './components/ActionFlow';
 import ActionFlowHistory from './components/ActionFlowHistory';
+import IdentityCollection from './components/IdentityCollection';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeCompletionModal from './components/PracticeCompletionModal';
@@ -17,6 +18,7 @@ import { usePracticeCardAnimation } from './hooks/usePracticeCardAnimation';
 import { useRetentionState } from './hooks/useRetentionState';
 import { useYesterdayRecord } from './hooks/useYesterdayRecord';
 import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
+import { setSessionToken, clearSessionToken, isAuthenticated, getAuthHeaders } from './utils/auth';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from './utils/challengeSelection';
 import { logOnboardingComplete } from './utils/analytics';
 import { calculateChallengeEndDate, addStartedAtHeader, calculateChallengeStatus } from './utils/challengeDay';
@@ -28,6 +30,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [authUser, setAuthUser] = useState(null);
   
   const {
     practiceCardRef,
@@ -124,6 +127,33 @@ function App() {
   });
 
   useEffect(() => {
+    // Handle Google OAuth callback: store session token and clean URL
+    const fetchAuthUser = () =>
+      fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() })
+        .then((r) => r.json())
+        .then((d) => { if (d.authenticated) setAuthUser({ name: d.name, email: d.email }); })
+        .catch(() => {});
+
+    const params = new URLSearchParams(window.location.search);
+    const sessionToken = params.get('session_token');
+    if (sessionToken) {
+      setSessionToken(sessionToken);
+      window.history.replaceState({}, '', window.location.pathname);
+      const intent = localStorage.getItem('dandaniAuthIntent');
+      if (intent === 'create_identity') {
+        localStorage.removeItem('dandaniAuthIntent');
+        setActiveTab(2);
+      }
+      fetchAuthUser();
+    } else if (isAuthenticated()) {
+      fetchAuthUser();
+    }
+
+    const authError = params.get('auth_error');
+    if (authError) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
     const { isNew } = getUserIdInfo();
     if (isNew) {
       setShowOnboarding(true);
@@ -133,7 +163,8 @@ function App() {
       setShowChallengeSelector(true);
       setLoading(false);
     }
-  }, [selectedChallengeId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const browserLanguage = navigator.language || '';
@@ -234,6 +265,15 @@ function App() {
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+  };
+
+  const handleLogout = async () => {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    }).catch(() => {});
+    clearSessionToken();
+    setAuthUser(null);
   };
 
   // 분석 도구 초기화는 PostHog의 loaded 콜백에서 처리
@@ -388,6 +428,8 @@ function App() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           onRestartOnboarding={handleRestartOnboarding}
+          authUser={authUser}
+          onLogout={handleLogout}
         />
 
         {activeTab === 0 && (
@@ -396,6 +438,10 @@ function App() {
 
         {activeTab === 1 && (
           <ActionFlowHistory />
+        )}
+
+        {activeTab === 2 && (
+          <IdentityCollection />
         )}
 
 

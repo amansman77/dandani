@@ -566,3 +566,44 @@ export async function saveActionFlow(env, request) {
 
   return { success: true };
 }
+
+export async function detectName(env, request) {
+  const { text } = await request.json();
+  if (!text || text.length > 60) return { name: null };
+
+  const systemPrompt = `사용자 메시지에서 자기 이름을 알려주는 경우, 이름(고유명사, 보통 2~4글자)만 추출해 JSON으로 응답해.
+이름이 아닌 경우 null.
+반드시 JSON만 응답: {"name": "이름"} 또는 {"name": null}
+
+규칙:
+- 이름은 순수한 고유명사만 (조사·어미 제거)
+- "호성으로 불러" → 이름은 "호성", "으로 불러"는 제거
+- "호성이라고 불러줘" → 이름은 "호성"
+- "호성이야" → 이름은 "호성" ("이야" 제거)
+
+예시:
+- "호성이야" → {"name": "호성"}
+- "나는 지수야" → {"name": "지수"}
+- "호성으로 불러" → {"name": "호성"}
+- "호성으로 불러줘" → {"name": "호성"}
+- "민준이라고 불러줘" → {"name": "민준"}
+- "내 이름은 민준이에요" → {"name": "민준"}
+- "수진으로 해줘" → {"name": "수진"}
+- "오늘 너무 피곤해" → {"name": null}
+- "시작하기 싫어" → {"name": null}
+- "불안해" → {"name": null}`;
+
+  const raw = await callLLM(env, systemPrompt, text, 30);
+  const result = parseJsonFromText(raw, { name: null });
+  let name = result.name || null;
+
+  // 받침 있는 이름 뒤 링킹 조사 "이" 제거: "호성이" → "호성"
+  if (name && name.length > 1 && name.endsWith('이')) {
+    const prev = name.charCodeAt(name.length - 2);
+    if (prev >= 0xAC00 && prev <= 0xD7A3 && (prev - 0xAC00) % 28 !== 0) {
+      name = name.slice(0, -1);
+    }
+  }
+
+  return { name };
+}

@@ -12,6 +12,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { styled } from '@mui/material/styles';
 import { getUserId } from '../utils/userId';
+import { getAuthHeaders } from '../utils/auth';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -96,16 +97,21 @@ function FlowCard({ flow }) {
 const ActionFlowHistory = () => {
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cycleCount, setCycleCount] = useState(null);
 
   useEffect(() => {
     const userId = getUserId();
-    fetch(`${API_URL}/api/action-flow/history`, {
-      headers: { 'X-User-ID': userId },
-    })
-      .then((res) => res.json())
-      .then((data) => setFlows(data.flows || []))
-      .catch(() => setFlows([]))
-      .finally(() => setLoading(false));
+    const headers = { 'X-User-ID': userId, ...getAuthHeaders() };
+    Promise.all([
+      fetch(`${API_URL}/api/action-flow/history`, { headers })
+        .then((res) => res.json())
+        .then((data) => setFlows(data.flows || []))
+        .catch(() => setFlows([])),
+      fetch(`${API_URL}/api/identity/eligibility`, { headers })
+        .then((r) => r.json())
+        .then((data) => setCycleCount(data.cycle_count || 0))
+        .catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -131,6 +137,15 @@ const ActionFlowHistory = () => {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto' }}>
+      {cycleCount !== null && cycleCount > 0 && cycleCount < 3 && (
+        <Box sx={{ mb: 2, px: 2, py: 1.5, bgcolor: 'grey.50', borderRadius: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            {cycleCount === 1
+              ? '지금까지 한 걸음이 쌓이고 있어. 3개가 모이면 너만의 단단이를 만들 수 있어.'
+              : '한 걸음만 더 하면 너만의 단단이를 만들 수 있어.'}
+          </Typography>
+        </Box>
+      )}
       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
         총 {flows.length}개의 기록
       </Typography>

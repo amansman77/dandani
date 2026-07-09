@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, CircularProgress, IconButton, TextField, Typography } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import { getUserId } from '../utils/userId';
+import { isAuthenticated, getAuthHeaders } from '../utils/auth';
 import ActionDispatcher from './action-types/ActionDispatcher';
+import AuthModal from './AuthModal';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -26,6 +28,8 @@ const STEPS = {
   FEELING_INPUT: 'feeling_input',
   REFLECTING: 'reflecting',
   DONE: 'done',
+  IDENTITY_GENERATING: 'identity_generating',
+  IDENTITY_PREVIEW: 'identity_preview',
 };
 
 const RESULT_MAP = {
@@ -47,37 +51,27 @@ const initialSession = {
   afterFeeling: '',
 };
 
-function extractName(raw) {
-  let name = raw.trim();
-
-  // 앞쪽 주어 제거: "나는", "저는", "이름은" 등
-  name = name.replace(/^(나는\s+|저는\s+|제\s+이름은\s+|이름은\s+|나\s+|저\s+)/u, '');
-
-  // 뒤쪽 어미 제거 (긴 것부터 순서대로)
-  const suffixes = [
-    /이라고\s*불러줘\.?$/u,
-    /라고\s*불러줘\.?$/u,
-    /이라고\s*해줘\.?$/u,
-    /라고\s*해줘\.?$/u,
-    /이라고\s*해\.?$/u,
-    /라고\s*해\.?$/u,
-    /이라고\.?$/u,
-    /라고\.?$/u,
-    /입니다\.?$/u,
-    /이에요\.?$/u,
-    /에요\.?$/u,
-    /이야\.?$/u,
-    /야\.?$/u,
-  ];
-
-  for (const suffix of suffixes) {
-    if (suffix.test(name)) {
-      name = name.replace(suffix, '').trim();
-      break;
-    }
+async function detectNameFromLLM(apiUrl, text) {
+  if (!text || text.length > 60) return null;
+  try {
+    const res = await fetch(`${apiUrl}/api/action-flow/detect-name`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const data = await res.json();
+    return data.name || null;
+  } catch {
+    return null;
   }
+}
 
-  return name || raw.trim();
+// 받침 여부에 따라 자연스러운 호격 형태 반환 (예: "호성" → "호성이", "지수" → "지수")
+function toVocative(name) {
+  if (!name) return name;
+  const code = name.charCodeAt(name.length - 1);
+  if (code < 0xAC00 || code > 0xD7A3) return name;
+  return (code - 0xAC00) % 28 !== 0 ? name + '이' : name;
 }
 
 const SceneLayout = ({ imageSrc, overlayText, isLoading, children }) => (
@@ -128,8 +122,14 @@ const ActionFlow = () => {
   const [session, setSession] = useState(initialSession);
   const [doneText, setDoneText] = useState('오늘도 한 걸음 했어.');
   const [greeting, setGreeting] = useState('왔구나. 지금 어떤 상태야?');
-  const [greetingSceneType, setGreetingSceneType] = useState('DEFAULT');
+  const [greetingSceneType, setGreetingSceneType] = useState(
+    () => localStorage.getItem('dandaniLastSceneType') || 'DEFAULT'
+  );
   const [userName, setUserName] = useState(() => localStorage.getItem('dandaniUserName') || '');
+  const [identityEligible, setIdentityEligible] = useState(false);
+  const [cycleCount, setCycleCount] = useState(0);
+  const [generatedIdentity, setGeneratedIdentity] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const fetchGreeting = () => {
     fetch(`${API_URL}/api/action-flow/greeting`, {
@@ -138,7 +138,10 @@ const ActionFlow = () => {
       .then((r) => r.json())
       .then((data) => {
         if (data.greeting) setGreeting(data.greeting);
-        if (data.scene_type) setGreetingSceneType(data.scene_type);
+        if (data.scene_type) {
+          setGreetingSceneType(data.scene_type);
+          localStorage.setItem('dandaniLastSceneType', data.scene_type);
+        }
       })
       .catch(() => {});
   };
@@ -150,15 +153,24 @@ const ActionFlow = () => {
     } else {
       fetchGreeting();
     }
+    fetch(`${API_URL}/api/identity/eligibility`, { headers: { 'X-User-ID': getUserId() } })
+      .then((r) => r.json())
+      .then((data) => {
+        setIdentityEligible(data.eligible || false);
+        setCycleCount(data.cycle_count || 0);
+      })
+      .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isLoading = [STEPS.SUGGESTING, STEPS.REFLECTING].includes(step);
+  const isLoading = [STEPS.SUGGESTING, STEPS.REFLECTING, STEPS.IDENTITY_GENERATING].includes(step);
   const showTextInput = [STEPS.NAME_INPUT, STEPS.CURRENT_INPUT, STEPS.DESIRED_INPUT, STEPS.FEELING_INPUT].includes(step);
 
   const sceneImage =
     [STEPS.RESULT_SELECT, STEPS.FEELING_INPUT, STEPS.REFLECTING, STEPS.DONE].includes(step)
       ? (CHARACTER_IMAGES[session.actionType] || CHARACTER_IMAGES.DEFAULT)
+      : step === STEPS.IDENTITY_GENERATING || step === STEPS.IDENTITY_PREVIEW
+      ? (CHARACTER_IMAGES[generatedIdentity?.dominant_action] || CHARACTER_IMAGES.DEFAULT)
       : (CHARACTER_IMAGES[greetingSceneType] || CHARACTER_IMAGES.DEFAULT);
 
   const overlayText =
@@ -169,7 +181,9 @@ const ActionFlow = () => {
     step === STEPS.RESULT_SELECT ? '어땠어?' :
     step === STEPS.FEELING_INPUT ? '하고 나니까 어때?' :
     step === STEPS.REFLECTING ? '잠깐, 같이 정리해볼게...' :
-    step === STEPS.DONE ? doneText : '';
+    step === STEPS.DONE ? doneText :
+    step === STEPS.IDENTITY_GENERATING ? '이 시기의 너를 담아볼게...' :
+    step === STEPS.IDENTITY_PREVIEW ? (generatedIdentity?.title || '') : '';
 
   const placeholder =
     step === STEPS.NAME_INPUT ? '이름이나 별명을 써줘...' :
@@ -179,7 +193,7 @@ const ActionFlow = () => {
 
   const handleNameSubmit = () => {
     const raw = inputText.trim();
-    const finalName = raw ? extractName(raw) : '친구';
+    const finalName = raw || '친구';
     localStorage.setItem('dandaniUserName', finalName);
     setUserName(finalName);
     setInputText('');
@@ -192,9 +206,25 @@ const ActionFlow = () => {
     setStep(STEPS.CURRENT_INPUT);
   };
 
-  const handleCurrentStateSubmit = () => {
+  const applyNameChange = async (text) => {
+    const newName = await detectNameFromLLM(API_URL, text);
+    if (!newName) return false;
+    localStorage.setItem('dandaniUserName', newName);
+    setUserName(newName);
+    setInputText('');
+    fetch(`${API_URL}/api/user/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+      body: JSON.stringify({ name: newName }),
+    }).catch(() => {});
+    setGreeting(`${toVocative(newName)}! 이름 바꿔줬어. 지금 어떤 상태야?`);
+    return true;
+  };
+
+  const handleCurrentStateSubmit = async () => {
     const value = inputText.trim();
     if (!value) return;
+    if (await applyNameChange(value)) return;
     setSession((prev) => ({ ...prev, currentState: value }));
     setInputText('');
     setStep(STEPS.DESIRED_INPUT);
@@ -203,6 +233,7 @@ const ActionFlow = () => {
   const handleDesiredStateSubmit = async () => {
     const value = inputText.trim();
     if (!value) return;
+    if (await applyNameChange(value)) { setStep(STEPS.CURRENT_INPUT); return; }
     setInputText('');
     setStep(STEPS.SUGGESTING);
 
@@ -292,13 +323,79 @@ const ActionFlow = () => {
       setDoneText('오늘도 시도해줘서 고마워. 작은 한 걸음이 쌓이면 달라져.');
     }
 
-    setTimeout(() => setStep(STEPS.DONE), 1200);
+    setTimeout(() => {
+      setStep(STEPS.DONE);
+      fetch(`${API_URL}/api/identity/eligibility`, { headers: { 'X-User-ID': getUserId() } })
+        .then((r) => r.json())
+        .then((data) => {
+          setIdentityEligible(data.eligible || false);
+          setCycleCount(data.cycle_count || 0);
+        })
+        .catch(() => {});
+    }, 1200);
+  };
+
+  const handleCreateIdentity = async () => {
+    if (!identityEligible) {
+      setGreeting('한 걸음만 더 하면 너만의 단단이를 만들 수 있어!');
+      return;
+    }
+    if (!isAuthenticated()) {
+      setAuthModalOpen(true);
+      return;
+    }
+    const sourceStep = step;
+    setStep(STEPS.IDENTITY_GENERATING);
+    try {
+      const res = await fetch(`${API_URL}/api/identity/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId(), ...getAuthHeaders() },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error('generate failed');
+      setGeneratedIdentity({ ...data.data, _sourceStep: sourceStep });
+      setStep(STEPS.IDENTITY_PREVIEW);
+    } catch {
+      setStep(sourceStep);
+    }
+  };
+
+  const handleSaveIdentity = async () => {
+    if (!generatedIdentity) return;
+    const sourceStep = generatedIdentity._sourceStep || STEPS.DONE;
+    const { _sourceStep, ...payload } = generatedIdentity;
+    try {
+      await fetch(`${API_URL}/api/identity/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId(), ...getAuthHeaders() },
+        body: JSON.stringify(payload),
+      });
+    } catch {}
+    setGeneratedIdentity(null);
+    setIdentityEligible(false);
+    if (sourceStep === STEPS.CURRENT_INPUT) {
+      setGreeting('단단이를 저장했어. 이어서 시작해볼까?');
+      setStep(STEPS.CURRENT_INPUT);
+    } else {
+      setDoneText('단단이를 저장했어. 컬렉션에서 볼 수 있어.');
+      setStep(STEPS.DONE);
+    }
+  };
+
+  const handleSkipIdentity = () => {
+    const sourceStep = generatedIdentity?._sourceStep || STEPS.DONE;
+    setGeneratedIdentity(null);
+    setStep(sourceStep);
   };
 
   const handleRestart = () => {
     setSession(initialSession);
     setInputText('');
     setDoneText('오늘도 한 걸음 했어.');
+    setIdentityEligible(false);
+    setCycleCount(0);
+    setGeneratedIdentity(null);
     setStep(STEPS.CURRENT_INPUT);
     fetchGreeting();
   };
@@ -334,6 +431,7 @@ const ActionFlow = () => {
   }
 
   return (
+    <>
     <SceneLayout imageSrc={sceneImage} overlayText={overlayText} isLoading={isLoading}>
       {showTextInput && (
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -370,12 +468,69 @@ const ActionFlow = () => {
         </Box>
       )}
 
+      {step === STEPS.CURRENT_INPUT && cycleCount >= 2 && (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
+            너만의 단단이를 만들 수 있어
+          </Typography>
+          <Button size="small" variant="outlined" onClick={handleCreateIdentity}>
+            만들기
+          </Button>
+        </Box>
+      )}
+
       {step === STEPS.DONE && (
-        <Button fullWidth variant="contained" color="primary" size="large" onClick={handleRestart}>
-          다시 시작하기
-        </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          {cycleCount === 1 && (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+              지금까지 한 걸음이 쌓이고 있어. 3개가 모이면 너만의 단단이를 만들 수 있어.
+            </Typography>
+          )}
+          {cycleCount === 2 && (
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+              한 걸음만 더 하면 너만의 단단이를 만들 수 있어.
+            </Typography>
+          )}
+          {identityEligible && (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                이 흐름으로 너만의 단단이를 만들 수 있어.
+              </Typography>
+              <Button fullWidth variant="contained" color="primary" size="large" onClick={handleCreateIdentity}>
+                ✨ 나만의 단단이 만들기
+              </Button>
+            </>
+          )}
+          <Button
+            fullWidth
+            variant={identityEligible ? 'outlined' : 'contained'}
+            color="primary"
+            size="large"
+            onClick={handleRestart}
+          >
+            다시 시작하기
+          </Button>
+        </Box>
+      )}
+
+      {step === STEPS.IDENTITY_PREVIEW && generatedIdentity && (
+        <Box>
+          <Typography variant="body1" sx={{ mb: 2, textAlign: 'center', color: 'text.secondary' }}>
+            {generatedIdentity.description}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button fullWidth variant="outlined" onClick={handleSkipIdentity}>
+              나중에
+            </Button>
+            <Button fullWidth variant="contained" color="primary" onClick={handleSaveIdentity}>
+              저장할게
+            </Button>
+          </Box>
+        </Box>
       )}
     </SceneLayout>
+    <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+    </>
   );
 };
 
