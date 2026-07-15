@@ -20,12 +20,12 @@ rm -f "$MSG_FILE" "$IMAGE_FILE"
 
 npm run check --silent > "$OUT_DIR/last-run.json"
 
-PROMPT="너는 '단단이'라는 습관/챌린지 동반자 앱의 프로덕트 기획자야. 방금 Playwright로 실제 배포된 사이트(https://dandani.yetimates.com)를 방문해서 스크린샷을 찍었어.
+PROMPT="너는 '단단이'라는 습관/챌린지 동반자 앱의 프로덕트 기획자야. 방금 Playwright로 실제 배포된 사이트(https://dandani.yetimates.com)를 모바일(iPhone 13) 화면으로 방문해서 스크린샷을 찍었어. 실사용자 대부분이 모바일이라 이 기준으로 봐.
 
 아래 스크린샷들을 Read 도구로 열어서 실제로 봐:
 - ${OUT_DIR}/1-home.png (첫 진입 화면 / 온보딩)
-- ${OUT_DIR}/2-after-challenge-select.png (챌린지 선택 직후)
-- ${OUT_DIR}/3-tab-0.png, 3-tab-1.png, 3-tab-2.png (오늘의 챌린지 / 챌린지 도우미 / 내 기록 탭)
+- ${OUT_DIR}/2-after-challenge-select.png (챌린지 선택 직후 = 오늘의 챌린지 탭 기본 화면)
+- ${OUT_DIR}/3-tab-0.png, 3-tab-1.png (챌린지 도우미 / 내 기록 탭)
 
 그리고 콘솔 에러·페이지 에러·실패한 네트워크 응답 로그도 확인해: ${OUT_DIR}/last-run.json
 
