@@ -15,7 +15,8 @@ source .env
 DATE=$(date -u +%Y-%m-%d)
 OUT_DIR="$(pwd)/out"
 MSG_FILE="$OUT_DIR/last-message.txt"
-rm -f "$MSG_FILE"
+IMAGE_FILE="$OUT_DIR/relevant-image.txt"
+rm -f "$MSG_FILE" "$IMAGE_FILE"
 
 npm run check --silent > "$OUT_DIR/last-run.json"
 
@@ -30,7 +31,9 @@ PROMPT="너는 '단단이'라는 습관/챌린지 동반자 앱의 프로덕트 
 
 이 스크린샷과 로그를 실제로 보고, 사용자 이탈이나 마찰을 만들 만한 구체적인 지점 하나와 개선 아이디어를 짚어. 화면에서 실제로 확인되는 것만 근거로 삼고, 안 보이는 걸 지어내지 마. 특별한 문제가 없으면 없다고 솔직히 말해. 반말로 3~4문장 이내.
 
-이 관찰 문장만 (다른 설명이나 머리말 없이) Write 도구로 ${MSG_FILE} 파일에 그대로 저장해."
+이 관찰 문장만 (다른 설명이나 머리말 없이) Write 도구로 ${MSG_FILE} 파일에 그대로 저장해.
+
+그리고 관찰의 근거가 된 스크린샷 파일명 하나만 (예: 3-tab-0.png, 확장자 포함, 다른 텍스트 없이) Write 도구로 ${IMAGE_FILE} 파일에 저장해."
 
 claude -p "$PROMPT" \
   --allowedTools "Read Write" \
@@ -39,6 +42,14 @@ claude -p "$PROMPT" \
 if [ ! -s "$MSG_FILE" ]; then
   echo "인사이트 파일이 비어있음 — 게시 중단" >&2
   exit 1
+fi
+
+IMAGE_NAME=$(cat "$IMAGE_FILE" 2>/dev/null | tr -d '[:space:]')
+IMAGE_PATH="$OUT_DIR/$IMAGE_NAME"
+if [ -z "$IMAGE_NAME" ] || [ ! -f "$IMAGE_PATH" ]; then
+  echo "관련 스크린샷을 특정 못 함 — 기본값(1-home.png)으로 대체"
+  IMAGE_NAME="1-home.png"
+  IMAGE_PATH="$OUT_DIR/$IMAGE_NAME"
 fi
 
 # JSON 인코딩과 실제 게시는 LLM이 아니라 여기서 결정적으로 처리 (따옴표/이스케이프 오류 방지)
@@ -50,12 +61,12 @@ fs.writeFileSync(process.argv[3], JSON.stringify(payload));
 " "$MSG_FILE" "$DATE" "$OUT_DIR/last-payload.json"
 
 HTTP_CODE=$(curl -s -o "$OUT_DIR/last-response.txt" -w "%{http_code}" \
-  -H 'Content-Type: application/json' \
-  -d @"$OUT_DIR/last-payload.json" \
+  -F "payload_json=<$OUT_DIR/last-payload.json;type=application/json" \
+  -F "files[0]=@$IMAGE_PATH;type=image/png" \
   "$DISCORD_WEBHOOK_URL")
 
-echo "Discord 응답 코드: $HTTP_CODE"
-if [ "$HTTP_CODE" != "204" ]; then
+echo "Discord 응답 코드: $HTTP_CODE (첨부: $IMAGE_NAME)"
+if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "204" ]; then
   cat "$OUT_DIR/last-response.txt"
   exit 1
 fi
