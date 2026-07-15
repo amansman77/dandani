@@ -74,6 +74,11 @@ yarn-error.log*
 .dev.vars
 .vars
 
+# Automation secrets / local run artifacts
+automation/ux-check/.env
+automation/ux-check/out/
+automation/ux-check/node_modules/
+
 # OS generated files
 .DS_Store
 .DS_Store?

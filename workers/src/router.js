@@ -1,4 +1,4 @@
-import { corsHeaders, jsonResponse, logUserEvent } from './core.js';
+import { corsHeaders, getUTCDate, jsonResponse, logUserEvent } from './core.js';
 import {
   getChallengeDetail,
   getChallenges,
@@ -16,6 +16,7 @@ import {
 } from './analytics-service.js';
 import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
+import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -65,6 +66,14 @@ async function handleGet(url, request, env) {
     const reportData = await getDailyReportData(env, targetDate);
     const discordMessage = formatDiscordMessage(reportData);
     return jsonResponse(await sendDiscordMessage(env, discordMessage));
+  }
+  if (url.pathname === '/api/discord/daily-insight') {
+    const insight = await generateDailyInsight(env);
+    if (!insight) {
+      return jsonResponse({ skipped: true, reason: 'ux category is handled by local Playwright automation' });
+    }
+    const discordMessage = formatInsightMessage(insight.category, insight.insightText, getUTCDate());
+    return jsonResponse({ ...insight, ...(await sendDiscordMessage(env, discordMessage)) });
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }
