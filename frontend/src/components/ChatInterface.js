@@ -42,6 +42,7 @@ const MessageBubble = styled(Box, {
   shouldForwardProp: (prop) => prop !== 'isUser',
 })(({ theme, isUser }) => ({
   display: 'flex',
+  width: '100%',
   justifyContent: isUser ? 'flex-end' : 'flex-start',
   marginBottom: theme.spacing(2),
 }));
