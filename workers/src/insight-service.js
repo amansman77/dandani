@@ -23,30 +23,66 @@ function getRotationCategory(date = new Date()) {
   return CATEGORIES[dayIndex % CATEGORIES.length];
 }
 
-async function callLLM(env, userMessage, maxTokens = 400) {
-  const response = await fetch(NVIDIA_API_URL, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'Authorization': `Bearer ${env.NVIDIA_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-    }),
-  });
+const LLM_MAX_ATTEMPTS = 2;
+const LLM_RETRY_DELAY_MS = 1500;
+const LLM_ATTEMPT_TIMEOUT_MS = 15000;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`NVIDIA API error: ${response.status} - ${errorText}`);
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callLLMOnce(env, userMessage, maxTokens) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), LLM_ATTEMPT_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(NVIDIA_API_URL, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'content-type': 'application/json',
+        'Authorization': `Bearer ${env.NVIDIA_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userMessage },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`NVIDIA API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function callLLM(env, userMessage, maxTokens = 400) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= LLM_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await callLLMOnce(env, userMessage, maxTokens);
+    } catch (error) {
+      lastError = error.name === 'AbortError'
+        ? new Error(`NVIDIA API timeout after ${LLM_ATTEMPT_TIMEOUT_MS}ms`)
+        : error;
+      console.error(`NVIDIA API 호출 실패 (시도 ${attempt}/${LLM_MAX_ATTEMPTS}):`, lastError.message);
+      if (attempt < LLM_MAX_ATTEMPTS) {
+        await sleep(LLM_RETRY_DELAY_MS * attempt);
+      }
+    }
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content.trim();
+  throw lastError;
 }
 
 async function buildDataPrompt(env) {

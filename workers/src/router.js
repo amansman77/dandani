@@ -113,13 +113,13 @@ export async function handleRequest(request, env) {
 
   try {
     if (request.method === 'GET') {
-      return handleGet(url, request, env);
+      return await handleGet(url, request, env);
     }
     if (request.method === 'POST') {
-      return handlePost(url, request, env);
+      return await handlePost(url, request, env);
     }
     if (request.method === 'PUT') {
-      return handlePut(url, request, env);
+      return await handlePut(url, request, env);
     }
     return jsonResponse({ error: 'Method Not Allowed' }, 405);
   } catch (error) {
