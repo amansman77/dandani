@@ -2,7 +2,7 @@ import { getUTCDate } from './core.js';
 import { calculateRetentionMetrics, getDailyReportData } from './analytics-service.js';
 
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
-const MODEL = 'meta/llama-4-maverick-17b-128e-instruct';
+const MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
 
 const CATEGORIES = ['data', 'ux', 'growth', 'interview'];
 
