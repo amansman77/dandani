@@ -50,7 +50,9 @@ const MessageBubble = styled(Box, {
 const MessageContent = styled(Paper, {
   shouldForwardProp: (prop) => prop !== 'isUser',
 })(({ theme, isUser }) => ({
-  maxWidth: '70%',
+  // %는 flex item의 shrink-to-fit(내용 기반 고유 너비) 계산에 반영이 안 돼서
+  // 실제 렌더 너비보다 부모 박스가 넓게 잡히는 문제가 있었다 (vw는 뷰포트 기준이라 그 문제가 없음).
+  maxWidth: '70vw',
   padding: theme.spacing(1.5, 2),
   backgroundColor: isUser ? theme.palette.primary.main : theme.palette.background.paper,
   color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
