@@ -81,6 +81,7 @@ const StoryFeed = () => {
   const [tryResult, setTryResult] = useState(null);
   const [trying, setTrying] = useState(false);
   const [feelingSheetOpen, setFeelingSheetOpen] = useState(false);
+  const [feelingSaved, setFeelingSaved] = useState(false);
 
   useEffect(() => {
     fetchFeed();
@@ -125,6 +126,7 @@ const StoryFeed = () => {
       });
       if (!response.ok) throw new Error(`Failed to record try: ${response.status}`);
       setTryResult(await response.json());
+      setFeelingSaved(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -175,14 +177,21 @@ const StoryFeed = () => {
                 {tryResult.practice.description}
               </Typography>
             )}
-            <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
-              <Typography
-                variant="button"
-                sx={{ cursor: 'pointer', color: 'primary.main' }}
-                onClick={() => setFeelingSheetOpen(true)}
-              >
-                지금 느낌 남기기
+            {feelingSaved && (
+              <Typography variant="body2" sx={{ mt: 2, textAlign: 'center', color: 'success.main' }}>
+                오늘의 느낌을 남겼어요
               </Typography>
+            )}
+            <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
+              {!feelingSaved && (
+                <Typography
+                  variant="button"
+                  sx={{ cursor: 'pointer', color: 'primary.main' }}
+                  onClick={() => setFeelingSheetOpen(true)}
+                >
+                  지금 느낌 남기기
+                </Typography>
+              )}
               <Typography
                 variant="button"
                 sx={{ cursor: 'pointer', color: 'text.secondary' }}
@@ -197,7 +206,7 @@ const StoryFeed = () => {
             tryId={tryResult.tryId}
             practiceTitle={tryResult.practice.title}
             onClose={() => setFeelingSheetOpen(false)}
-            onSaved={() => {}}
+            onSaved={() => setFeelingSaved(true)}
             onError={(err) => setError(err.message)}
           />
         </Box>
