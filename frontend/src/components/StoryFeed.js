@@ -12,6 +12,20 @@ import StoryFeelingSheet from './StoryFeelingSheet';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr.replace(' ', 'T') + 'Z');
+  const diffMin = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (diffMin < 60) return diffMin <= 1 ? '방금' : `${diffMin}분 전`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return `${diffDay}일 전`;
+  const diffMonth = Math.floor(diffDay / 30);
+  if (diffMonth < 12) return `${diffMonth}개월 전`;
+  return `${Math.floor(diffMonth / 12)}년 전`;
+}
+
 const StoryCard = styled(Paper)(({ theme }) => ({
   position: 'relative',
   padding: theme.spacing(3.5, 3, 3),
@@ -40,6 +54,15 @@ const PracticePreview = styled(Typography)(({ theme }) => ({
   marginTop: theme.spacing(1),
   color: theme.palette.text.secondary,
   fontSize: '0.85rem',
+}));
+
+const CardTimestamp = styled(Typography)(({ theme }) => ({
+  position: 'absolute',
+  top: theme.spacing(1.5),
+  right: theme.spacing(2),
+  color: theme.palette.text.secondary,
+  opacity: 0.6,
+  fontSize: '0.75rem',
 }));
 
 const EmptyState = styled(Box)(({ theme }) => ({
@@ -249,6 +272,11 @@ const StoryFeed = () => {
       ) : (
         stories.map((story) => (
           <StoryCard key={story.id} elevation={0} onClick={() => openStory(story.id)}>
+            {story.created_at && (
+              <CardTimestamp variant="caption">
+                {formatRelativeTime(story.created_at)} 남겨진 이야기
+              </CardTimestamp>
+            )}
             <Typography variant="body1" sx={{ lineHeight: 1.7 }}>{story.title}</Typography>
             {story.practice_title && (
               <PracticePreview variant="body2">
