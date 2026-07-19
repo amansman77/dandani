@@ -1,21 +1,9 @@
 import React from 'react';
-import { Alert, Box, IconButton, Tab, Tabs, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, IconButton, Tooltip, Typography } from '@mui/material';
 import { Help as HelpIcon } from '@mui/icons-material';
-
-const tabStyle = {
-  fontSize: '1.1rem',
-  fontWeight: 'bold',
-  color: 'text.primary',
-  '&.Mui-selected': {
-    color: 'primary.main',
-    fontWeight: 700
-  }
-};
 
 const AppHeaderSection = ({
   isNonKoreanUser,
-  activeTab,
-  onTabChange,
   onRestartOnboarding
 }) => {
   return (
@@ -60,13 +48,6 @@ const AppHeaderSection = ({
           이 서비스는 한국어로 제공됩니다.
         </Alert>
       )}
-
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeTab} onChange={onTabChange} centered>
-          <Tab label="이야기" sx={tabStyle} />
-          <Tab label="내 피드" sx={tabStyle} />
-        </Tabs>
-      </Box>
     </>
   );
 };

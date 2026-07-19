@@ -9,6 +9,7 @@ import EnvelopeModal from './components/EnvelopeModal';
 import EnvelopeList from './components/EnvelopeList';
 import AlertModal from './components/AlertModal';
 import AppHeaderSection from './components/AppHeaderSection';
+import AppBottomNav from './components/AppBottomNav';
 import StoryFeed from './components/StoryFeed';
 import { useChallengeData } from './hooks/useChallengeData';
 import { usePracticeCardAnimation } from './hooks/usePracticeCardAnimation';
@@ -376,12 +377,11 @@ function App() {
   }
 
   return (
+    <>
     <Container maxWidth="lg">
-      <Box sx={{ py: 4 }}>
+      <Box sx={{ pt: 4, pb: 10 }}>
         <AppHeaderSection
           isNonKoreanUser={isNonKoreanUser}
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
           onRestartOnboarding={handleRestartOnboarding}
         />
 
@@ -475,7 +475,9 @@ function App() {
 
       </Box>
     </Container>
+    <AppBottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+    </>
   );
 }
 
-export default App; 
+export default App;
