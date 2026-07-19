@@ -182,7 +182,21 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
         </StyledPaper>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, pt: 1 }}>
+      <DialogActions sx={{ p: 3, pt: 1, flexDirection: 'column', gap: 1.5 }}>
+        <Button
+          onClick={handleNext}
+          variant="contained"
+          fullWidth
+          sx={{
+            textTransform: 'none',
+            borderRadius: 2,
+            py: 1,
+            fontWeight: 'bold'
+          }}
+        >
+          {activeStep === ONBOARDING_STEPS.length - 1 ? '지금 1분만 해보기' : '다음'}
+        </Button>
+
         <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <Button
             onClick={handleBack}
@@ -195,31 +209,15 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
             이전
           </Button>
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              onClick={handleSkip}
-              sx={{
-                textTransform: 'none',
-                color: 'text.secondary'
-              }}
-            >
-              건너뛰기
-            </Button>
-
-            <Button
-              onClick={handleNext}
-              variant="contained"
-              sx={{
-                textTransform: 'none',
-                borderRadius: 2,
-                px: 3,
-                py: 1,
-                fontWeight: 'bold'
-              }}
-            >
-              {activeStep === ONBOARDING_STEPS.length - 1 ? '지금 1분만 해보기' : '다음'}
-            </Button>
-          </Box>
+          <Button
+            onClick={handleSkip}
+            sx={{
+              textTransform: 'none',
+              color: 'text.secondary'
+            }}
+          >
+            건너뛰기
+          </Button>
         </Box>
       </DialogActions>
     </StyledDialog>
