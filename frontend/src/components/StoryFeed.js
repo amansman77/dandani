@@ -13,11 +13,23 @@ import StoryFeelingSheet from './StoryFeelingSheet';
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 const StoryCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2.5),
-  marginBottom: theme.spacing(2),
+  position: 'relative',
+  padding: theme.spacing(3.5, 3, 3),
+  marginBottom: theme.spacing(2.5),
   cursor: 'pointer',
   textAlign: 'left',
+  borderRadius: 16,
+  border: `1px solid ${theme.palette.divider}`,
   transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+  '&::before': {
+    content: '"\\201C"',
+    position: 'absolute',
+    top: 4,
+    left: 16,
+    fontSize: '2.5rem',
+    lineHeight: 1,
+    color: theme.palette.divider,
+  },
   '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: theme.shadows[4],
@@ -245,8 +257,8 @@ const StoryFeed = () => {
         </EmptyState>
       ) : (
         stories.map((story) => (
-          <StoryCard key={story.id} onClick={() => openStory(story.id)}>
-            <Typography variant="body1">{story.title}</Typography>
+          <StoryCard key={story.id} elevation={0} onClick={() => openStory(story.id)}>
+            <Typography variant="body1" sx={{ lineHeight: 1.7 }}>{story.title}</Typography>
             {story.practice_title && (
               <PracticePreview variant="body2">
                 오늘의 한 걸음 · {story.practice_title}
