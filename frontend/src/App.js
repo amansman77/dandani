@@ -10,7 +10,7 @@ import EnvelopeModal from './components/EnvelopeModal';
 import EnvelopeList from './components/EnvelopeList';
 import AlertModal from './components/AlertModal';
 import AppHeaderSection from './components/AppHeaderSection';
-import TodayChallengeTab from './components/TodayChallengeTab';
+import StoryFeed from './components/StoryFeed';
 import { useChallengeData } from './hooks/useChallengeData';
 import { usePracticeCardAnimation } from './hooks/usePracticeCardAnimation';
 import { useRetentionState } from './hooks/useRetentionState';
@@ -390,28 +390,7 @@ function App() {
         />
 
         {activeTab === 0 && !showCurrentChallengeDetail && (
-          <TodayChallengeTab
-            showChallengeSelector={showChallengeSelector}
-            selectedChallengeId={selectedChallengeId}
-            currentChallenge={currentChallenge}
-            userState={userState}
-            practice={practice}
-            hasDetailedRecord={hasDetailedRecord}
-            celebrationShown={celebrationShown}
-            yesterdayRecord={yesterdayRecord}
-            practiceCardRef={practiceCardRef}
-            practiceCardInnerRef={practiceCardInnerRef}
-            practiceCardHeight={practiceCardHeight}
-            shouldAnimateCard={shouldAnimateCard}
-            isMeasuringHeight={isMeasuringHeight}
-            onChallengeSelected={handleChallengeSelected}
-            onOpenCompletionFlow={handleOpenCompletionFlow}
-            onOpenRecordModal={() => setRecordModalOpen(true)}
-            onViewCurrentChallenge={handleViewCurrentChallenge}
-            onCreateEnvelope={handleCreateEnvelope}
-            onViewEnvelopeList={handleViewEnvelopeList}
-            onChallengeCompletion={handleChallengeCompletion}
-          />
+          <StoryFeed onOpenChat={() => setActiveTab(1)} />
         )}
 
         {activeTab === 1 && (

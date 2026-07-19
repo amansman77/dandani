@@ -17,6 +17,7 @@ import {
 import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
+import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing } from './story-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -46,6 +47,16 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname.startsWith('/api/timefold/envelope/')) {
     return jsonResponse(await getTimefoldEnvelope(request));
+  }
+  if (url.pathname === '/api/stories') {
+    return jsonResponse(await getStoryFeed(env));
+  }
+  if (url.pathname === '/api/stories/debug-ping') {
+    return jsonResponse(await debugNvidiaPing(env));
+  }
+  if (url.pathname.startsWith('/api/stories/')) {
+    const storyId = url.pathname.split('/')[3];
+    return jsonResponse(await getStoryDetail(env, storyId));
   }
   if (url.pathname === '/api/analytics/retention') {
     return jsonResponse(await calculateRetentionMetrics(env));
@@ -93,6 +104,16 @@ async function handlePost(url, request, env) {
     const { event_type, event_data } = body;
     await logUserEvent(env, request, event_type, event_data);
     return jsonResponse({ success: true });
+  }
+  if (url.pathname.match(/^\/api\/stories\/[^/]+\/try$/)) {
+    const storyId = url.pathname.split('/')[3];
+    return jsonResponse(await tryStory(env, storyId, request));
+  }
+  if (url.pathname === '/api/stories/seed') {
+    const params = new URL(request.url).searchParams;
+    const count = parseInt(params.get('count'), 10) || 12;
+    const offset = parseInt(params.get('offset'), 10) || 0;
+    return jsonResponse(await seedAiStories(env, count, offset));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }
