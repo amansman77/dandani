@@ -4,7 +4,7 @@ import ChatInterface from './components/ChatInterface';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeCompletionModal from './components/PracticeCompletionModal';
-import PracticeHistory from './components/PracticeHistory';
+import MyFeed from './components/MyFeed';
 import OnboardingModal from './components/OnboardingModal';
 import EnvelopeModal from './components/EnvelopeModal';
 import EnvelopeList from './components/EnvelopeList';
@@ -402,15 +402,7 @@ function App() {
           />
         )}
 
-        {activeTab === 2 && (
-          <PracticeHistory 
-            challengeId={selectedChallengeId || currentChallenge?.id}
-            onViewRecord={(record) => {
-              // 기록 상세 보기 기능 (필요시 구현)
-              console.log('View record:', record);
-            }}
-          />
-        )}
+        {activeTab === 2 && <MyFeed />}
 
 
         {/* 현재 챌린지 상세보기 */}

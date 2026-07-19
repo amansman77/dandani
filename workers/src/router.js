@@ -17,7 +17,7 @@ import {
 import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
-import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing } from './story-service.js';
+import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed } from './story-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -53,6 +53,9 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname === '/api/stories/debug-ping') {
     return jsonResponse(await debugNvidiaPing(env));
+  }
+  if (url.pathname === '/api/my-feed') {
+    return jsonResponse(await getMyStoryFeed(env, request));
   }
   if (url.pathname.startsWith('/api/stories/')) {
     const storyId = url.pathname.split('/')[3];

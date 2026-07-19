@@ -140,6 +140,26 @@ export async function getStoryDetail(env, storyId) {
   return story;
 }
 
+export async function getMyStoryFeed(env, request) {
+  const userId = getRequiredUserId(request);
+
+  const { results } = await env.DB.prepare(`
+    SELECT
+      story_tries.id AS try_id,
+      story_tries.tried_at,
+      stories.id AS story_id,
+      stories.title AS story_title,
+      stories.practice_title,
+      stories.practice_description
+    FROM story_tries
+    JOIN stories ON stories.id = story_tries.story_id
+    WHERE story_tries.user_id = ?
+    ORDER BY story_tries.tried_at DESC
+  `).bind(userId).all();
+
+  return { tries: results };
+}
+
 export async function tryStory(env, storyId, request) {
   const userId = getRequiredUserId(request);
 
