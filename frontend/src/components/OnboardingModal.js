@@ -21,11 +21,13 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
     padding: theme.spacing(2),
     maxWidth: '500px',
     width: '100%',
+    margin: theme.spacing(1),
+    maxHeight: 'calc(100% - 16px)',
   },
 }));
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
+  padding: theme.spacing(3),
   textAlign: 'center',
   borderRadius: '16px',
   background: 'linear-gradient(135deg, #f5f7fa 0%, #dfe8f5 100%)',
@@ -36,7 +38,7 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 const ONBOARDING_STEPS = [
   {
     title: '감정이 쉽게 흔들리는 날이 많다면',
-    content: '하루 1분, 나와 닮은 이야기 하나를 읽어보세요\n\n단단이는\n다른 사람의 이야기 속 작은 실천으로\n나를 돌아보는 서비스입니다',
+    content: '하루 1분,\n나와 닮은 이야기 속 작은 실천을 만나보세요\n\n단단이는\n그렇게 나를 돌아보는 서비스입니다',
     checklist: [
       '감정이 쉽게 흔들릴 때가 있다면',
       '혼자 정리할 시간이 필요하다면',
@@ -95,7 +97,7 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
       disableRestoreFocus
     >
       <DialogContent sx={{ p: 0 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 1, py: 0.5 }}>
           <IconButton
             onClick={handleSkip}
             size="small"
@@ -108,14 +110,16 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
           </IconButton>
         </Box>
 
-        <Typography
-          variant="body2"
-          sx={{ textAlign: 'center', color: 'text.secondary', opacity: 0.8, px: 3, mb: 1 }}
-        >
-          감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
-        </Typography>
+        {activeStep === 0 && (
+          <Typography
+            variant="body2"
+            sx={{ textAlign: 'center', color: 'text.secondary', opacity: 0.8, px: 3, mb: 0.5 }}
+          >
+            감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
+          </Typography>
+        )}
 
-        <Box sx={{ px: 3, pb: 2 }}>
+        <Box sx={{ px: 3, pb: 1 }}>
           <Stepper activeStep={activeStep} alternativeLabel>
             {ONBOARDING_STEPS.map((step, index) => (
               <Step key={index}>
@@ -163,18 +167,18 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
           </Typography>
 
           {currentStep.checklist && currentStep.checklist.length > 0 && (
-            <Box sx={{ mt: 3, textAlign: 'left' }}>
+            <Box sx={{ mt: 1.5, textAlign: 'left' }}>
               {currentStep.checklist.map((item) => (
                 <Typography
                   key={item}
                   variant="body2"
                   sx={{
-                    mb: 0.8,
+                    mb: 0.5,
                     color: 'text.primary',
                     fontWeight: 500
                   }}
                 >
-                  {`✔ ${item}`}
+                  {`- ${item}`}
                 </Typography>
               ))}
             </Box>
@@ -182,7 +186,7 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
         </StyledPaper>
       </DialogContent>
 
-      <DialogActions sx={{ p: 3, pt: 1, flexDirection: 'column', gap: 1.5 }}>
+      <DialogActions sx={{ p: 2, pt: 0.5, flexDirection: 'column', gap: 1 }}>
         <Button
           onClick={handleNext}
           variant="contained"
