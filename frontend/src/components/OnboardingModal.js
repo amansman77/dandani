@@ -108,6 +108,13 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
           </IconButton>
         </Box>
 
+        <Typography
+          variant="body2"
+          sx={{ textAlign: 'center', color: 'text.secondary', opacity: 0.8, px: 3, mb: 1 }}
+        >
+          감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
+        </Typography>
+
         <Box sx={{ px: 3, pb: 2 }}>
           <Stepper activeStep={activeStep} alternativeLabel>
             {ONBOARDING_STEPS.map((step, index) => (

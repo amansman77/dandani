@@ -8,20 +8,9 @@ const AppHeaderSection = ({
 }) => {
   return (
     <>
-      <Box sx={{ position: 'relative', textAlign: 'center', mb: 2 }}>
+      <Box sx={{ position: 'relative', textAlign: 'center', mb: 1.5 }}>
         <Typography variant="subtitle1" component="h1" sx={{ fontWeight: 'bold' }}>
           단단이
-        </Typography>
-        <Typography
-          variant="body2"
-          color="text.primary"
-          sx={{
-            fontWeight: 500,
-            opacity: 0.75,
-            mt: 0.25
-          }}
-        >
-          감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
         </Typography>
 
         <Tooltip title="온보딩 다시 보기 (Ctrl+Shift+H)">
