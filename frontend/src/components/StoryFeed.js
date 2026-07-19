@@ -43,7 +43,7 @@ const PracticePreview = styled(Typography)(({ theme }) => ({
 }));
 
 const IntroText = styled(Typography)(({ theme }) => ({
-  textAlign: 'left',
+  textAlign: 'center',
   marginBottom: theme.spacing(3),
   color: theme.palette.text.secondary,
 }));

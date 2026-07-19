@@ -379,7 +379,7 @@ function App() {
   return (
     <>
     <Container maxWidth="lg">
-      <Box sx={{ pt: 4, pb: 10 }}>
+      <Box sx={{ pt: 2, pb: 10 }}>
         <AppHeaderSection
           isNonKoreanUser={isNonKoreanUser}
           onRestartOnboarding={handleRestartOnboarding}

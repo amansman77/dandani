@@ -8,19 +8,17 @@ const AppHeaderSection = ({
 }) => {
   return (
     <>
-      <Box sx={{ position: 'relative', textAlign: 'center' }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+      <Box sx={{ position: 'relative', textAlign: 'center', mb: 2 }}>
+        <Typography variant="subtitle1" component="h1" sx={{ fontWeight: 'bold' }}>
           단단이
         </Typography>
         <Typography
-          variant="h6"
+          variant="body2"
           color="text.primary"
-          gutterBottom
           sx={{
-            fontWeight: 600,
-            fontSize: '1.1rem',
-            opacity: 0.8,
-            textAlign: 'left'
+            fontWeight: 500,
+            opacity: 0.75,
+            mt: 0.25
           }}
         >
           감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
@@ -29,6 +27,7 @@ const AppHeaderSection = ({
         <Tooltip title="온보딩 다시 보기 (Ctrl+Shift+H)">
           <IconButton
             onClick={onRestartOnboarding}
+            size="small"
             sx={{
               position: 'absolute',
               top: 0,
@@ -39,13 +38,13 @@ const AppHeaderSection = ({
               }
             }}
           >
-            <HelpIcon />
+            <HelpIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
 
       {isNonKoreanUser && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
           이 서비스는 한국어로 제공됩니다.
         </Alert>
       )}
