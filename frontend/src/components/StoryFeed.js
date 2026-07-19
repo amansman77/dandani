@@ -24,6 +24,12 @@ const StoryCard = styled(Paper)(({ theme }) => ({
   },
 }));
 
+const PracticePreview = styled(Typography)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  color: theme.palette.text.secondary,
+  fontSize: '0.85rem',
+}));
+
 const IntroText = styled(Typography)(({ theme }) => ({
   textAlign: 'left',
   marginBottom: theme.spacing(3),
@@ -241,6 +247,11 @@ const StoryFeed = () => {
         stories.map((story) => (
           <StoryCard key={story.id} onClick={() => openStory(story.id)}>
             <Typography variant="body1">{story.title}</Typography>
+            {story.practice_title && (
+              <PracticePreview variant="body2">
+                오늘의 한 걸음 · {story.practice_title}
+              </PracticePreview>
+            )}
           </StoryCard>
         ))
       )}

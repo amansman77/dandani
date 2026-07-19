@@ -27,7 +27,7 @@ function generateFeelingMessage(emotion) {
 }
 
 const StoryFeelingSheet = ({ open, tryId, practiceTitle, onClose, onSaved, onError }) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(2);
   const [selectedEmotion, setSelectedEmotion] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -39,7 +39,7 @@ const StoryFeelingSheet = ({ open, tryId, practiceTitle, onClose, onSaved, onErr
   };
 
   const reset = () => {
-    setStep(1);
+    setStep(2);
     setSelectedEmotion('');
   };
 
@@ -86,23 +86,15 @@ const StoryFeelingSheet = ({ open, tryId, practiceTitle, onClose, onSaved, onErr
       PaperProps={{ sx: { borderTopLeftRadius: 16, borderTopRightRadius: 16 } }}
     >
       <Box sx={{ p: 3, maxWidth: 720, mx: 'auto', width: '100%' }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+        <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
           오늘의 느낌
         </Typography>
 
-        {step === 1 && (
-          <Box>
-            <Typography variant="body1" sx={{ mb: 2, whiteSpace: 'pre-line' }}>
-              {`방금 "${practiceTitle}"를 해보셨네요 🙂\n어떤 느낌이었나요?`}
-            </Typography>
-            <Button variant="contained" onClick={() => setStep(2)}>
-              이어서 답하기
-            </Button>
-          </Box>
-        )}
-
         {step === 2 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              {`"${practiceTitle}", 어떤 느낌이었나요?`}
+            </Typography>
             {EMOTION_OPTIONS.map((option) => (
               <Button
                 key={option.value}

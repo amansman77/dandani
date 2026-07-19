@@ -117,7 +117,7 @@ export async function seedAiStories(env, count = 12, offset = 0) {
 
 export async function getStoryFeed(env) {
   const { results } = await env.DB.prepare(`
-    SELECT id, title, author_type, created_at
+    SELECT id, title, practice_title, author_type, created_at
     FROM stories
     WHERE status = 'published'
     ORDER BY created_at DESC
