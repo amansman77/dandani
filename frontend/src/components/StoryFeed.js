@@ -25,7 +25,7 @@ const StoryCard = styled(Paper)(({ theme }) => ({
 }));
 
 const IntroText = styled(Typography)(({ theme }) => ({
-  textAlign: 'center',
+  textAlign: 'left',
   marginBottom: theme.spacing(3),
   color: theme.palette.text.secondary,
 }));
@@ -128,15 +128,15 @@ const StoryFeed = () => {
     if (tryResult) {
       return (
         <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
-          <Paper sx={{ p: 4, textAlign: 'center' }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 4 }}>
+            <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>
               오늘의 한 걸음을 시작했어요 🌱
             </Typography>
-            <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>
+            <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap', textAlign: 'left' }}>
               {tryResult.practice.title}
             </Typography>
             {tryResult.practice.description && (
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: 'left' }}>
                 {tryResult.practice.description}
               </Typography>
             )}

@@ -19,7 +19,8 @@ const AppHeaderSection = ({
           sx={{
             fontWeight: 600,
             fontSize: '1.1rem',
-            opacity: 0.8
+            opacity: 0.8,
+            textAlign: 'left'
           }}
         >
           감정적으로 힘들 때 중심을 잃지 않게 해주는 동반자
