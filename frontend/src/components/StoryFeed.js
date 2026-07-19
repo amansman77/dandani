@@ -12,15 +12,35 @@ import { getUserId } from '../utils/userId';
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 const StoryCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
+  padding: theme.spacing(2.5),
   marginBottom: theme.spacing(2),
   cursor: 'pointer',
-  textAlign: 'center',
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(2),
   transition: 'transform 0.15s ease, box-shadow 0.15s ease',
   '&:hover': {
     transform: 'translateY(-2px)',
     boxShadow: theme.shadows[4],
   },
+}));
+
+const EmojiBadge = styled(Box)(({ theme }) => ({
+  width: 44,
+  height: 44,
+  minWidth: 44,
+  borderRadius: '50%',
+  backgroundColor: theme.palette.grey[100],
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '1.4rem',
+}));
+
+const IntroText = styled(Typography)(({ theme }) => ({
+  textAlign: 'center',
+  marginBottom: theme.spacing(3),
+  color: theme.palette.text.secondary,
 }));
 
 const EmptyState = styled(Box)(({ theme }) => ({
@@ -163,6 +183,7 @@ const StoryFeed = ({ onOpenChat }) => {
           ← 목록으로
         </Typography>
         <Paper sx={{ p: 4 }}>
+          <EmojiBadge sx={{ mb: 2 }}>{detail.emoji || '🌱'}</EmojiBadge>
           <Typography variant="h6" gutterBottom>
             {detail.title}
           </Typography>
@@ -209,6 +230,9 @@ const StoryFeed = ({ onOpenChat }) => {
   // Story Feed 목록 화면
   return (
     <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
+      <IntroText variant="body2">
+        나와 닮은 이야기를 찾아보세요. 그 사람이 남긴 작은 실천을 함께 해볼 수 있어요.
+      </IntroText>
       {(!stories || stories.length === 0) ? (
         <EmptyState>
           <Typography variant="h6" gutterBottom>
@@ -221,7 +245,8 @@ const StoryFeed = ({ onOpenChat }) => {
       ) : (
         stories.map((story) => (
           <StoryCard key={story.id} onClick={() => openStory(story.id)}>
-            <Typography variant="body1">{story.title}</Typography>
+            <EmojiBadge>{story.emoji || '🌱'}</EmojiBadge>
+            <Typography variant="body1" sx={{ textAlign: 'left' }}>{story.title}</Typography>
           </StoryCard>
         ))
       )}
