@@ -42,12 +42,6 @@ const PracticePreview = styled(Typography)(({ theme }) => ({
   fontSize: '0.85rem',
 }));
 
-const IntroText = styled(Typography)(({ theme }) => ({
-  textAlign: 'center',
-  marginBottom: theme.spacing(3),
-  color: theme.palette.text.secondary,
-}));
-
 const EmptyState = styled(Box)(({ theme }) => ({
   textAlign: 'center',
   padding: theme.spacing(4),
@@ -243,9 +237,6 @@ const StoryFeed = () => {
   // Story Feed 목록 화면
   return (
     <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
-      <IntroText variant="body2">
-        나와 닮은 이야기를 찾아보세요. 그 사람이 남긴 작은 실천을 함께 해볼 수 있어요.
-      </IntroText>
       {(!stories || stories.length === 0) ? (
         <EmptyState>
           <Typography variant="h6" gutterBottom>
