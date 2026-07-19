@@ -37,6 +37,13 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 
 [상세 내용](./0003-challenge-model-unification.md)
 
+### ADR-PROD-011: Story Feed Platform
+**Status**: 제안 (2026-07-19)
+
+챌린지 중심 구조("오늘의 챌린지 → 실천 → 기록")를 Story Feed 중심 구조로 전환하는 제안입니다. 사용자가 홈에서 처음 마주하는 것을 챌린지가 아니라 타인의 삶의 이야기(Story)로 바꾸고, 공감되는 이야기를 발견하면 그 사람이 남긴 작은 실천(Story Challenge)을 따라 하도록 합니다. 초기엔 AI가 Story를 채우고, 사용자 Story가 늘어날수록 Story Feed의 중심이 사용자에게 이동하는 성장 경로를 정의합니다.
+
+[상세 내용](./ADR-PROD-011-story-feed-platform.md)
+
 ## ADR 작성 가이드
 
 새로운 ADR을 작성할 때는 다음 템플릿을 사용하세요:
