@@ -1,0 +1,1 @@
+ALTER TABLE stories ADD COLUMN category TEXT DEFAULT '마음';

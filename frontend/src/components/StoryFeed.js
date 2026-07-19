@@ -15,9 +15,7 @@ const StoryCard = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2.5),
   marginBottom: theme.spacing(2),
   cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(2),
+  textAlign: 'left',
   transition: 'transform 0.15s ease, box-shadow 0.15s ease',
   '&:hover': {
     transform: 'translateY(-2px)',
@@ -25,16 +23,12 @@ const StoryCard = styled(Paper)(({ theme }) => ({
   },
 }));
 
-const EmojiBadge = styled(Box)(({ theme }) => ({
-  width: 44,
-  height: 44,
-  minWidth: 44,
-  borderRadius: '50%',
-  backgroundColor: theme.palette.grey[100],
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  fontSize: '1.4rem',
+const CategoryTag = styled(Typography)(({ theme }) => ({
+  display: 'block',
+  marginBottom: theme.spacing(0.5),
+  color: theme.palette.text.secondary,
+  fontSize: '0.75rem',
+  letterSpacing: '0.05em',
 }));
 
 const IntroText = styled(Typography)(({ theme }) => ({
@@ -183,7 +177,9 @@ const StoryFeed = ({ onOpenChat }) => {
           ← 목록으로
         </Typography>
         <Paper sx={{ p: 4 }}>
-          <EmojiBadge sx={{ mb: 2 }}>{detail.emoji || '🌱'}</EmojiBadge>
+          {detail.category && (
+            <CategoryTag variant="overline">{detail.category}</CategoryTag>
+          )}
           <Typography variant="h6" gutterBottom>
             {detail.title}
           </Typography>
@@ -245,8 +241,10 @@ const StoryFeed = ({ onOpenChat }) => {
       ) : (
         stories.map((story) => (
           <StoryCard key={story.id} onClick={() => openStory(story.id)}>
-            <EmojiBadge>{story.emoji || '🌱'}</EmojiBadge>
-            <Typography variant="body1" sx={{ textAlign: 'left' }}>{story.title}</Typography>
+            {story.category && (
+              <CategoryTag variant="overline">{story.category}</CategoryTag>
+            )}
+            <Typography variant="body1">{story.title}</Typography>
           </StoryCard>
         ))
       )}
