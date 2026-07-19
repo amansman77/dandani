@@ -23,14 +23,6 @@ const StoryCard = styled(Paper)(({ theme }) => ({
   },
 }));
 
-const CategoryTag = styled(Typography)(({ theme }) => ({
-  display: 'block',
-  marginBottom: theme.spacing(0.5),
-  color: theme.palette.text.secondary,
-  fontSize: '0.75rem',
-  letterSpacing: '0.05em',
-}));
-
 const IntroText = styled(Typography)(({ theme }) => ({
   textAlign: 'center',
   marginBottom: theme.spacing(3),
@@ -177,9 +169,6 @@ const StoryFeed = ({ onOpenChat }) => {
           ← 목록으로
         </Typography>
         <Paper sx={{ p: 4 }}>
-          {detail.category && (
-            <CategoryTag variant="overline">{detail.category}</CategoryTag>
-          )}
           <Typography variant="h6" gutterBottom>
             {detail.title}
           </Typography>
@@ -241,9 +230,6 @@ const StoryFeed = ({ onOpenChat }) => {
       ) : (
         stories.map((story) => (
           <StoryCard key={story.id} onClick={() => openStory(story.id)}>
-            {story.category && (
-              <CategoryTag variant="overline">{story.category}</CategoryTag>
-            )}
             <Typography variant="body1">{story.title}</Typography>
           </StoryCard>
         ))
