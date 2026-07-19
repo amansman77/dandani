@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Box, Typography, CircularProgress } from '@mui/material';
-import ChatInterface from './components/ChatInterface';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeCompletionModal from './components/PracticeCompletionModal';
@@ -35,10 +34,7 @@ function App() {
     shouldAnimateCard,
     isMeasuringHeight
   } = usePracticeCardAnimation(practice);
-  
-  // 채팅 관련 상태를 App.js에서 관리
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatSessionId] = useState(`dandani-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [recordModalOpen, setRecordModalOpen] = useState(false);
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
@@ -390,19 +386,10 @@ function App() {
         />
 
         {activeTab === 0 && !showCurrentChallengeDetail && (
-          <StoryFeed onOpenChat={() => setActiveTab(1)} />
+          <StoryFeed />
         )}
 
-        {activeTab === 1 && (
-          <ChatInterface 
-            practice={practice} 
-            messages={chatMessages}
-            setMessages={setChatMessages}
-            sessionId={chatSessionId}
-          />
-        )}
-
-        {activeTab === 2 && <MyFeed />}
+        {activeTab === 1 && <MyFeed />}
 
 
         {/* 현재 챌린지 상세보기 */}

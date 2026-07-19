@@ -184,3 +184,25 @@ export async function tryStory(env, storyId, request) {
     }
   };
 }
+
+const VALID_EMOTIONS = ['calm', 'neutral', 'unknown'];
+
+export async function saveStoryTryEmotion(env, tryId, request) {
+  const userId = getRequiredUserId(request);
+  const body = await request.json();
+  const { emotion } = body;
+
+  if (!VALID_EMOTIONS.includes(emotion)) {
+    throw new Error(`Invalid emotion: ${emotion}`);
+  }
+
+  const result = await env.DB.prepare(`
+    UPDATE story_tries SET emotion = ? WHERE id = ? AND user_id = ?
+  `).bind(emotion, tryId, userId).run();
+
+  if (result.meta.changes === 0) {
+    throw new Error(`Try not found: ${tryId}`);
+  }
+
+  return { success: true };
+}

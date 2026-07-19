@@ -17,7 +17,7 @@ import {
 import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
-import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed } from './story-service.js';
+import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed, saveStoryTryEmotion } from './story-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -111,6 +111,10 @@ async function handlePost(url, request, env) {
   if (url.pathname.match(/^\/api\/stories\/[^/]+\/try$/)) {
     const storyId = url.pathname.split('/')[3];
     return jsonResponse(await tryStory(env, storyId, request));
+  }
+  if (url.pathname.match(/^\/api\/story-tries\/[^/]+\/emotion$/)) {
+    const tryId = url.pathname.split('/')[3];
+    return jsonResponse(await saveStoryTryEmotion(env, tryId, request));
   }
   if (url.pathname === '/api/stories/seed') {
     const params = new URL(request.url).searchParams;

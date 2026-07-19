@@ -64,7 +64,6 @@ const AppHeaderSection = ({
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeTab} onChange={onTabChange} centered>
           <Tab label="이야기" sx={tabStyle} />
-          <Tab label="챌린지 도우미" sx={tabStyle} />
           <Tab label="내 피드" sx={tabStyle} />
         </Tabs>
       </Box>

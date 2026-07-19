@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { getUserId } from '../utils/userId';
+import StoryFeelingSheet from './StoryFeelingSheet';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -35,7 +36,7 @@ const EmptyState = styled(Box)(({ theme }) => ({
   color: theme.palette.text.secondary,
 }));
 
-const StoryFeed = ({ onOpenChat }) => {
+const StoryFeed = () => {
   const [stories, setStories] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,6 +45,7 @@ const StoryFeed = ({ onOpenChat }) => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [tryResult, setTryResult] = useState(null);
   const [trying, setTrying] = useState(false);
+  const [feelingSheetOpen, setFeelingSheetOpen] = useState(false);
 
   useEffect(() => {
     fetchFeed();
@@ -142,7 +144,7 @@ const StoryFeed = ({ onOpenChat }) => {
               <Typography
                 variant="button"
                 sx={{ cursor: 'pointer', color: 'primary.main' }}
-                onClick={onOpenChat}
+                onClick={() => setFeelingSheetOpen(true)}
               >
                 지금 느낌 남기기
               </Typography>
@@ -155,6 +157,14 @@ const StoryFeed = ({ onOpenChat }) => {
               </Typography>
             </Box>
           </Paper>
+          <StoryFeelingSheet
+            open={feelingSheetOpen}
+            tryId={tryResult.tryId}
+            practiceTitle={tryResult.practice.title}
+            onClose={() => setFeelingSheetOpen(false)}
+            onSaved={() => {}}
+            onError={(err) => setError(err.message)}
+          />
         </Box>
       );
     }
