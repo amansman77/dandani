@@ -18,6 +18,7 @@ import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed, saveStoryTryEmotion } from './story-service.js';
+import { createChallenge, getActiveChallenge, logChallengeDay } from './challenge-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -56,6 +57,9 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname === '/api/my-feed') {
     return jsonResponse(await getMyStoryFeed(env, request));
+  }
+  if (url.pathname === '/api/user-challenges/active') {
+    return jsonResponse(await getActiveChallenge(env, request));
   }
   if (url.pathname.startsWith('/api/stories/')) {
     const storyId = url.pathname.split('/')[3];
@@ -115,6 +119,13 @@ async function handlePost(url, request, env) {
   if (url.pathname.match(/^\/api\/story-tries\/[^/]+\/emotion$/)) {
     const tryId = url.pathname.split('/')[3];
     return jsonResponse(await saveStoryTryEmotion(env, tryId, request));
+  }
+  if (url.pathname === '/api/user-challenges') {
+    return jsonResponse(await createChallenge(env, request));
+  }
+  if (url.pathname.match(/^\/api\/user-challenges\/[^/]+\/log$/)) {
+    const challengeId = url.pathname.split('/')[3];
+    return jsonResponse(await logChallengeDay(env, challengeId, request));
   }
   if (url.pathname === '/api/stories/seed') {
     const params = new URL(request.url).searchParams;

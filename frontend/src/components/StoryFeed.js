@@ -4,11 +4,13 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Paper
+  Paper,
+  Button
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { getUserId } from '../utils/userId';
 import StoryFeelingSheet from './StoryFeelingSheet';
+import { logChallengeUpsellShown, logChallengeUpsellDeclined } from '../utils/analytics';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -82,6 +84,45 @@ const StoryFeed = () => {
   const [trying, setTrying] = useState(false);
   const [feelingSheetOpen, setFeelingSheetOpen] = useState(false);
   const [feelingSaved, setFeelingSaved] = useState(false);
+  const [challengeStatus, setChallengeStatus] = useState('idle');
+  const [challengeCreating, setChallengeCreating] = useState(false);
+  const [challengeError, setChallengeError] = useState(null);
+
+  useEffect(() => {
+    if (feelingSaved && challengeStatus === 'idle') {
+      logChallengeUpsellShown(selectedStoryId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feelingSaved]);
+
+  const handleStartChallenge = async () => {
+    setChallengeCreating(true);
+    setChallengeError(null);
+    try {
+      const response = await fetch(`${API_URL}/api/user-challenges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+        body: JSON.stringify({
+          storyId: selectedStoryId,
+          practiceTitle: tryResult.practice.title,
+          practiceDescription: tryResult.practice.description,
+          durationDays: 7,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '챌린지 시작에 실패했습니다.');
+      setChallengeStatus('started');
+    } catch (err) {
+      setChallengeError(err.message);
+    } finally {
+      setChallengeCreating(false);
+    }
+  };
+
+  const handleDeclineChallenge = () => {
+    logChallengeUpsellDeclined(selectedStoryId);
+    setChallengeStatus('declined');
+  };
 
   useEffect(() => {
     fetchFeed();
@@ -127,6 +168,8 @@ const StoryFeed = () => {
       if (!response.ok) throw new Error(`Failed to record try: ${response.status}`);
       setTryResult(await response.json());
       setFeelingSaved(false);
+      setChallengeStatus('idle');
+      setChallengeError(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -201,6 +244,49 @@ const StoryFeed = () => {
               </Typography>
             </Box>
           </Paper>
+
+          {feelingSaved && challengeStatus === 'idle' && (
+            <Paper sx={{ p: 3, mt: 2 }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                이 실천, 7일 동안 이어가볼까요?
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                매일 조금씩, 내 피드에서 진행 상황을 확인할 수 있어요.
+              </Typography>
+              {challengeError && (
+                <Alert severity="info" sx={{ mt: 2 }}>{challengeError}</Alert>
+              )}
+              <Box sx={{ mt: 2, display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="text"
+                  color="inherit"
+                  disabled={challengeCreating}
+                  onClick={handleDeclineChallenge}
+                >
+                  괜찮아요
+                </Button>
+                <Button
+                  variant="contained"
+                  disabled={challengeCreating}
+                  onClick={handleStartChallenge}
+                >
+                  {challengeCreating ? <CircularProgress size={20} /> : '이어가기'}
+                </Button>
+              </Box>
+            </Paper>
+          )}
+
+          {challengeStatus === 'started' && (
+            <Paper sx={{ p: 3, mt: 2 }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold', color: 'success.main' }}>
+                7일 챌린지를 시작했어요
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                내 피드에서 진행 상황을 확인하고 매일 기록해보세요.
+              </Typography>
+            </Paper>
+          )}
+
           <StoryFeelingSheet
             open={feelingSheetOpen}
             tryId={tryResult.tryId}

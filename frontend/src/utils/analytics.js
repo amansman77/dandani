@@ -111,6 +111,9 @@ const BACKEND_ALLOWED_EVENT_TYPES = new Set([
   'challenge_start',
   'challenge_complete',
   'challenge_selected',
+  'challenge_upsell_shown',
+  'challenge_upsell_declined',
+  'challenge_day_logged',
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
@@ -235,6 +238,18 @@ export const logAIChatMessage = (messageLength) => {
 // 챌린지 완료 이벤트
 export const logChallengeComplete = (challengeId) => {
   logEvent('challenge_complete', { challenge_id: challengeId });
+};
+
+export const logChallengeUpsellShown = (storyId) => {
+  logEvent('challenge_upsell_shown', { story_id: storyId });
+};
+
+export const logChallengeUpsellDeclined = (storyId) => {
+  logEvent('challenge_upsell_declined', { story_id: storyId });
+};
+
+export const logChallengeDayLogged = (challengeId, loggedDays) => {
+  logEvent('challenge_day_logged', { challenge_id: challengeId, logged_days: loggedDays });
 };
 
 export const logChallengeCompleted = (challengeId, practiceDay) => {
