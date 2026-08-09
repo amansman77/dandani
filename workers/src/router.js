@@ -18,7 +18,7 @@ import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed, saveStoryTryEmotion } from './story-service.js';
-import { createChallenge, getActiveChallenge, logChallengeDay } from './challenge-service.js';
+import { createChallenge, getActiveChallenge, logChallengeDay, getChallengeCatalogDetail } from './challenge-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -60,6 +60,10 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname === '/api/user-challenges/active') {
     return jsonResponse(await getActiveChallenge(env, request));
+  }
+  if (url.pathname.match(/^\/api\/user-challenges\/catalog\/[^/]+$/)) {
+    const challengeId = url.pathname.split('/')[4];
+    return jsonResponse(await getChallengeCatalogDetail(env, challengeId));
   }
   if (url.pathname.startsWith('/api/stories/')) {
     const storyId = url.pathname.split('/')[3];

@@ -11,6 +11,7 @@ import AlertModal from './components/AlertModal';
 import AppHeaderSection from './components/AppHeaderSection';
 import AppBottomNav from './components/AppBottomNav';
 import StoryFeed from './components/StoryFeed';
+import ChallengeFeed from './components/ChallengeFeed';
 import { useChallengeData } from './hooks/useChallengeData';
 import { usePracticeCardAnimation } from './hooks/usePracticeCardAnimation';
 import { useRetentionState } from './hooks/useRetentionState';
@@ -389,7 +390,9 @@ function App() {
           <StoryFeed />
         )}
 
-        {activeTab === 1 && <MyFeed />}
+        {activeTab === 1 && <ChallengeFeed />}
+
+        {activeTab === 2 && <MyFeed />}
 
 
         {/* 현재 챌린지 상세보기 */}

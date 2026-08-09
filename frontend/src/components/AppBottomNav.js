@@ -1,6 +1,6 @@
 import React from 'react';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
-import { AutoStories, DynamicFeed } from '@mui/icons-material';
+import { AutoStories, Flag, DynamicFeed } from '@mui/icons-material';
 
 const AppBottomNav = ({ activeTab, onTabChange }) => {
   return (
@@ -17,6 +17,7 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
     >
       <BottomNavigation value={activeTab} onChange={onTabChange} showLabels>
         <BottomNavigationAction label="이야기" icon={<AutoStories />} />
+        <BottomNavigationAction label="챌린지" icon={<Flag />} />
         <BottomNavigationAction label="내 피드" icon={<DynamicFeed />} />
       </BottomNavigation>
     </Paper>

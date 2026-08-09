@@ -251,7 +251,7 @@ const StoryFeed = () => {
                 이 실천, 7일 동안 이어가볼까요?
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                매일 조금씩, 내 피드에서 진행 상황을 확인할 수 있어요.
+                매일 조금씩, 챌린지 탭에서 진행 상황을 확인할 수 있어요.
               </Typography>
               {challengeError && (
                 <Alert severity="info" sx={{ mt: 2 }}>{challengeError}</Alert>
@@ -282,7 +282,7 @@ const StoryFeed = () => {
                 7일 챌린지를 시작했어요
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                내 피드에서 진행 상황을 확인하고 매일 기록해보세요.
+                챌린지 탭에서 진행 상황을 확인하고 매일 기록해보세요.
               </Typography>
             </Paper>
           )}

@@ -4,12 +4,10 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Paper,
-  Button
+  Paper
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { getUserId } from '../utils/userId';
-import { logChallengeDayLogged } from '../utils/analytics';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -17,13 +15,6 @@ const TryCard = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2.5),
   marginBottom: theme.spacing(2),
   textAlign: 'left',
-}));
-
-const ChallengeCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2.5),
-  marginBottom: theme.spacing(3),
-  textAlign: 'left',
-  border: `1px solid ${theme.palette.primary.main}`,
 }));
 
 const EmptyState = styled(Box)(({ theme }) => ({
@@ -41,25 +32,6 @@ const MyFeed = () => {
   const [tries, setTries] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [challenge, setChallenge] = useState(null);
-  const [challengeLoading, setChallengeLoading] = useState(true);
-  const [logging, setLogging] = useState(false);
-
-  const fetchActiveChallenge = async () => {
-    try {
-      setChallengeLoading(true);
-      const response = await fetch(`${API_URL}/api/user-challenges/active`, {
-        headers: { 'X-User-ID': getUserId() },
-      });
-      if (!response.ok) throw new Error(`Failed to fetch active challenge: ${response.status}`);
-      const data = await response.json();
-      setChallenge(data.challenge);
-    } catch (err) {
-      setChallenge(null);
-    } finally {
-      setChallengeLoading(false);
-    }
-  };
 
   useEffect(() => {
     const fetchMyFeed = async () => {
@@ -79,28 +51,7 @@ const MyFeed = () => {
       }
     };
     fetchMyFeed();
-    fetchActiveChallenge();
   }, []);
-
-  const handleLogToday = async () => {
-    if (!challenge || logging) return;
-    setLogging(true);
-    try {
-      const response = await fetch(`${API_URL}/api/user-challenges/${challenge.id}/log`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-        body: JSON.stringify({}),
-      });
-      if (!response.ok) throw new Error(`Failed to log challenge day: ${response.status}`);
-      const data = await response.json();
-      logChallengeDayLogged(challenge.id, data.logged_days);
-      await fetchActiveChallenge();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLogging(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -116,27 +67,6 @@ const MyFeed = () => {
 
   return (
     <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
-      {!challengeLoading && challenge && (
-        <ChallengeCard>
-          <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'bold' }}>
-            진행 중인 챌린지 · {challenge.logged_days}/{challenge.duration_days}일째
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 0.5, fontWeight: 'bold' }}>
-            {challenge.practice_title}
-          </Typography>
-          <Box sx={{ mt: 1.5 }}>
-            <Button
-              variant={challenge.logged_today ? 'outlined' : 'contained'}
-              size="small"
-              disabled={challenge.logged_today || logging}
-              onClick={handleLogToday}
-            >
-              {logging ? <CircularProgress size={18} /> : (challenge.logged_today ? '오늘은 기록했어요' : '오늘 기록하기')}
-            </Button>
-          </Box>
-        </ChallengeCard>
-      )}
-
       {(!tries || tries.length === 0) ? (
         <EmptyState>
           <Typography variant="h6" gutterBottom>
