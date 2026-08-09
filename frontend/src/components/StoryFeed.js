@@ -11,6 +11,7 @@ import { styled } from '@mui/material/styles';
 import { getUserId } from '../utils/userId';
 import StoryFeelingSheet from './StoryFeelingSheet';
 import { logChallengeUpsellShown, logChallengeUpsellDeclined } from '../utils/analytics';
+import { pushNavState, goBack } from '../utils/navHistory';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -128,6 +129,21 @@ const StoryFeed = () => {
     fetchFeed();
   }, []);
 
+  // 스토리 상세로 들어갈 때 히스토리를 한 단계 쌓아서, 모바일 뒤로가기
+  // 제스처가 앱을 빠져나가지 않고 목록으로 돌아오게 한다
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const stillInStory = event.state?.storyView === 'story';
+      if (!stillInStory) {
+        setSelectedStoryId(null);
+        setDetail(null);
+        setTryResult(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const fetchFeed = async () => {
     try {
       setLoading(true);
@@ -146,6 +162,7 @@ const StoryFeed = () => {
   const openStory = async (storyId) => {
     setSelectedStoryId(storyId);
     setTryResult(null);
+    pushNavState({ tab: 0, storyId, storyView: 'story' });
     setDetailLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/stories/${storyId}`);
@@ -175,12 +192,6 @@ const StoryFeed = () => {
     } finally {
       setTrying(false);
     }
-  };
-
-  const backToFeed = () => {
-    setSelectedStoryId(null);
-    setDetail(null);
-    setTryResult(null);
   };
 
   if (loading) {
@@ -238,7 +249,7 @@ const StoryFeed = () => {
               <Typography
                 variant="button"
                 sx={{ cursor: 'pointer', color: 'text.secondary' }}
-                onClick={backToFeed}
+                onClick={goBack}
               >
                 다른 이야기 보기
               </Typography>
@@ -304,7 +315,7 @@ const StoryFeed = () => {
         <Typography
           variant="body2"
           sx={{ mb: 2, cursor: 'pointer', color: 'text.secondary' }}
-          onClick={backToFeed}
+          onClick={goBack}
         >
           ← 목록으로
         </Typography>

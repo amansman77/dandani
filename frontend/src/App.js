@@ -12,6 +12,7 @@ import AppHeaderSection from './components/AppHeaderSection';
 import AppBottomNav from './components/AppBottomNav';
 import StoryFeed from './components/StoryFeed';
 import ChallengeFeed from './components/ChallengeFeed';
+import { pushNavState, replaceNavState } from './utils/navHistory';
 import { useChallengeData } from './hooks/useChallengeData';
 import { usePracticeCardAnimation } from './hooks/usePracticeCardAnimation';
 import { useRetentionState } from './hooks/useRetentionState';
@@ -28,6 +29,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  const isPoppingNavRef = useRef(false);
   
   const {
     practiceCardRef,
@@ -231,7 +233,26 @@ function App() {
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+    if (!isPoppingNavRef.current) {
+      pushNavState({ tab: newValue });
+    }
   };
+
+  // 모바일(iOS 스와이프 백 등) 뒤로가기가 앱 자체를 빠져나가지 않고
+  // 탭 전환을 되돌리도록, 브라우저 히스토리에 탭 상태를 기록/복원한다
+  useEffect(() => {
+    replaceNavState({ tab: 0 });
+
+    const handlePopState = (event) => {
+      const nextTab = event.state?.tab ?? 0;
+      isPoppingNavRef.current = true;
+      setActiveTab(nextTab);
+      isPoppingNavRef.current = false;
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // 분석 도구 초기화는 PostHog의 loaded 콜백에서 처리
   // (index.js의 PostHogProvider options.loaded에서 호출)

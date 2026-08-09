@@ -10,6 +10,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { getUserId } from '../utils/userId';
 import { logChallengeDayLogged } from '../utils/analytics';
+import { pushNavState, goBack } from '../utils/navHistory';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -95,8 +96,23 @@ const ChallengeFeed = () => {
     fetchCatalog();
   }, []);
 
+  // 챌린지 상세로 들어갈 때 히스토리를 한 단계 쌓아서, 모바일 뒤로가기
+  // 제스처가 앱을 빠져나가지 않고 목록으로 돌아오게 한다
+  useEffect(() => {
+    const handlePopState = (event) => {
+      const stillInDetail = event.state?.challengeView === 'detail';
+      if (!stillInDetail) {
+        setSelectedId(null);
+        setDetail(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const openDetail = async (id) => {
     setSelectedId(id);
+    pushNavState({ tab: 1, challengeId: id, challengeView: 'detail' });
     setDetailLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/user-challenges/catalog/${id}`);
@@ -107,11 +123,6 @@ const ChallengeFeed = () => {
     } finally {
       setDetailLoading(false);
     }
-  };
-
-  const backToCatalog = () => {
-    setSelectedId(null);
-    setDetail(null);
   };
 
   const handleStart = async () => {
@@ -125,7 +136,7 @@ const ChallengeFeed = () => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '챌린지 시작에 실패했습니다.');
-      backToCatalog();
+      goBack();
       await fetchActiveChallenge();
     } catch (err) {
       setError(err.message);
@@ -173,7 +184,7 @@ const ChallengeFeed = () => {
         <Typography
           variant="body2"
           sx={{ mb: 2, cursor: 'pointer', color: 'text.secondary' }}
-          onClick={backToCatalog}
+          onClick={goBack}
         >
           ← 목록으로
         </Typography>
