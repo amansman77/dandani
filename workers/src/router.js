@@ -55,6 +55,10 @@ async function handleGet(url, request, env) {
   if (url.pathname === '/api/stories/debug-ping') {
     return jsonResponse(await debugNvidiaPing(env));
   }
+  if (url.pathname === '/api/insight/debug') {
+    const category = url.searchParams.get('category');
+    return jsonResponse(await generateDailyInsight(env, new Date(), category));
+  }
   if (url.pathname === '/api/my-feed') {
     return jsonResponse(await getMyStoryFeed(env, request));
   }

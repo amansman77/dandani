@@ -16,7 +16,9 @@ const CATEGORY_LABELS = {
 const SYSTEM_PROMPT = `너는 '단단이'라는 습관/챌린지 동반자 앱의 프로덕트 기획자야.
 앱 대표에게 매일 아침 인사이트 하나를 반말로 짧게 전달해.
 보고서처럼 나열하지 말고, 핵심 한 가지만 짚어. 3~4문장 이내로 답해.
-불확실하거나 데이터가 부족하면 솔직하게 그렇다고 말해. 없는 근거를 지어내지 마.`;
+불확실하거나 데이터가 부족하면 솔직하게 그렇다고 말해. 없는 근거를 지어내지 마.
+반드시 한국어로만 답해. 영어 단어나 문장을 섞지 마.
+생각 과정이나 분석 과정을 보여주지 말고, 바로 결론 문장만 답해.`;
 
 function getRotationCategory(date = new Date()) {
   const dayIndex = Math.floor(date.getTime() / 86400000);
@@ -46,6 +48,7 @@ async function callLLMOnce(env, userMessage, maxTokens) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: maxTokens,
+        chat_template_kwargs: { thinking: false },
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userMessage },
@@ -65,7 +68,7 @@ async function callLLMOnce(env, userMessage, maxTokens) {
   }
 }
 
-async function callLLM(env, userMessage, maxTokens = 400) {
+async function callLLM(env, userMessage, maxTokens = 1000) {
   let lastError;
 
   for (let attempt = 1; attempt <= LLM_MAX_ATTEMPTS; attempt += 1) {
@@ -93,11 +96,11 @@ async function buildDataPrompt(env) {
   return `아래는 단단이의 실제 최신 데이터야 (기준일: ${reportData.date}).
 
 리텐션 지표 (목표 대비 현재값):
-- DAY1 RETENTION: ${m.day1_retention.value}% (목표 ${m.day1_retention.target}%)
-- WEEK1 COMPLETION: ${m.week1_completion.value}% (목표 ${m.week1_completion.target}%)
-- DAY7 RETENTION: ${m.day7_retention.value}% (목표 ${m.day7_retention.target}%)
-- DAY30 COMPLETION: ${m.day30_completion.value}% (목표 ${m.day30_completion.target}%)
-- POSITIVE FEEDBACK: ${m.positive_feedback.value}% (목표 ${m.positive_feedback.target}%)
+- 1일 재방문율: ${m.day1_retention.value}% (목표 ${m.day1_retention.target}%)
+- 1주 완료율: ${m.week1_completion.value}% (목표 ${m.week1_completion.target}%)
+- 7일 재방문율: ${m.day7_retention.value}% (목표 ${m.day7_retention.target}%)
+- 30일 완료율: ${m.day30_completion.value}% (목표 ${m.day30_completion.target}%)
+- 긍정 피드백 비율: ${m.positive_feedback.value}% (목표 ${m.positive_feedback.target}%)
 
 활동 추세:
 - 최근 7일 평균 활성 사용자: ${reportData.daily_trend.last_7_days_avg}명
@@ -144,8 +147,8 @@ export function formatInsightMessage(category, insightText, date) {
 }
 
 // 'ux' 카테고리는 브라우저가 필요해서 Worker가 아니라 로컬 Playwright 자동화(automation/ux-check)가 담당한다.
-export async function generateDailyInsight(env, date = new Date()) {
-  const category = getRotationCategory(date);
+export async function generateDailyInsight(env, date = new Date(), forceCategory = null) {
+  const category = forceCategory || getRotationCategory(date);
   if (category === 'ux') {
     return null;
   }
