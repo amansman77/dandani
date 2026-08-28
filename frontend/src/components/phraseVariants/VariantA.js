@@ -130,14 +130,15 @@ const VariantA = ({
   }
 
   const ticks = getRollingWeekTicks(phrase.logged_dates);
+  const morningNumber = phrase.logged_days + (phrase.logged_today ? 0 : 1);
 
   return (
     <Scene>
       <Eyebrow sx={{ mb: 2.5 }}>
-        {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}, 아침
+        {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}, 아침
       </Eyebrow>
       <Typography variant="body2" sx={{ color: '#8c8578', mb: 2.5, position: 'relative' }}>
-        {phrase.logged_days === 0 ? '첫 아침이에요' : `${phrase.logged_days}일째 이어가는 중이에요`}
+        {morningNumber}번째 아침이에요
       </Typography>
       <Phrase sx={{ mb: 3.5 }}>{phrase.phrase}</Phrase>
       <Box sx={{ display: 'flex', gap: 0.75, mb: 4, position: 'relative' }}>
