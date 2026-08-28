@@ -3,15 +3,14 @@ import { Container, Box, Typography, CircularProgress } from '@mui/material';
 import ChallengeDetail from './components/ChallengeDetail';
 import PracticeRecordModal from './components/PracticeRecordModal';
 import PracticeCompletionModal from './components/PracticeCompletionModal';
-import MyFeed from './components/MyFeed';
 import OnboardingModal from './components/OnboardingModal';
 import EnvelopeModal from './components/EnvelopeModal';
 import EnvelopeList from './components/EnvelopeList';
 import AlertModal from './components/AlertModal';
 import AppHeaderSection from './components/AppHeaderSection';
 import AppBottomNav from './components/AppBottomNav';
-import StoryFeed from './components/StoryFeed';
-import ChallengeFeed from './components/ChallengeFeed';
+import DailyPhrase from './components/DailyPhrase';
+import PhraseHistory from './components/PhraseHistory';
 import { pushNavState, replaceNavState } from './utils/navHistory';
 import { useChallengeData } from './hooks/useChallengeData';
 import { usePracticeCardAnimation } from './hooks/usePracticeCardAnimation';
@@ -408,12 +407,10 @@ function App() {
         />
 
         {activeTab === 0 && !showCurrentChallengeDetail && (
-          <StoryFeed />
+          <DailyPhrase />
         )}
 
-        {activeTab === 1 && <ChallengeFeed />}
-
-        {activeTab === 2 && <MyFeed />}
+        {activeTab === 1 && <PhraseHistory />}
 
 
         {/* 현재 챌린지 상세보기 */}

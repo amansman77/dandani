@@ -1,0 +1,133 @@
+import { getRequiredUserId, getClientLocalDate } from './service-utils.js';
+
+function generateId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+}
+
+function todayDateString(request) {
+  const clientTime = request.headers.get('X-Client-Time');
+  const clientTimezone = request.headers.get('X-Client-Timezone');
+  const date = getClientLocalDate(clientTime, clientTimezone);
+  return date.toISOString().split('T')[0];
+}
+
+export async function createPhrase(env, request) {
+  const userId = getRequiredUserId(request);
+  const body = await request.json();
+  const { phrase } = body;
+
+  if (!phrase || !phrase.trim()) {
+    throw new Error('phrase is required');
+  }
+
+  const existing = await env.DB.prepare(`
+    SELECT id FROM daily_phrases WHERE user_id = ? AND status = 'active'
+  `).bind(userId).first();
+
+  if (existing) {
+    throw new Error('active phrase already exists');
+  }
+
+  const id = generateId('phrase');
+  await env.DB.prepare(`
+    INSERT INTO daily_phrases (id, user_id, phrase) VALUES (?, ?, ?)
+  `).bind(id, userId, phrase.trim()).run();
+
+  return { id, phrase: phrase.trim(), status: 'active' };
+}
+
+export async function getActivePhrase(env, request) {
+  const userId = getRequiredUserId(request);
+
+  const phrase = await env.DB.prepare(`
+    SELECT id, phrase, status, started_at
+    FROM daily_phrases
+    WHERE user_id = ? AND status = 'active'
+    ORDER BY started_at DESC
+    LIMIT 1
+  `).bind(userId).first();
+
+  if (!phrase) {
+    return { phrase: null };
+  }
+
+  const { results: logs } = await env.DB.prepare(`
+    SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ? ORDER BY log_date ASC
+  `).bind(phrase.id).all();
+
+  const today = todayDateString(request);
+  const loggedToday = logs.some((log) => log.log_date === today);
+
+  return {
+    phrase: {
+      ...phrase,
+      logged_days: logs.length,
+      logged_dates: logs.map((log) => log.log_date),
+      logged_today: loggedToday
+    }
+  };
+}
+
+export async function logPhraseDay(env, phraseId, request) {
+  const userId = getRequiredUserId(request);
+
+  const phrase = await env.DB.prepare(`
+    SELECT id, status FROM daily_phrases WHERE id = ? AND user_id = ?
+  `).bind(phraseId, userId).first();
+
+  if (!phrase) {
+    throw new Error(`Phrase not found: ${phraseId}`);
+  }
+  if (phrase.status !== 'active') {
+    throw new Error(`Phrase is not active: ${phraseId}`);
+  }
+
+  const today = todayDateString(request);
+
+  await env.DB.prepare(`
+    INSERT OR IGNORE INTO daily_phrase_logs (id, phrase_id, user_id, log_date)
+    VALUES (?, ?, ?, ?)
+  `).bind(generateId('plog'), phraseId, userId, today).run();
+
+  const { results: logs } = await env.DB.prepare(`
+    SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ?
+  `).bind(phraseId).all();
+
+  return { logged_days: logs.length };
+}
+
+export async function retirePhrase(env, phraseId, request) {
+  const userId = getRequiredUserId(request);
+
+  const result = await env.DB.prepare(`
+    UPDATE daily_phrases SET status = 'retired', retired_at = datetime('now')
+    WHERE id = ? AND user_id = ? AND status = 'active'
+  `).bind(phraseId, userId).run();
+
+  if (result.meta.changes === 0) {
+    throw new Error(`Active phrase not found: ${phraseId}`);
+  }
+
+  return { success: true };
+}
+
+export async function getPhraseHistory(env, request) {
+  const userId = getRequiredUserId(request);
+
+  const { results: phrases } = await env.DB.prepare(`
+    SELECT id, phrase, status, started_at, retired_at
+    FROM daily_phrases
+    WHERE user_id = ?
+    ORDER BY started_at DESC
+  `).bind(userId).all();
+
+  const history = [];
+  for (const p of phrases) {
+    const { results: logs } = await env.DB.prepare(`
+      SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ? ORDER BY log_date DESC
+    `).bind(p.id).all();
+    history.push({ ...p, logged_days: logs.length, logged_dates: logs.map((l) => l.log_date) });
+  }
+
+  return { phrases: history };
+}

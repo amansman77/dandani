@@ -19,6 +19,7 @@ import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed, saveStoryTryEmotion } from './story-service.js';
 import { createChallenge, getActiveChallenge, logChallengeDay, getChallengeCatalogDetail } from './challenge-service.js';
+import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory } from './phrase-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -68,6 +69,12 @@ async function handleGet(url, request, env) {
   if (url.pathname.match(/^\/api\/user-challenges\/catalog\/[^/]+$/)) {
     const challengeId = url.pathname.split('/')[4];
     return jsonResponse(await getChallengeCatalogDetail(env, challengeId));
+  }
+  if (url.pathname === '/api/phrases/active') {
+    return jsonResponse(await getActivePhrase(env, request));
+  }
+  if (url.pathname === '/api/phrases/history') {
+    return jsonResponse(await getPhraseHistory(env, request));
   }
   if (url.pathname.startsWith('/api/stories/')) {
     const storyId = url.pathname.split('/')[3];
@@ -134,6 +141,17 @@ async function handlePost(url, request, env) {
   if (url.pathname.match(/^\/api\/user-challenges\/[^/]+\/log$/)) {
     const challengeId = url.pathname.split('/')[3];
     return jsonResponse(await logChallengeDay(env, challengeId, request));
+  }
+  if (url.pathname === '/api/phrases') {
+    return jsonResponse(await createPhrase(env, request));
+  }
+  if (url.pathname.match(/^\/api\/phrases\/[^/]+\/log$/)) {
+    const phraseId = url.pathname.split('/')[3];
+    return jsonResponse(await logPhraseDay(env, phraseId, request));
+  }
+  if (url.pathname.match(/^\/api\/phrases\/[^/]+\/retire$/)) {
+    const phraseId = url.pathname.split('/')[3];
+    return jsonResponse(await retirePhrase(env, phraseId, request));
   }
   if (url.pathname === '/api/stories/seed') {
     const params = new URL(request.url).searchParams;
