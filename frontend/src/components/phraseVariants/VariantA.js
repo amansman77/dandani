@@ -9,7 +9,7 @@ const Scene = styled(Box)(({ theme }) => ({
   position: 'relative',
   overflow: 'hidden',
   borderRadius: 24,
-  minHeight: '62vh',
+  minHeight: 'min(62vh, 480px)',
   padding: theme.spacing(6, 4, 5),
   display: 'flex',
   flexDirection: 'column',

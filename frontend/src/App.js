@@ -377,7 +377,7 @@ function App() {
 
   if (loading) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="sm">
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
           <CircularProgress />
         </Box>
@@ -387,7 +387,7 @@ function App() {
 
   if (error) {
     return (
-      <Container maxWidth="lg">
+      <Container maxWidth="sm">
         <Box sx={{ py: 4 }}>
           <Typography variant="h6" color="error" align="center">
             오류가 발생했습니다: {error}
@@ -399,7 +399,7 @@ function App() {
 
   return (
     <>
-    <Container maxWidth="lg">
+    <Container maxWidth="sm">
       <Box sx={{ pt: 2, pb: 10 }}>
         <AppHeaderSection
           isNonKoreanUser={isNonKoreanUser}
