@@ -400,26 +400,28 @@ function App() {
   return (
     <>
     <Container maxWidth="sm">
-      <Box sx={{ pt: 2, pb: 10 }}>
+      <Box sx={{ pt: 2, pb: 10, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <AppHeaderSection
           isNonKoreanUser={isNonKoreanUser}
           onRestartOnboarding={handleRestartOnboarding}
         />
 
-        {activeTab === 0 && !showCurrentChallengeDetail && (
-          <DailyPhrase />
-        )}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {activeTab === 0 && !showCurrentChallengeDetail && (
+            <DailyPhrase />
+          )}
 
-        {activeTab === 1 && <PhraseHistory />}
+          {activeTab === 1 && <PhraseHistory />}
 
 
-        {/* 현재 챌린지 상세보기 */}
-        {activeTab === 0 && showCurrentChallengeDetail && currentChallenge && (
-          <ChallengeDetail 
-            challengeId={currentChallenge.id}
-            onBack={handleBackFromChallengeDetail}
-          />
-        )}
+          {/* 현재 챌린지 상세보기 */}
+          {activeTab === 0 && showCurrentChallengeDetail && currentChallenge && (
+            <ChallengeDetail
+              challengeId={currentChallenge.id}
+              onBack={handleBackFromChallengeDetail}
+            />
+          )}
+        </Box>
 
 
         {/* 실천 기록 확인 모달 */}
