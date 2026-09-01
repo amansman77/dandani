@@ -1,6 +1,14 @@
 import React from 'react';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
-import { WbSunny, DynamicFeed } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
+
+const NavDot = styled('span')({
+  display: 'block',
+  width: 5,
+  height: 5,
+  borderRadius: '50%',
+  backgroundColor: 'currentColor',
+});
 
 const AppBottomNav = ({ activeTab, onTabChange }) => {
   return (
@@ -24,12 +32,18 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
         showLabels
         sx={{
           background: 'transparent',
-          '& .MuiBottomNavigationAction-root': { color: '#3c3a34', opacity: 0.55 },
+          '& .MuiBottomNavigationAction-root': {
+            color: '#3c3a34',
+            opacity: 0.55,
+            fontFamily: '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
+          },
+          '& .MuiBottomNavigationAction-label': { fontSize: '0.7rem' },
+          '& .MuiBottomNavigationAction-icon': { marginBottom: '4px' },
           '& .Mui-selected': { color: '#b06a45 !important', opacity: 1 },
         }}
       >
-        <BottomNavigationAction label="오늘" icon={<WbSunny />} />
-        <BottomNavigationAction label="기록" icon={<DynamicFeed />} />
+        <BottomNavigationAction label="오늘" icon={<NavDot />} />
+        <BottomNavigationAction label="기록" icon={<NavDot />} />
       </BottomNavigation>
     </Paper>
   );

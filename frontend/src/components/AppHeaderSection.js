@@ -1,6 +1,5 @@
 import React from 'react';
-import { Alert, Box, IconButton, Tooltip, Typography } from '@mui/material';
-import { Help as HelpIcon } from '@mui/icons-material';
+import { Alert, Box, Tooltip, Typography } from '@mui/material';
 
 const AppHeaderSection = ({
   isNonKoreanUser,
@@ -23,21 +22,28 @@ const AppHeaderSection = ({
         </Typography>
 
         <Tooltip title="온보딩 다시 보기 (Ctrl+Shift+H)">
-          <IconButton
+          <Box
+            component="button"
+            type="button"
             onClick={onRestartOnboarding}
-            size="small"
             sx={{
               position: 'absolute',
-              top: 0,
-              right: 0,
+              top: 4,
+              right: 4,
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              fontFamily: '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
+              fontSize: '0.75rem',
               color: '#a9603a',
-              '&:hover': {
-                backgroundColor: 'rgba(169, 96, 58, 0.08)'
-              }
+              borderBottom: '1px solid #c98354',
+              paddingBottom: '2px',
+              '&:hover': { opacity: 0.75 },
             }}
           >
-            <HelpIcon fontSize="small" />
-          </IconButton>
+            안내
+          </Box>
         </Tooltip>
       </Box>
 
