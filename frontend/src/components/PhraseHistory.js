@@ -1,27 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Paper
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Box, Typography, CircularProgress, Alert } from '@mui/material';
 import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
-const PhraseCard = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(2.5),
-  marginBottom: theme.spacing(2),
-  textAlign: 'left',
-}));
-
-const EmptyState = styled(Box)(({ theme }) => ({
-  textAlign: 'center',
-  padding: theme.spacing(4),
-  color: theme.palette.text.secondary,
-}));
+const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
+const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
 
 const formatDate = (isoString) => {
   if (!isoString) return '';
@@ -69,27 +53,52 @@ const PhraseHistory = () => {
   return (
     <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
       {(!phrases || phrases.length === 0) ? (
-        <EmptyState>
-          <Typography variant="h6" gutterBottom>
-            아직 기록이 없어요
+        <Box sx={{ textAlign: 'center', py: 8, px: 3 }}>
+          <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.85rem', color: '#a9764f', mb: 2 }}>
+            아직, 여기엔
           </Typography>
-          <Typography variant="body2">
-            오늘 탭에서 매일 되새기고 싶은 문장을 적어보세요.
+          <Typography sx={{ fontFamily: SERIF, fontSize: '1.2rem', color: '#322f29', mb: 1.5, lineHeight: 1.6 }}>
+            쌓인 아침이 없어요
           </Typography>
-        </EmptyState>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: '#8c8578', lineHeight: 1.8 }}>
+            오늘 탭에서 문장을 적으면
+            <br />
+            여기에 하루씩 쌓여요.
+          </Typography>
+        </Box>
       ) : (
         phrases.map((p) => (
-          <PhraseCard key={p.id}>
-            <Typography variant="caption" color="text.secondary">
-              {formatDate(p.started_at)}부터 · {p.status === 'active' ? '진행 중' : '종료'}
-            </Typography>
-            <Typography variant="body1" sx={{ mt: 0.5, fontWeight: 'bold' }}>
+          <Box key={p.id} sx={{ py: 2.75, borderBottom: '1px solid rgba(128,128,128,0.16)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1.25 }}>
+              <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.75rem', color: '#a9764f' }}>
+                {formatDate(p.started_at)}부터
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: SANS,
+                  fontSize: '0.66rem',
+                  letterSpacing: '0.02em',
+                  color: p.status === 'active' ? '#b06a45' : '#a39a89',
+                }}
+              >
+                {p.status === 'active' ? '진행 중' : '종료'}
+              </Typography>
+            </Box>
+            <Typography
+              sx={{
+                fontFamily: SERIF,
+                fontSize: '1.1rem',
+                lineHeight: 1.55,
+                color: p.status === 'active' ? '#322f29' : '#6b6355',
+                mb: 1,
+              }}
+            >
               {p.phrase}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: '#8c8578' }}>
               {p.logged_days}일 되새김
             </Typography>
-          </PhraseCard>
+          </Box>
         ))
       )}
     </Box>
