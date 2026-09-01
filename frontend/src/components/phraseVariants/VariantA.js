@@ -99,16 +99,23 @@ const VariantA = ({
           }}
         />
         <Button
+          disableRipple
           disabled={!inputValue.trim() || submitting}
           onClick={onSubmit}
           sx={{
             position: 'relative',
             fontFamily: SERIF,
             fontSize: '0.95rem',
+            fontWeight: 400,
+            textTransform: 'none',
             color: '#a9603a',
             borderBottom: '1px solid #c98354',
             borderRadius: 0,
-            pb: 0.3,
+            padding: 0,
+            minWidth: 'auto',
+            minHeight: 'auto',
+            lineHeight: 'normal',
+            paddingBottom: '3px',
             '&:hover': { background: 'transparent', opacity: 0.75 },
             '&.Mui-disabled': { color: '#c9bfa8', borderColor: '#e2dbc9' },
           }}
@@ -140,16 +147,23 @@ const VariantA = ({
         ))}
       </Box>
       <Button
+        disableRipple
         disabled={phrase.logged_today || logging}
         onClick={onLogToday}
         sx={{
           position: 'relative',
           fontFamily: SERIF,
           fontSize: '0.95rem',
+          fontWeight: 400,
+          textTransform: 'none',
           color: phrase.logged_today ? '#b6ac9a' : '#a9603a',
           borderBottom: phrase.logged_today ? 'none' : '1px solid #c98354',
           borderRadius: 0,
-          pb: 0.3,
+          padding: 0,
+          minWidth: 'auto',
+          minHeight: 'auto',
+          lineHeight: 'normal',
+          paddingBottom: '3px',
           '&:hover': { background: 'transparent', opacity: 0.75 },
         }}
       >
