@@ -4,6 +4,7 @@ import { styled } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 
 const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
+const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
 
 const Scene = styled(Box)(({ theme }) => ({
   position: 'relative',
@@ -28,8 +29,12 @@ const Phrase = styled(Typography)({
   fontFamily: SERIF,
   fontSize: '1.7rem',
   lineHeight: 1.75,
+  letterSpacing: '0.01em',
   color: '#322f29',
   whiteSpace: 'pre-wrap',
+  maxWidth: 230,
+  marginLeft: 'auto',
+  marginRight: 'auto',
   position: 'relative',
 });
 
@@ -58,7 +63,7 @@ const VariantA = ({
     return (
       <Scene>
         <Eyebrow sx={{ mb: 2.5 }}>오늘부터, 나에게</Eyebrow>
-        <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700 }}>
+        <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700, maxWidth: 'none' }}>
           매일 아침 나에게 되새기고 싶은
           <br />한 문장을 적어보세요.
         </Phrase>
@@ -122,7 +127,10 @@ const VariantA = ({
       <Eyebrow sx={{ mb: 2.5 }}>
         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}, 아침
       </Eyebrow>
-      <Typography variant="body2" sx={{ color: '#8c8578', mb: 2.5, position: 'relative' }}>
+      <Typography
+        variant="body2"
+        sx={{ fontFamily: SANS, fontSize: '0.75rem', color: '#8c8578', mb: 2.5, position: 'relative' }}
+      >
         {morningNumber}번째 아침이에요
       </Typography>
       <Phrase sx={{ mb: 3.5 }}>{phrase.phrase}</Phrase>
