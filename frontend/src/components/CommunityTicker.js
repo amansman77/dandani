@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
+const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
 
 const CommunityTicker = () => {
@@ -44,20 +45,31 @@ const CommunityTicker = () => {
   const daysLabel = item.logged_days === 0 ? '오늘부터' : `${item.logged_days}일째`;
 
   return (
-    <Typography
+    <Box
       sx={{
-        fontFamily: SANS,
-        fontSize: '0.7rem',
-        color: '#a39a89',
         mt: 3,
         maxWidth: 260,
-        lineHeight: 1.7,
+        textAlign: 'center',
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.3s ease',
       }}
     >
-      {item.nickname}님이 “{item.phrase}”를 {daysLabel} 되새기고 있어요
-    </Typography>
+      <Typography
+        sx={{
+          fontFamily: SERIF,
+          fontStyle: 'italic',
+          fontSize: '0.85rem',
+          color: '#6b5a4a',
+          lineHeight: 1.55,
+          mb: 0.5,
+        }}
+      >
+        “{item.phrase}”
+      </Typography>
+      <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', color: '#a39a89' }}>
+        {item.nickname} · {daysLabel}
+      </Typography>
+    </Box>
   );
 };
 
