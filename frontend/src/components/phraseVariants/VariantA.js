@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
+import CommunityTicker from '../CommunityTicker';
 
 const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
@@ -176,6 +177,7 @@ const VariantA = ({
       >
         문구 바꾸기
       </Typography>
+      <CommunityTicker />
     </Scene>
   );
 };
