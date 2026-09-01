@@ -9,7 +9,16 @@ const AppHeaderSection = ({
   return (
     <>
       <Box sx={{ position: 'relative', textAlign: 'center', mb: 1.5 }}>
-        <Typography variant="subtitle1" component="h1" sx={{ fontWeight: 'bold' }}>
+        <Typography
+          variant="subtitle1"
+          component="h1"
+          sx={{
+            fontWeight: 700,
+            fontFamily: '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
+            color: '#322f29',
+            letterSpacing: '0.02em',
+          }}
+        >
           단단이
         </Typography>
 
@@ -21,9 +30,9 @@ const AppHeaderSection = ({
               position: 'absolute',
               top: 0,
               right: 0,
-              color: 'primary.main',
+              color: '#a9603a',
               '&:hover': {
-                backgroundColor: 'primary.50'
+                backgroundColor: 'rgba(169, 96, 58, 0.08)'
               }
             }}
           >
@@ -33,7 +42,15 @@ const AppHeaderSection = ({
       </Box>
 
       {isNonKoreanUser && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert
+          severity="warning"
+          sx={{
+            mb: 2,
+            backgroundColor: '#f7e9de',
+            color: '#a9603a',
+            '& .MuiAlert-icon': { color: '#c98354' },
+          }}
+        >
           이 서비스는 한국어로 제공됩니다.
         </Alert>
       )}
