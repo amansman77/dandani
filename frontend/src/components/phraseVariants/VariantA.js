@@ -67,7 +67,7 @@ function getRollingWeekTicks(loggedDates) {
 }
 
 const VariantA = ({
-  phrase, inputValue, setInputValue, submitting, onSubmit, logging, onLogToday, onRetire,
+  phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onRetire,
 }) => {
   if (!phrase) {
     return (
@@ -83,7 +83,7 @@ const VariantA = ({
               key={example}
               label={example}
               variant="outlined"
-              onClick={() => setInputValue(example)}
+              onClick={() => onExampleSelect(example)}
               sx={{
                 cursor: 'pointer',
                 fontFamily: SERIF,

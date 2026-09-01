@@ -1,4 +1,4 @@
-import { getRequiredUserId, getClientLocalDate } from './service-utils.js';
+import { getRequiredUserId, getClientLocalDate, logUserEvent } from './service-utils.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -32,6 +32,8 @@ export async function createPhrase(env, request) {
   await env.DB.prepare(`
     INSERT INTO daily_phrases (id, user_id, phrase) VALUES (?, ?, ?)
   `).bind(id, userId, phrase.trim()).run();
+
+  await logUserEvent(env, request, 'phrase_start', { phrase_id: id });
 
   return { id, phrase: phrase.trim(), status: 'active' };
 }
@@ -107,6 +109,8 @@ export async function retirePhrase(env, phraseId, request) {
   if (result.meta.changes === 0) {
     throw new Error(`Active phrase not found: ${phraseId}`);
   }
+
+  await logUserEvent(env, request, 'phrase_retired', { phrase_id: phraseId });
 
   return { success: true };
 }

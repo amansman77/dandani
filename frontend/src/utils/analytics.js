@@ -114,6 +114,11 @@ const BACKEND_ALLOWED_EVENT_TYPES = new Set([
   'challenge_upsell_shown',
   'challenge_upsell_declined',
   'challenge_day_logged',
+  'phrase_onboarding_shown',
+  'phrase_example_used',
+  'phrase_start',
+  'phrase_day_logged',
+  'phrase_retired',
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
@@ -250,6 +255,18 @@ export const logChallengeUpsellDeclined = (storyId) => {
 
 export const logChallengeDayLogged = (challengeId, loggedDays) => {
   logEvent('challenge_day_logged', { challenge_id: challengeId, logged_days: loggedDays });
+};
+
+export const logPhraseOnboardingShown = () => {
+  logEvent('phrase_onboarding_shown', {});
+};
+
+export const logPhraseExampleUsed = (example) => {
+  logEvent('phrase_example_used', { example });
+};
+
+export const logPhraseDayLogged = (phraseId, loggedDays) => {
+  logEvent('phrase_day_logged', { phrase_id: phraseId, logged_days: loggedDays });
 };
 
 export const logChallengeCompleted = (challengeId, practiceDay) => {

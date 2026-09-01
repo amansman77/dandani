@@ -36,7 +36,7 @@ const Phrase = styled(Typography)({
 });
 
 const VariantB = ({
-  phrase, inputValue, setInputValue, submitting, onSubmit, logging, onLogToday, onRetire,
+  phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onRetire,
 }) => {
   if (!phrase) {
     return (
@@ -52,7 +52,7 @@ const VariantB = ({
               key={example}
               label={example}
               variant="outlined"
-              onClick={() => setInputValue(example)}
+              onClick={() => onExampleSelect(example)}
               sx={{
                 cursor: 'pointer',
                 color: '#c7b596',

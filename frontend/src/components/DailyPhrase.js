@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import { getUserId } from '../utils/userId';
 import VariantA from './phraseVariants/VariantA';
+import { logPhraseOnboardingShown, logPhraseExampleUsed, logPhraseDayLogged } from '../utils/analytics';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -38,6 +39,18 @@ const DailyPhrase = () => {
     fetchActivePhrase();
   }, []);
 
+  useEffect(() => {
+    if (!loading && !phrase) {
+      logPhraseOnboardingShown();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, phrase]);
+
+  const handleExampleSelect = (example) => {
+    logPhraseExampleUsed(example);
+    setInputValue(example);
+  };
+
   const handleSubmit = async () => {
     if (!inputValue.trim() || submitting) return;
     setSubmitting(true);
@@ -69,6 +82,8 @@ const DailyPhrase = () => {
         body: JSON.stringify({}),
       });
       if (!response.ok) throw new Error(`Failed to log phrase day: ${response.status}`);
+      const data = await response.json();
+      logPhraseDayLogged(phrase.id, data.logged_days);
       await fetchActivePhrase();
     } catch (err) {
       setError(err.message);
@@ -110,6 +125,7 @@ const DailyPhrase = () => {
         phrase={phrase}
         inputValue={inputValue}
         setInputValue={setInputValue}
+        onExampleSelect={handleExampleSelect}
         submitting={submitting}
         onSubmit={handleSubmit}
         logging={logging}
