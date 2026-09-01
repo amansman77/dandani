@@ -1,4 +1,5 @@
 import { getRequiredUserId, getClientLocalDate, logUserEvent } from './service-utils.js';
+import { getNickname } from './nickname-service.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -113,6 +114,32 @@ export async function retirePhrase(env, phraseId, request) {
   await logUserEvent(env, request, 'phrase_retired', { phrase_id: phraseId });
 
   return { success: true };
+}
+
+export async function getCommunityPhrases(env, request) {
+  const userId = getRequiredUserId(request);
+
+  const { results: phrases } = await env.DB.prepare(`
+    SELECT id, user_id, phrase
+    FROM daily_phrases
+    WHERE status = 'active' AND user_id != ?
+    ORDER BY started_at DESC
+    LIMIT 20
+  `).bind(userId).all();
+
+  const items = [];
+  for (const p of phrases) {
+    const { results: countRows } = await env.DB.prepare(`
+      SELECT COUNT(*) as cnt FROM daily_phrase_logs WHERE phrase_id = ?
+    `).bind(p.id).all();
+    items.push({
+      nickname: getNickname(p.user_id),
+      phrase: p.phrase,
+      logged_days: countRows[0]?.cnt || 0
+    });
+  }
+
+  return { items };
 }
 
 export async function getPhraseHistory(env, request) {

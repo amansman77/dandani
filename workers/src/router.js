@@ -19,7 +19,7 @@ import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed, saveStoryTryEmotion } from './story-service.js';
 import { createChallenge, getActiveChallenge, logChallengeDay, getChallengeCatalogDetail } from './challenge-service.js';
-import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory } from './phrase-service.js';
+import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
 
 async function handleGet(url, request, env) {
   if (url.pathname === '/api/practice/today') {
@@ -75,6 +75,9 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname === '/api/phrases/history') {
     return jsonResponse(await getPhraseHistory(env, request));
+  }
+  if (url.pathname === '/api/phrases/community') {
+    return jsonResponse(await getCommunityPhrases(env, request));
   }
   if (url.pathname.startsWith('/api/stories/')) {
     const storyId = url.pathname.split('/')[3];
