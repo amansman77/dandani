@@ -13,8 +13,9 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
         right: 0,
         zIndex: (theme) => theme.zIndex.appBar,
         paddingBottom: 'env(safe-area-inset-bottom)',
-        background: 'linear-gradient(180deg, #f8f1e6 0%, #f3ece2 100%)',
-        borderTop: '1px solid #e2dbc9',
+        background: 'transparent',
+        boxShadow: 'none',
+        borderTop: '1px solid rgba(128,128,128,0.18)',
       }}
     >
       <BottomNavigation
@@ -23,8 +24,8 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
         showLabels
         sx={{
           background: 'transparent',
-          '& .MuiBottomNavigationAction-root': { color: '#a39a89' },
-          '& .Mui-selected': { color: '#a9603a !important' },
+          '& .MuiBottomNavigationAction-root': { color: '#3c3a34', opacity: 0.55 },
+          '& .Mui-selected': { color: '#b06a45 !important', opacity: 1 },
         }}
       >
         <BottomNavigationAction label="오늘" icon={<WbSunny />} />

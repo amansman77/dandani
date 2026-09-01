@@ -398,8 +398,28 @@ function App() {
   }
 
   return (
-    <>
-    <Container maxWidth="sm">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'linear-gradient(180deg, #eef2f4 0%, #f3ece2 55%, #f8f1e6 100%)',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '-15%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 480,
+          height: 480,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,225,190,0.55) 0%, rgba(255,225,190,0) 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+    <Container maxWidth="sm" sx={{ position: 'relative' }}>
       <Box sx={{ pt: 2, pb: 10, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <AppHeaderSection
           isNonKoreanUser={isNonKoreanUser}
@@ -499,7 +519,7 @@ function App() {
       </Box>
     </Container>
     <AppBottomNav activeTab={activeTab} onTabChange={handleTabChange} />
-    </>
+    </Box>
   );
 }
 

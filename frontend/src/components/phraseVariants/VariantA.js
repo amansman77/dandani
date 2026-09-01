@@ -7,8 +7,6 @@ const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 
 const Scene = styled(Box)(({ theme }) => ({
   position: 'relative',
-  overflow: 'hidden',
-  borderRadius: 24,
   minHeight: 'min(62vh, 480px)',
   padding: theme.spacing(6, 4, 5),
   display: 'flex',
@@ -16,19 +14,6 @@ const Scene = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   justifyContent: 'center',
   textAlign: 'center',
-  background: 'linear-gradient(180deg, #eef2f4 0%, #f3ece2 55%, #f8f1e6 100%)',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: '-30%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: 420,
-    height: 420,
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(255,225,190,0.55) 0%, rgba(255,225,190,0) 70%)',
-    pointerEvents: 'none',
-  },
 }));
 
 const Eyebrow = styled(Typography)({
