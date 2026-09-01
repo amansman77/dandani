@@ -172,7 +172,7 @@ const VariantA = ({
       <Typography
         variant="caption"
         onClick={onRetire}
-        sx={{ mt: 3, color: '#a39a89', cursor: 'pointer', position: 'relative' }}
+        sx={{ fontFamily: SANS, fontSize: '0.72rem', mt: 3, color: '#a39a89', cursor: 'pointer', position: 'relative' }}
       >
         문구 바꾸기
       </Typography>

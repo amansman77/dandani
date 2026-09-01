@@ -134,8 +134,8 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
               background: 'none',
               padding: 0,
               cursor: 'pointer',
-              fontFamily: SERIF,
-              fontSize: '0.7rem',
+              fontFamily: SANS,
+              fontSize: '0.72rem',
               color: '#a39a89',
             }}
           >

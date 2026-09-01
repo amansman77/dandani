@@ -18,11 +18,9 @@ const AppHeaderSection = ({
               background: 'none',
               padding: 0,
               cursor: 'pointer',
-              fontFamily: '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
-              fontSize: '0.75rem',
-              color: '#a9603a',
-              borderBottom: '1px solid #c98354',
-              paddingBottom: '2px',
+              fontFamily: '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important',
+              fontSize: '0.72rem',
+              color: '#a39a89',
               '&:hover': { opacity: 0.75 },
             }}
           >
