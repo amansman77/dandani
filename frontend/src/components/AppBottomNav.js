@@ -6,6 +6,7 @@ const NavDot = styled('span')({
   display: 'block',
   width: 7,
   height: 7,
+  marginBottom: 9,
   borderRadius: '50%',
   backgroundColor: 'currentColor',
 });
@@ -38,7 +39,6 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
             fontFamily: '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
           },
           '& .MuiBottomNavigationAction-label': { fontSize: '0.7rem' },
-          '& .MuiBottomNavigationAction-icon': { marginBottom: '9px' },
           '& .Mui-selected': { color: '#b06a45 !important', opacity: 1 },
         }}
       >
