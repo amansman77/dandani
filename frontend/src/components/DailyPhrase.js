@@ -10,7 +10,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 // B/C는 frontend/src/components/phraseVariants/ 에 완성된 상태로 대기.
 const ActiveVariant = VariantA;
 
-const DailyPhrase = () => {
+const DailyPhrase = ({ onViewHistory }) => {
   const [phrase, setPhrase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -131,6 +131,7 @@ const DailyPhrase = () => {
         logging={logging}
         onLogToday={handleLogToday}
         onRetire={handleRetire}
+        onViewHistory={onViewHistory}
       />
     </Box>
   );

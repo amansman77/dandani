@@ -59,7 +59,7 @@ function getRollingWeekTicks(loggedDates) {
 }
 
 const VariantA = ({
-  phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onRetire,
+  phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onRetire, onViewHistory,
 }) => {
   if (!phrase) {
     return (
@@ -167,8 +167,8 @@ const VariantA = ({
         ))}
       </Box>
       <Button
-        disabled={phrase.logged_today || logging}
-        onClick={onLogToday}
+        disabled={!phrase.logged_today && logging}
+        onClick={phrase.logged_today ? onViewHistory : onLogToday}
         sx={{
           position: 'relative',
           fontFamily: SERIF,

@@ -428,7 +428,7 @@ function App() {
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {activeTab === 0 && !showCurrentChallengeDetail && (
-            <DailyPhrase />
+            <DailyPhrase onViewHistory={() => handleTabChange(null, 1)} />
           )}
 
           {activeTab === 1 && <PhraseHistory />}
