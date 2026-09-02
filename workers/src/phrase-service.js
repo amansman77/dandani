@@ -65,11 +65,14 @@ export async function getActivePhrase(env, request) {
   // 1로 셈)로 보여준다. 오늘치 page_visit 이벤트가 아직 안 쌓였을 수도 있어서
   // (분석 이벤트는 비동기로 나중에 기록됨) 그건 세지 않고, 이 요청 자체가 곧
   // "오늘 방문"이라는 증거이므로 항상 +1 해준다.
+  // date('now')는 서버(UTC) 기준이라 한국 등 UTC+9 지역에선 자정이 아니라 오전
+  // 9시에 날짜가 바뀐 것처럼 셌다. 이미 계산해둔 today(클라이언트 로컬 자정
+  // 기준)를 그대로 경계로 써서 맞춘다.
   const { visit_days: visitDaysBeforeToday } = await env.DB.prepare(`
     SELECT COUNT(DISTINCT date(created_at)) as visit_days
     FROM user_events
-    WHERE user_id = ? AND event_type = 'page_visit' AND created_at >= ? AND date(created_at) < date('now')
-  `).bind(userId, phrase.started_at).first();
+    WHERE user_id = ? AND event_type = 'page_visit' AND created_at >= ? AND date(created_at) < ?
+  `).bind(userId, phrase.started_at, today).first();
   const visitDays = (visitDaysBeforeToday || 0) + 1;
 
   return {

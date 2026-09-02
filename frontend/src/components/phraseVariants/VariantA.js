@@ -60,8 +60,12 @@ const Tick = styled(Box, { shouldForwardProp: (prop) => prop !== 'filled' })(({ 
   '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
 }));
 
+// toISOString()은 UTC 기준이라, 한국(UTC+9)에서는 자정이 아니라 오전 9시에
+// 날짜가 바뀐 것처럼 계산돼버린다. toLocaleDateString('en-CA')는 별도 옵션
+// 없이도 이 브라우저의 로컬 타임존 기준 YYYY-MM-DD를 주기 때문에, 서버가
+// log_date를 기록하는 기준(사용자 로컬 자정)과 여기서도 맞춰준다.
 function dateKeyDaysAgo(offsetDays) {
-  return new Date(Date.now() - offsetDays * 86400000).toISOString().split('T')[0];
+  return new Date(Date.now() - offsetDays * 86400000).toLocaleDateString('en-CA');
 }
 
 // 스트릭(연속 일수) 표시. 이전엔 지난 7일 중 그날 기록이 있는지를 하루씩 따로

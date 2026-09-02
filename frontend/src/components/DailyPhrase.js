@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, CircularProgress, Alert } from '@mui/material';
 import { getUserId } from '../utils/userId';
+import { getClientTimeHeaders } from '../utils/clientTime';
 import VariantA from './phraseVariants/VariantA';
 import { logPhraseOnboardingShown, logPhraseExampleUsed, logPhraseDayLogged } from '../utils/analytics';
 
@@ -23,7 +24,8 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
       setLoading(true);
       setError(null);
       const response = await fetch(`${API_URL}/api/phrases/active`, {
-        headers: { 'X-User-ID': getUserId() },
+        // 서버가 "오늘 이미 되새겼는지"를 내 로컬 자정 기준으로 판단하도록.
+        headers: { 'X-User-ID': getUserId(), ...getClientTimeHeaders() },
       });
       if (!response.ok) throw new Error(`Failed to fetch phrase: ${response.status}`);
       const data = await response.json();
@@ -109,7 +111,8 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     try {
       const response = await fetch(`${API_URL}/api/phrases/${phrase.id}/log`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+        // 몇 월 며칠로 기록할지를 서버가 내 로컬 자정 기준으로 정하도록.
+        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId(), ...getClientTimeHeaders() },
         body: JSON.stringify({}),
       });
       if (!response.ok) throw new Error(`Failed to log phrase day: ${response.status}`);
