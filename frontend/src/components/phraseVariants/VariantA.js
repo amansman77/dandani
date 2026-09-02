@@ -40,10 +40,14 @@ const Phrase = styled(Typography)({
 });
 
 // 점 7개를 순서대로 훑고 지나가는 잔잔한 파도 — 한 번만 재생하고 끝나는 등장
-// 애니메이션이 아니라, 계속 반복되도록. index별 animationDelay는 렌더 쪽에서 준다.
+// 애니메이션이 아니라 계속 반복되지만, 쉬지 않고 이어지면 어지럽다는 피드백을
+// 받아서 파도가 지나간 뒤엔 한참 가만히 있다가 다시 훑도록 쉬는 구간을 크게 뒀다
+// (전체 주기 6.4s 중 파도 자체는 앞쪽 10%뿐, 나머지 90%는 정지).
+// index별 animationDelay는 렌더 쪽에서 준다.
 const tickWave = keyframes`
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(1.35); }
+  0% { transform: scaleY(1); }
+  5% { transform: scaleY(1.35); }
+  10%, 100% { transform: scaleY(1); }
 `;
 
 const Tick = styled(Box, { shouldForwardProp: (prop) => prop !== 'filled' })(({ filled }) => ({
@@ -52,7 +56,7 @@ const Tick = styled(Box, { shouldForwardProp: (prop) => prop !== 'filled' })(({ 
   height: filled ? 20 : 16,
   background: filled ? '#c98354' : '#ddceb9',
   transformOrigin: 'center',
-  animation: `${tickWave} 2.8s ease-in-out infinite`,
+  animation: `${tickWave} 6.4s ease-in-out infinite`,
   '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
 }));
 
