@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, TextField, Chip, Button, IconButton, CircularProgress } from '@mui/material';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { styled } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 import CommunityTicker from '../CommunityTicker';
@@ -132,6 +133,24 @@ const VariantA = ({
 
   return (
     <Scene>
+      <IconButton
+        onClick={onRetire}
+        aria-label="문구 바꾸기"
+        size="small"
+        sx={{
+          position: 'absolute',
+          top: 14,
+          right: 14,
+          zIndex: 2,
+          width: 30,
+          height: 30,
+          color: '#a39a89',
+          background: 'rgba(255,255,255,0.45)',
+          '&:hover': { background: 'rgba(255,255,255,0.65)' },
+        }}
+      >
+        <EditOutlinedIcon sx={{ fontSize: '1rem' }} />
+      </IconButton>
       <Eyebrow sx={{ mb: 2.5 }}>
         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}, 아침
       </Eyebrow>
@@ -148,35 +167,27 @@ const VariantA = ({
         ))}
       </Box>
       <Button
-        disableRipple
         disabled={phrase.logged_today || logging}
         onClick={onLogToday}
         sx={{
           position: 'relative',
           fontFamily: SERIF,
-          fontSize: '0.95rem',
+          fontSize: '0.92rem',
           fontWeight: 400,
           textTransform: 'none',
-          color: phrase.logged_today ? '#b6ac9a' : '#a9603a',
-          borderBottom: phrase.logged_today ? 'none' : '1px solid #c98354',
-          borderRadius: 0,
-          padding: 0,
+          color: phrase.logged_today ? '#8c8578' : '#a9603a',
+          border: phrase.logged_today ? '1.4px solid #cabfa9' : '1.4px solid #c98354',
+          borderRadius: '999px',
+          padding: '9px 24px',
           minWidth: 'auto',
           minHeight: 'auto',
           lineHeight: 'normal',
-          paddingBottom: '3px',
-          '&:hover': { background: 'transparent', opacity: 0.75 },
+          '&:hover': { background: 'rgba(201,131,84,0.08)', border: phrase.logged_today ? '1.4px solid #cabfa9' : '1.4px solid #c98354' },
+          '&.Mui-disabled': { color: '#8c8578', border: '1.4px solid #cabfa9' },
         }}
       >
         {logging ? <CircularProgress size={18} /> : (phrase.logged_today ? '오늘도 되새겼어요' : '오늘의 문장 되새기기')}
       </Button>
-      <Typography
-        variant="caption"
-        onClick={onRetire}
-        sx={{ fontFamily: SANS, fontSize: '0.72rem', mt: 3, color: '#a39a89', cursor: 'pointer', position: 'relative' }}
-      >
-        문구 바꾸기
-      </Typography>
       <CommunityTicker />
     </Scene>
   );

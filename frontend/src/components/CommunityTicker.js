@@ -49,16 +49,41 @@ const CommunityTicker = () => {
       sx={{
         mt: 3,
         maxWidth: 260,
-        textAlign: 'center',
+        width: '100%',
+        textAlign: 'left',
+        borderRadius: '14px',
+        border: '1px solid #e8dcc6',
+        background: 'rgba(255,255,255,0.55)',
+        padding: '14px 16px 12px',
         opacity: visible ? 1 : 0,
         transition: 'opacity 0.3s ease',
       }}
     >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: 1 }}>
+        <Box sx={{ display: 'flex' }}>
+          {[0, 1, 2].map((i) => (
+            <Box
+              key={i}
+              sx={{
+                width: 9,
+                height: 9,
+                borderRadius: '50%',
+                background: '#c9b79c',
+                border: '1.5px solid #f8f1e6',
+                marginLeft: i === 0 ? 0 : '-4px',
+              }}
+            />
+          ))}
+        </Box>
+        <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578' }}>
+          다른 사람들의 아침
+        </Typography>
+      </Box>
       <Typography
         sx={{
           fontFamily: SERIF,
           fontStyle: 'italic',
-          fontSize: '0.85rem',
+          fontSize: '0.82rem',
           color: '#6b5a4a',
           lineHeight: 1.55,
           mb: 0.5,
