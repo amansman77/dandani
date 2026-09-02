@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, keyframes } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 import CommunityTicker from '../CommunityTicker';
 
@@ -39,11 +39,21 @@ const Phrase = styled(Typography)({
   position: 'relative',
 });
 
+// 점 7개를 순서대로 훑고 지나가는 잔잔한 파도 — 한 번만 재생하고 끝나는 등장
+// 애니메이션이 아니라, 계속 반복되도록. index별 animationDelay는 렌더 쪽에서 준다.
+const tickWave = keyframes`
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.35); }
+`;
+
 const Tick = styled(Box, { shouldForwardProp: (prop) => prop !== 'filled' })(({ filled }) => ({
   width: 3,
   borderRadius: 2,
   height: filled ? 20 : 16,
   background: filled ? '#c98354' : '#ddceb9',
+  transformOrigin: 'center',
+  animation: `${tickWave} 2.8s ease-in-out infinite`,
+  '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
 }));
 
 function dateKeyDaysAgo(offsetDays) {
@@ -170,7 +180,7 @@ const VariantA = ({
       <Phrase sx={{ mb: 3.5 }}>{phrase.phrase}</Phrase>
       <Box sx={{ display: 'flex', gap: 0.75, mb: 4, position: 'relative' }}>
         {ticks.map((filled, i) => (
-          <Tick key={i} filled={filled} />
+          <Tick key={i} filled={filled} sx={{ animationDelay: `${i * 220}ms` }} />
         ))}
       </Box>
       <Button
