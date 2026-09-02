@@ -426,7 +426,7 @@ function App() {
           onRestartOnboarding={handleRestartOnboarding}
         />
 
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
           {activeTab === 0 && !showCurrentChallengeDetail && (
             <DailyPhrase onViewHistory={() => handleTabChange(null, 1)} />
           )}
