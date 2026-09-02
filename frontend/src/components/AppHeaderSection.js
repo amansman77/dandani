@@ -28,7 +28,14 @@ const AppHeaderSection = ({
         </Tooltip>
 
         {showEditPhrase && (
-          <Box component="button" type="button" onClick={onEditPhrase} sx={linkButtonSx}>
+          // 안내와 톤이 같으면 눈에 안 띄어서, 앱 전반의 액션 색(#a9603a — 되새기기
+          // 버튼·"모두 보기" 등과 동일)과 굵기로 "이건 액션이다"를 분명히 함.
+          <Box
+            component="button"
+            type="button"
+            onClick={onEditPhrase}
+            sx={{ ...linkButtonSx, color: '#a9603a', fontWeight: 600 }}
+          >
             편집
           </Box>
         )}
