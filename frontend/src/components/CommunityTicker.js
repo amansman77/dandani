@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Dialog, IconButton } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { Box, Typography, Drawer } from '@mui/material';
 import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -160,29 +159,29 @@ const CommunityTicker = () => {
         )}
       </Box>
 
-      <Dialog
+      <Drawer
+        anchor="bottom"
         open={open}
         onClose={() => setOpen(false)}
-        fullWidth
-        maxWidth="xs"
         PaperProps={{
           sx: {
-            borderRadius: '18px',
+            borderRadius: '18px 18px 0 0',
             background: '#fdf9f2',
             backgroundImage: 'none',
-            margin: 2,
+            maxHeight: '75vh',
+            // 하단 탭바(고정, zIndex: appBar=1100)보다 시트가 항상 위에 뜨도록 —
+            // Drawer의 기본 zIndex(modal=1300)가 이미 더 높아서 열리면 탭바를 자연스럽게 덮는다.
+            paddingBottom: 'env(safe-area-inset-bottom)',
           },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', padding: '18px 8px 12px 20px' }}>
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.9rem', fontWeight: 700, color: '#4a4437', flex: 1 }}>
+        <Box sx={{ width: 34, height: 4, borderRadius: 2, background: '#ddceb9', margin: '10px auto 4px' }} />
+        <Box sx={{ padding: '10px 20px 4px' }}>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.9rem', fontWeight: 700, color: '#4a4437' }}>
             다른 사람들의 아침 · {items.length}
           </Typography>
-          <IconButton onClick={() => setOpen(false)} aria-label="닫기" size="small" sx={{ color: '#a39a89' }}>
-            <CloseIcon sx={{ fontSize: '1.15rem' }} />
-          </IconButton>
         </Box>
-        <Box sx={{ maxHeight: '65vh', overflowY: 'auto', padding: '0 20px 20px' }}>
+        <Box sx={{ overflowY: 'auto', padding: '4px 20px 24px' }}>
           {items.map((it, i) => (
             <Box
               key={`${it.nickname}-${i}`}
@@ -210,7 +209,7 @@ const CommunityTicker = () => {
             </Box>
           ))}
         </Box>
-      </Dialog>
+      </Drawer>
     </Box>
   );
 };
