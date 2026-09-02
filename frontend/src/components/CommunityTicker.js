@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Dialog, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -15,6 +16,7 @@ const CommunityTicker = () => {
   const [items, setItems] = useState([]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | exit | enter
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     const fetchCommunity = async () => {
@@ -33,7 +35,8 @@ const CommunityTicker = () => {
   }, []);
 
   useEffect(() => {
-    if (items.length < 2) return undefined;
+    // 전체 목록을 보는 중엔 뒤에서 카드가 계속 넘어가지 않게 잠시 멈춘다.
+    if (items.length < 2 || open) return undefined;
     const timer = setInterval(() => {
       setPhase('exit');
       setTimeout(() => {
@@ -47,7 +50,7 @@ const CommunityTicker = () => {
       }, CARD_MS);
     }, DWELL_MS);
     return () => clearInterval(timer);
-  }, [items]);
+  }, [items, open]);
 
   if (items.length === 0) return null;
 
@@ -75,12 +78,17 @@ const CommunityTicker = () => {
       }}
     >
       <Box
+        onClick={() => setOpen(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOpen(true); }}
         sx={{
           textAlign: 'left',
           borderRadius: '14px',
           border: '1px solid #e8dcc6',
           background: 'rgba(255,255,255,0.85)',
           padding: '14px 16px 12px',
+          cursor: 'pointer',
           transform: cardTransform,
           opacity: phase === 'idle' ? 1 : 0,
           transition: phase === 'enter' ? 'none' : `transform ${CARD_MS}ms cubic-bezier(.22,.68,.35,1), opacity ${CARD_MS}ms ease`,
@@ -111,8 +119,11 @@ const CommunityTicker = () => {
               />
             ))}
           </Box>
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578' }}>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578', flex: 1 }}>
             다른 사람들의 아침
+          </Typography>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.62rem', color: '#a9603a' }}>
+            모두 보기 ›
           </Typography>
         </Box>
         <Typography
@@ -148,6 +159,58 @@ const CommunityTicker = () => {
           </Box>
         )}
       </Box>
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="xs"
+        PaperProps={{
+          sx: {
+            borderRadius: '18px',
+            background: '#fdf9f2',
+            backgroundImage: 'none',
+            margin: 2,
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', padding: '18px 8px 12px 20px' }}>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.9rem', fontWeight: 700, color: '#4a4437', flex: 1 }}>
+            다른 사람들의 아침 · {items.length}
+          </Typography>
+          <IconButton onClick={() => setOpen(false)} aria-label="닫기" size="small" sx={{ color: '#a39a89' }}>
+            <CloseIcon sx={{ fontSize: '1.15rem' }} />
+          </IconButton>
+        </Box>
+        <Box sx={{ maxHeight: '65vh', overflowY: 'auto', padding: '0 20px 20px' }}>
+          {items.map((it, i) => (
+            <Box
+              key={`${it.nickname}-${i}`}
+              sx={{
+                padding: '13px 0',
+                borderTop: i === 0 ? 'none' : '1px solid #ecdfc7',
+                textAlign: 'left',
+              }}
+            >
+              <Typography
+                sx={{
+                  fontFamily: SERIF,
+                  fontStyle: 'italic',
+                  fontSize: '0.85rem',
+                  color: '#6b5a4a',
+                  lineHeight: 1.55,
+                  mb: 0.5,
+                }}
+              >
+                “{it.phrase}”
+              </Typography>
+              <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', color: '#a39a89' }}>
+                {it.nickname} · {it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Dialog>
     </Box>
   );
 };
