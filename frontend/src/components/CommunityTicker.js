@@ -90,8 +90,9 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   if (status === 'empty') return null;
 
   if (status === 'loading') {
+    // 되새기기 버튼과 확실히 떨어져 보이도록 (기존 mt:3에서 늘림)
     return (
-      <Box sx={{ mt: 3, maxWidth: 260, width: '100%' }}>
+      <Box sx={{ mt: 5.5, maxWidth: 260, width: '100%' }}>
         <Box
           sx={{
             textAlign: 'left',
@@ -141,7 +142,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   return (
     <Box
       sx={{
-        mt: 3,
+        mt: 5.5, // 되새기기 버튼과 확실히 떨어져 보이도록 (기존 mt:3에서 늘림)
         maxWidth: 260,
         width: '100%',
         // 뒤에 쌓인 카드 가장자리를 box-shadow 두 겹으로 흉내 낸다 — 문구 길이가
