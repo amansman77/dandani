@@ -10,17 +10,13 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 // B/C는 frontend/src/components/phraseVariants/ 에 완성된 상태로 대기.
 const ActiveVariant = VariantA;
 
-const DailyPhrase = ({ onViewHistory }) => {
+const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhraseChange }) => {
   const [phrase, setPhrase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [inputValue, setInputValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [logging, setLogging] = useState(false);
-  // 연필 아이콘을 누른 순간 바로 기존 문구를 지우던 것 대신, 화면만 입력 폼으로
-  // 바꿔두는 클라이언트 상태. 실제 retire는 새 문구를 확정 제출할 때만 일어나서,
-  // "취소"를 누르면 서버엔 아무 일도 안 일어나고 원래 문구로 그대로 돌아간다.
-  const [isEditing, setIsEditing] = useState(false);
 
   const fetchActivePhrase = async () => {
     try {
@@ -49,6 +45,21 @@ const DailyPhrase = ({ onViewHistory }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, phrase]);
+
+  // 편집 버튼이 헤더(안내 버튼 옆)로 옮겨가면서, "편집 시작"이 이제 App 쪽에서
+  // isEditing을 true로 뒤집는 걸로 온다. 여기서는 그 순간 입력창에 지금 문구를
+  // 미리 채워 넣는 것만 담당한다.
+  useEffect(() => {
+    if (isEditing && phrase) {
+      setInputValue(phrase.phrase);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
+
+  // 헤더의 편집 버튼을 활성 문구가 있을 때만 보여줘야 해서, 그 여부를 App으로 올려보낸다.
+  useEffect(() => {
+    if (onActivePhraseChange) onActivePhraseChange(Boolean(phrase));
+  }, [phrase, onActivePhraseChange]);
 
   const handleExampleSelect = (example) => {
     logPhraseExampleUsed(example);
@@ -84,7 +95,7 @@ const DailyPhrase = ({ onViewHistory }) => {
     try {
       await commitNewPhrase(inputValue.trim());
       setInputValue('');
-      setIsEditing(false);
+      onEditingChange(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -92,15 +103,9 @@ const DailyPhrase = ({ onViewHistory }) => {
     }
   };
 
-  const handleEditPhrase = () => {
-    if (!phrase) return;
-    setInputValue(phrase.phrase);
-    setIsEditing(true);
-  };
-
   const handleCancelEdit = () => {
     setInputValue('');
-    setIsEditing(false);
+    onEditingChange(false);
   };
 
   const handleLogToday = async () => {
@@ -174,7 +179,6 @@ const DailyPhrase = ({ onViewHistory }) => {
         onUseCommunityPhrase={handleUseCommunityPhrase}
         hasActivePhrase={Boolean(phrase)}
         isEditing={isEditing}
-        onEditPhrase={handleEditPhrase}
         onCancelEdit={handleCancelEdit}
       />
     </Box>

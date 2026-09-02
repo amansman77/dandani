@@ -1,6 +1,5 @@
 import React from 'react';
-import { Box, Typography, TextField, Chip, Button, IconButton, CircularProgress } from '@mui/material';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 import CommunityTicker from '../CommunityTicker';
@@ -60,7 +59,7 @@ function getRollingWeekTicks(loggedDates) {
 
 const VariantA = ({
   phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onViewHistory,
-  onUseCommunityPhrase, hasActivePhrase, isEditing, onEditPhrase, onCancelEdit,
+  onUseCommunityPhrase, hasActivePhrase, isEditing, onCancelEdit,
 }) => {
   if (!phrase || isEditing) {
     return (
@@ -147,24 +146,6 @@ const VariantA = ({
 
   return (
     <Scene>
-      <IconButton
-        onClick={onEditPhrase}
-        aria-label="문구 바꾸기"
-        size="small"
-        sx={{
-          position: 'absolute',
-          top: 14,
-          right: 14,
-          zIndex: 2,
-          width: 30,
-          height: 30,
-          color: '#a39a89',
-          background: 'rgba(255,255,255,0.45)',
-          '&:hover': { background: 'rgba(255,255,255,0.65)' },
-        }}
-      >
-        <EditOutlinedIcon sx={{ fontSize: '1rem' }} />
-      </IconButton>
       <Eyebrow sx={{ mb: 2.5 }}>
         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}, 아침
       </Eyebrow>

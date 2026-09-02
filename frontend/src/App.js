@@ -43,6 +43,10 @@ function App() {
   const [completionModalOpen, setCompletionModalOpen] = useState(false);
   const [hasDetailedRecord, setHasDetailedRecord] = useState(false); // 상세 기록 여부
   const [isNonKoreanUser, setIsNonKoreanUser] = useState(false);
+  // 오늘의 문구 편집 트리거를 헤더(안내 버튼 옆)로 옮기면서, 편집 중인지/편집
+  // 가능한 문구가 있는지를 App이 들고 DailyPhrase와 주고받는다.
+  const [phraseEditing, setPhraseEditing] = useState(false);
+  const [hasActivePhrase, setHasActivePhrase] = useState(false);
   
   // 알림 모달 상태
   const [alertModal, setAlertModal] = useState({
@@ -424,11 +428,18 @@ function App() {
         <AppHeaderSection
           isNonKoreanUser={isNonKoreanUser}
           onRestartOnboarding={handleRestartOnboarding}
+          showEditPhrase={activeTab === 0 && !showCurrentChallengeDetail && hasActivePhrase}
+          onEditPhrase={() => setPhraseEditing(true)}
         />
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
           {activeTab === 0 && !showCurrentChallengeDetail && (
-            <DailyPhrase onViewHistory={() => handleTabChange(null, 1)} />
+            <DailyPhrase
+              onViewHistory={() => handleTabChange(null, 1)}
+              isEditing={phraseEditing}
+              onEditingChange={setPhraseEditing}
+              onActivePhraseChange={setHasActivePhrase}
+            />
           )}
 
           {activeTab === 1 && <PhraseHistory />}
