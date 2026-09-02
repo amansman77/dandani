@@ -61,12 +61,24 @@ export async function getActivePhrase(env, request) {
   const today = todayDateString(request);
   const loggedToday = logs.some((log) => log.log_date === today);
 
+  // "N번째 아침이에요"는 되새기기 완료 횟수 대신 방문한 날 수(하루에 여러 번 켜도
+  // 1로 셈)로 보여준다. 오늘치 page_visit 이벤트가 아직 안 쌓였을 수도 있어서
+  // (분석 이벤트는 비동기로 나중에 기록됨) 그건 세지 않고, 이 요청 자체가 곧
+  // "오늘 방문"이라는 증거이므로 항상 +1 해준다.
+  const { visit_days: visitDaysBeforeToday } = await env.DB.prepare(`
+    SELECT COUNT(DISTINCT date(created_at)) as visit_days
+    FROM user_events
+    WHERE user_id = ? AND event_type = 'page_visit' AND created_at >= ? AND date(created_at) < date('now')
+  `).bind(userId, phrase.started_at).first();
+  const visitDays = (visitDaysBeforeToday || 0) + 1;
+
   return {
     phrase: {
       ...phrase,
       logged_days: logs.length,
       logged_dates: logs.map((log) => log.log_date),
-      logged_today: loggedToday
+      logged_today: loggedToday,
+      visit_days: visitDays
     }
   };
 }

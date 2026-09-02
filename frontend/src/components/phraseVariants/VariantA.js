@@ -153,7 +153,8 @@ const VariantA = ({
   }
 
   const ticks = getRollingWeekTicks(phrase.logged_dates);
-  const morningNumber = phrase.logged_days + (phrase.logged_today ? 0 : 1);
+  // 되새기기 완료 횟수(logged_days) 대신 방문한 날 수 — 서버가 오늘 몫까지 계산해서 내려준다.
+  const morningNumber = phrase.visit_days;
 
   return (
     <Scene>
