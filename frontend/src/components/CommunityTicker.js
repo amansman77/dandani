@@ -6,15 +6,15 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
 
-// 카드 프레임은 고정해두고, 안쪽 문구만 위로 밀려 나가고 아래에서 새 문구가 밀려
-// 들어오는 것처럼 보이게 한다 — 그냥 사라졌다 나타나는 게 아니라 "롤업"으로 읽히도록.
-const ROLL_MS = 320;
+// 카드 자체가 쌓인 더미에서 빠져나가고 새 카드가 그 자리로 올라오는 것처럼 보이게 한다.
+// 뒤에 쌓인 카드 가장자리(box-shadow)는 "다음 것이 있다"를 진행바 없이도 항상 보여준다.
+const CARD_MS = 360;
 const DWELL_MS = 4500; // 다음 문구로 넘어가기 전 한 문구를 보여주는 시간
 
 const CommunityTicker = () => {
   const [items, setItems] = useState([]);
   const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState('idle'); // idle | leaving | entering
+  const [phase, setPhase] = useState('idle'); // idle | exit | enter
 
   useEffect(() => {
     const fetchCommunity = async () => {
@@ -35,16 +35,16 @@ const CommunityTicker = () => {
   useEffect(() => {
     if (items.length < 2) return undefined;
     const timer = setInterval(() => {
-      setPhase('leaving');
+      setPhase('exit');
       setTimeout(() => {
         setIndex((i) => (i + 1) % items.length);
-        setPhase('entering');
-        // entering은 transition 없이 순간 이동시킨 뒤, 다음 프레임에 idle로 되돌려
-        // "아래에서 위로 굴러 들어오는" 애니메이션을 태운다.
+        setPhase('enter');
+        // enter는 transition 없이 스택 뒤쪽(아래·오른쪽, 축소)에서 순간 대기시킨 뒤,
+        // 다음 프레임에 idle로 되돌려 "쌓인 곳에서 앞으로 올라오는" 애니메이션을 태운다.
         requestAnimationFrame(() => {
           requestAnimationFrame(() => setPhase('idle'));
         });
-      }, ROLL_MS);
+      }, CARD_MS);
     }, DWELL_MS);
     return () => clearInterval(timer);
   }, [items]);
@@ -53,7 +53,13 @@ const CommunityTicker = () => {
 
   const item = items[index];
   const daysLabel = item.logged_days === 0 ? '오늘부터' : `${item.logged_days}일째`;
-  const offsetY = phase === 'leaving' ? -10 : phase === 'entering' ? 10 : 0;
+  const hasStack = items.length > 1;
+
+  const cardTransform = {
+    exit: 'translate(-18px, -12px) scale(0.98) rotate(-5deg)',
+    enter: 'translate(14px, 18px) scale(0.9) rotate(3deg)',
+    idle: 'translate(0, 0) scale(1) rotate(0deg)',
+  }[phase];
 
   return (
     <Box
@@ -61,84 +67,87 @@ const CommunityTicker = () => {
         mt: 3,
         maxWidth: 260,
         width: '100%',
-        textAlign: 'left',
-        borderRadius: '14px',
-        border: '1px solid #e8dcc6',
-        background: 'rgba(255,255,255,0.55)',
-        padding: '14px 16px 12px',
+        // 뒤에 쌓인 카드 가장자리를 box-shadow 두 겹으로 흉내 낸다 — 문구 길이가
+        // 바뀌어도 카드 높이에 자동으로 맞춰지고, 실제 DOM을 더 만들 필요가 없다.
+        boxShadow: hasStack
+          ? '7px 9px 0 0 #f3e7d6, 14px 18px 0 0 #ecdfc7, 0 10px 24px rgba(60,40,10,0.06)'
+          : 'none',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: 1 }}>
-        <Box sx={{ display: 'flex' }}>
-          {[0, 1, 2].map((i) => (
-            <Box
-              key={i}
-              sx={{
-                width: 9,
-                height: 9,
-                borderRadius: '50%',
-                background: '#c9b79c',
-                border: '1.5px solid #f8f1e6',
-                marginLeft: i === 0 ? 0 : '-4px',
-                // 롤업 대상이 1명뿐이라 문구가 안 바뀌는 순간에도, 이 점만은 계속 살아있다는
-                // 신호를 줘야 해서 items.length 조건 없이 항상 돈다.
-                animation: `ticker-pulse 1.6s ease-in-out ${i * 0.2}s infinite`,
-                '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                '@keyframes ticker-pulse': {
-                  '0%, 100%': { opacity: 0.55, transform: 'scale(0.85)' },
-                  '50%': { opacity: 1, transform: 'scale(1)' },
-                },
-              }}
-            />
-          ))}
+      <Box
+        sx={{
+          textAlign: 'left',
+          borderRadius: '14px',
+          border: '1px solid #e8dcc6',
+          background: 'rgba(255,255,255,0.85)',
+          padding: '14px 16px 12px',
+          transform: cardTransform,
+          opacity: phase === 'idle' ? 1 : 0,
+          transition: phase === 'enter' ? 'none' : `transform ${CARD_MS}ms cubic-bezier(.22,.68,.35,1), opacity ${CARD_MS}ms ease`,
+          '@media (prefers-reduced-motion: reduce)': { transform: 'none', transition: 'opacity 0.3s ease' },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: 1 }}>
+          <Box sx={{ display: 'flex' }}>
+            {[0, 1, 2].map((i) => (
+              <Box
+                key={i}
+                sx={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: '50%',
+                  background: '#c9b79c',
+                  border: '1.5px solid #f8f1e6',
+                  marginLeft: i === 0 ? 0 : '-4px',
+                  // 스택 대상이 1명뿐이라 카드가 안 바뀌는 순간에도, 이 점만은 계속
+                  // 살아있다는 신호를 줘야 해서 items.length 조건 없이 항상 돈다.
+                  animation: `ticker-pulse 1.6s ease-in-out ${i * 0.2}s infinite`,
+                  '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+                  '@keyframes ticker-pulse': {
+                    '0%, 100%': { opacity: 0.55, transform: 'scale(0.85)' },
+                    '50%': { opacity: 1, transform: 'scale(1)' },
+                  },
+                }}
+              />
+            ))}
+          </Box>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578' }}>
+            다른 사람들의 아침
+          </Typography>
         </Box>
-        <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578' }}>
-          다른 사람들의 아침
-        </Typography>
-      </Box>
-      <Box sx={{ overflow: 'hidden' }}>
-        <Box
+        <Typography
           sx={{
-            transform: `translateY(${offsetY}px)`,
-            opacity: phase === 'idle' ? 1 : 0,
-            transition: phase === 'entering' ? 'none' : `transform ${ROLL_MS}ms ease, opacity ${ROLL_MS}ms ease`,
-            '@media (prefers-reduced-motion: reduce)': { transform: 'none', transition: 'opacity 0.3s ease' },
+            fontFamily: SERIF,
+            fontStyle: 'italic',
+            fontSize: '0.82rem',
+            color: '#6b5a4a',
+            lineHeight: 1.55,
+            mb: 0.5,
           }}
         >
-          <Typography
-            sx={{
-              fontFamily: SERIF,
-              fontStyle: 'italic',
-              fontSize: '0.82rem',
-              color: '#6b5a4a',
-              lineHeight: 1.55,
-              mb: 0.5,
-            }}
-          >
-            “{item.phrase}”
-          </Typography>
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', color: '#a39a89' }}>
-            {item.nickname} · {daysLabel}
-          </Typography>
-        </Box>
+          “{item.phrase}”
+        </Typography>
+        <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', color: '#a39a89' }}>
+          {item.nickname} · {daysLabel}
+        </Typography>
+        {hasStack && (
+          // 곧 다음 카드로 바뀐다는 걸 채워지는 진행바로 미리 알려준다 — 스택은 "더
+          // 있다"를, 이 바는 "언제 바뀌는지"를 맡는다.
+          <Box sx={{ mt: 1.25, height: 2, borderRadius: 1, background: '#ecdfc7', overflow: 'hidden' }}>
+            <Box
+              key={index}
+              sx={{
+                height: '100%',
+                background: '#c98354',
+                width: '0%',
+                animation: `ticker-progress ${DWELL_MS}ms linear forwards`,
+                '@media (prefers-reduced-motion: reduce)': { animation: 'none', width: '55%' },
+                '@keyframes ticker-progress': { from: { width: '0%' }, to: { width: '100%' } },
+              }}
+            />
+          </Box>
+        )}
       </Box>
-      {items.length > 1 && (
-        // 곧 다음 문구로 바뀐다는 걸 채워지는 진행바로 미리 알려준다 — 카드가
-        // 그냥 멈춰있는 게 아니라 "다음 것을 기다리는 중"임을 계속 인식할 수 있게.
-        <Box sx={{ mt: 1.25, height: 2, borderRadius: 1, background: '#ecdfc7', overflow: 'hidden' }}>
-          <Box
-            key={index}
-            sx={{
-              height: '100%',
-              background: '#c98354',
-              width: '0%',
-              animation: `ticker-progress ${DWELL_MS}ms linear forwards`,
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none', width: '55%' },
-              '@keyframes ticker-progress': { from: { width: '0%' }, to: { width: '100%' } },
-            }}
-          />
-        </Box>
-      )}
     </Box>
   );
 };
