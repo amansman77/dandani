@@ -9,6 +9,7 @@ const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic"
 // 카드 프레임은 고정해두고, 안쪽 문구만 위로 밀려 나가고 아래에서 새 문구가 밀려
 // 들어오는 것처럼 보이게 한다 — 그냥 사라졌다 나타나는 게 아니라 "롤업"으로 읽히도록.
 const ROLL_MS = 320;
+const DWELL_MS = 4500; // 다음 문구로 넘어가기 전 한 문구를 보여주는 시간
 
 const CommunityTicker = () => {
   const [items, setItems] = useState([]);
@@ -44,7 +45,7 @@ const CommunityTicker = () => {
           requestAnimationFrame(() => setPhase('idle'));
         });
       }, ROLL_MS);
-    }, 4500);
+    }, DWELL_MS);
     return () => clearInterval(timer);
   }, [items]);
 
@@ -121,6 +122,23 @@ const CommunityTicker = () => {
           </Typography>
         </Box>
       </Box>
+      {items.length > 1 && (
+        // 곧 다음 문구로 바뀐다는 걸 채워지는 진행바로 미리 알려준다 — 카드가
+        // 그냥 멈춰있는 게 아니라 "다음 것을 기다리는 중"임을 계속 인식할 수 있게.
+        <Box sx={{ mt: 1.25, height: 2, borderRadius: 1, background: '#ecdfc7', overflow: 'hidden' }}>
+          <Box
+            key={index}
+            sx={{
+              height: '100%',
+              background: '#c98354',
+              width: '0%',
+              animation: `ticker-progress ${DWELL_MS}ms linear forwards`,
+              '@media (prefers-reduced-motion: reduce)': { animation: 'none', width: '55%' },
+              '@keyframes ticker-progress': { from: { width: '0%' }, to: { width: '100%' } },
+            }}
+          />
+        </Box>
+      )}
     </Box>
   );
 };
