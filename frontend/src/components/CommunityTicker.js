@@ -8,8 +8,8 @@ const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic"
 
 // 카드 자체가 쌓인 더미에서 빠져나가고 새 카드가 그 자리로 올라오는 것처럼 보이게 한다.
 // 뒤에 쌓인 카드 가장자리(box-shadow)는 "다음 것이 있다"를 진행바 없이도 항상 보여준다.
-const CARD_MS = 360;
-const DWELL_MS = 6500; // 다음 문구로 넘어가기 전 한 문구를 보여주는 시간 — 다 읽기 전에 넘어간다는 피드백으로 4.5s → 6.5s
+const CARD_MS = 550; // 카드가 빠지고 들어오는 전환 속도 — 360ms는 너무 빨라 550ms로
+const DWELL_MS = 8000; // 다음 문구로 넘어가기 전 한 문구를 보여주는 시간 — 4.5s → 6.5s → 8s
 
 const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   const [items, setItems] = useState([]);
