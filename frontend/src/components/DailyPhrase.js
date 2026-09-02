@@ -17,6 +17,10 @@ const DailyPhrase = ({ onViewHistory }) => {
   const [inputValue, setInputValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [logging, setLogging] = useState(false);
+  // 연필 아이콘을 누른 순간 바로 기존 문구를 지우던 것 대신, 화면만 입력 폼으로
+  // 바꿔두는 클라이언트 상태. 실제 retire는 새 문구를 확정 제출할 때만 일어나서,
+  // "취소"를 누르면 서버엔 아무 일도 안 일어나고 원래 문구로 그대로 돌아간다.
+  const [isEditing, setIsEditing] = useState(false);
 
   const fetchActivePhrase = async () => {
     try {
@@ -51,25 +55,52 @@ const DailyPhrase = ({ onViewHistory }) => {
     setInputValue(example);
   };
 
+  // 기존 활성 문구가 있으면 retire 먼저, 없으면 바로 create. 새 문구 등록 경로가
+  // 여기 하나로 모여서 handleSubmit(수정 폼 제출)과 handleUseCommunityPhrase(커뮤니티
+  // 문구 채택) 둘 다 재사용한다.
+  const commitNewPhrase = async (text) => {
+    if (phrase) {
+      const retireResponse = await fetch(`${API_URL}/api/phrases/${phrase.id}/retire`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+        body: JSON.stringify({}),
+      });
+      if (!retireResponse.ok) throw new Error(`Failed to retire phrase: ${retireResponse.status}`);
+    }
+    const response = await fetch(`${API_URL}/api/phrases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+      body: JSON.stringify({ phrase: text.trim() }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || '문구 등록에 실패했습니다.');
+    await fetchActivePhrase();
+  };
+
   const handleSubmit = async () => {
     if (!inputValue.trim() || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/phrases`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-        body: JSON.stringify({ phrase: inputValue.trim() }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || '문구 등록에 실패했습니다.');
+      await commitNewPhrase(inputValue.trim());
       setInputValue('');
-      await fetchActivePhrase();
+      setIsEditing(false);
     } catch (err) {
       setError(err.message);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditPhrase = () => {
+    if (!phrase) return;
+    setInputValue(phrase.phrase);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setInputValue('');
+    setIsEditing(false);
   };
 
   const handleLogToday = async () => {
@@ -112,22 +143,7 @@ const DailyPhrase = ({ onViewHistory }) => {
   // 실패를 보여주고 다시 시도할 수 있어야 하기 때문.
   const handleUseCommunityPhrase = async (text) => {
     if (!text || !text.trim()) return;
-    if (phrase) {
-      const retireResponse = await fetch(`${API_URL}/api/phrases/${phrase.id}/retire`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-        body: JSON.stringify({}),
-      });
-      if (!retireResponse.ok) throw new Error(`Failed to retire phrase: ${retireResponse.status}`);
-    }
-    const response = await fetch(`${API_URL}/api/phrases`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-      body: JSON.stringify({ phrase: text.trim() }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || '문구 등록에 실패했습니다.');
-    await fetchActivePhrase();
+    await commitNewPhrase(text);
   };
 
   if (loading) {
@@ -157,6 +173,9 @@ const DailyPhrase = ({ onViewHistory }) => {
         onViewHistory={onViewHistory}
         onUseCommunityPhrase={handleUseCommunityPhrase}
         hasActivePhrase={Boolean(phrase)}
+        isEditing={isEditing}
+        onEditPhrase={handleEditPhrase}
+        onCancelEdit={handleCancelEdit}
       />
     </Box>
   );

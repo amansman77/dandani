@@ -59,13 +59,26 @@ function getRollingWeekTicks(loggedDates) {
 }
 
 const VariantA = ({
-  phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onRetire, onViewHistory,
-  onUseCommunityPhrase, hasActivePhrase,
+  phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onViewHistory,
+  onUseCommunityPhrase, hasActivePhrase, isEditing, onEditPhrase, onCancelEdit,
 }) => {
-  if (!phrase) {
+  if (!phrase || isEditing) {
     return (
       <Scene>
-        <Eyebrow sx={{ mb: 2.5 }}>오늘부터, 나에게</Eyebrow>
+        {isEditing && (
+          // 수정 도중엔 서버에 아직 아무것도 안 바뀐 상태라, 언제든 원래 문구로
+          // 조용히 되돌아갈 수 있어야 한다.
+          <Typography
+            onClick={onCancelEdit}
+            sx={{
+              position: 'absolute', top: 16, left: 20, fontFamily: SANS, fontSize: '0.8rem',
+              color: '#a39a89', cursor: 'pointer',
+            }}
+          >
+            ‹ 취소
+          </Typography>
+        )}
+        <Eyebrow sx={{ mb: 2.5 }}>{isEditing ? '문구 수정' : '오늘부터, 나에게'}</Eyebrow>
         <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700, maxWidth: 'none' }}>
           매일 아침 나에게 되새기고 싶은
           <br />한 문장을 적어보세요.
@@ -123,7 +136,7 @@ const VariantA = ({
             '&.Mui-disabled': { color: '#c9bfa8', borderColor: '#e2dbc9' },
           }}
         >
-          {submitting ? <CircularProgress size={18} /> : '이 문장으로 시작할게요'}
+          {submitting ? <CircularProgress size={18} /> : (isEditing ? '이 문장으로 바꿀게요' : '이 문장으로 시작할게요')}
         </Button>
       </Scene>
     );
@@ -135,7 +148,7 @@ const VariantA = ({
   return (
     <Scene>
       <IconButton
-        onClick={onRetire}
+        onClick={onEditPhrase}
         aria-label="문구 바꾸기"
         size="small"
         sx={{
