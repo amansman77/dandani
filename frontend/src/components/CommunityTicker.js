@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Drawer } from '@mui/material';
+import { Box, Typography, Drawer, Button, CircularProgress } from '@mui/material';
 import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -11,11 +11,34 @@ const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic"
 const CARD_MS = 360;
 const DWELL_MS = 4500; // 다음 문구로 넘어가기 전 한 문구를 보여주는 시간
 
-const CommunityTicker = () => {
+const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   const [items, setItems] = useState([]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | exit | enter
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(null); // 목록에서 고른 문구(확인 화면으로 전환)
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState(null);
+
+  const closeSheet = () => {
+    setOpen(false);
+    setSelected(null);
+    setApplyError(null);
+  };
+
+  const handleConfirmUse = async () => {
+    if (!selected || applying) return;
+    setApplying(true);
+    setApplyError(null);
+    try {
+      await onUseCommunityPhrase(selected.phrase);
+      closeSheet();
+    } catch (err) {
+      setApplyError(err.message || '문구를 시작하지 못했어요. 다시 시도해주세요.');
+    } finally {
+      setApplying(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCommunity = async () => {
@@ -162,7 +185,7 @@ const CommunityTicker = () => {
       <Drawer
         anchor="bottom"
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closeSheet}
         PaperProps={{
           sx: {
             borderRadius: '18px 18px 0 0',
@@ -176,52 +199,114 @@ const CommunityTicker = () => {
         }}
       >
         <Box sx={{ width: 34, height: 4, borderRadius: 2, background: '#ddceb9', margin: '10px auto 4px' }} />
-        <Box sx={{ padding: '10px 20px 4px' }}>
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.9rem', fontWeight: 700, color: '#4a4437' }}>
-            다른 사람들의 아침 · {items.length}
-          </Typography>
-        </Box>
-        <Box sx={{ overflowY: 'auto', padding: '4px 20px 24px' }}>
-          {items.map((it, i) => (
-            <Box
-              key={`${it.nickname}-${i}`}
+
+        {selected ? (
+          <Box sx={{ padding: '4px 20px 28px', textAlign: 'left' }}>
+            <Typography
+              onClick={() => { setSelected(null); setApplyError(null); }}
+              sx={{ fontFamily: SANS, fontSize: '0.78rem', color: '#a9603a', cursor: 'pointer', display: 'inline-block', mb: 2 }}
+            >
+              ‹ 목록으로
+            </Typography>
+            <Typography
               sx={{
-                position: 'relative',
-                padding: '14px 0 14px 14px',
-                borderTop: i === 0 ? 'none' : '1px solid #ecdfc7',
-                textAlign: 'left',
-                // 목록은 아이콘·사진 없이 텍스트뿐이라, 왼쪽 강조선으로 각 줄을 분리해
-                // "이건 별개의 문장이다"를 형태로도 보여준다.
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  left: 0,
-                  top: '16px',
-                  bottom: '16px',
-                  width: '2.5px',
-                  borderRadius: '2px',
-                  background: '#c98354',
-                },
+                fontFamily: SERIF, fontWeight: 700, fontSize: '1.2rem', color: '#322f29', lineHeight: 1.45, mb: 0.75,
               }}
             >
-              <Typography
+              “{selected.phrase}”
+            </Typography>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: '#8c8578', mb: 2.5 }}>
+              {selected.nickname} · {selected.logged_days === 0 ? '오늘부터' : `${selected.logged_days}일째`}
+            </Typography>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: '#6b6355', lineHeight: 1.7, mb: 2 }}>
+              {hasActivePhrase
+                ? '지금 되새기는 문구는 그만두고, 이 문구로 다시 시작해요.'
+                : '이 문구로 오늘부터 시작해요.'}
+            </Typography>
+            {applyError && (
+              <Typography sx={{ fontFamily: SANS, fontSize: '0.74rem', color: '#c0503f', mb: 1.5 }}>
+                {applyError}
+              </Typography>
+            )}
+            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+              <Button
+                disabled={applying}
+                onClick={handleConfirmUse}
                 sx={{
-                  fontFamily: SERIF,
-                  fontWeight: 700,
-                  fontSize: '1.05rem',
-                  color: '#322f29',
-                  lineHeight: 1.4,
-                  mb: 0.5,
+                  fontFamily: SERIF, fontSize: '0.88rem', fontWeight: 400, textTransform: 'none',
+                  color: '#a9603a', border: '1.4px solid #c98354', borderRadius: '999px', padding: '8px 22px',
+                  minWidth: 'auto', minHeight: 'auto', lineHeight: 'normal',
+                  '&:hover': { background: 'rgba(201,131,84,0.08)' },
+                  '&.Mui-disabled': { color: '#8c8578', border: '1.4px solid #cabfa9' },
                 }}
               >
-                “{it.phrase}”
-              </Typography>
-              <Typography sx={{ fontFamily: SANS, fontWeight: 500, fontSize: '0.72rem', color: '#8c8578' }}>
-                {it.nickname} · {it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}
+                {applying ? <CircularProgress size={16} /> : '이 문구로 시작할게요'}
+              </Button>
+              <Typography
+                onClick={() => !applying && setSelected(null)}
+                sx={{ fontFamily: SANS, fontSize: '0.78rem', color: '#a39a89', cursor: 'pointer' }}
+              >
+                취소
               </Typography>
             </Box>
-          ))}
-        </Box>
+          </Box>
+        ) : (
+          <>
+            <Box sx={{ padding: '10px 20px 4px' }}>
+              <Typography sx={{ fontFamily: SANS, fontSize: '0.9rem', fontWeight: 700, color: '#4a4437' }}>
+                다른 사람들의 아침 · {items.length}
+              </Typography>
+            </Box>
+            <Box sx={{ overflowY: 'auto', padding: '4px 20px 24px' }}>
+              {items.map((it, i) => (
+                <Box
+                  key={`${it.nickname}-${i}`}
+                  onClick={() => setSelected(it)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelected(it); }}
+                  sx={{
+                    position: 'relative',
+                    padding: '14px 4px 14px 14px',
+                    borderTop: i === 0 ? 'none' : '1px solid #ecdfc7',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '8px',
+                    // 목록은 아이콘·사진 없이 텍스트뿐이라, 왼쪽 강조선으로 각 줄을 분리해
+                    // "이건 별개의 문장이다"를 형태로도 보여준다.
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: '16px',
+                      bottom: '16px',
+                      width: '2.5px',
+                      borderRadius: '2px',
+                      background: '#c98354',
+                    },
+                    '&:hover': { background: 'rgba(201,131,84,0.06)' },
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontFamily: SERIF,
+                      fontWeight: 700,
+                      fontSize: '1.05rem',
+                      color: '#322f29',
+                      lineHeight: 1.4,
+                      mb: 0.5,
+                    }}
+                  >
+                    “{it.phrase}”
+                  </Typography>
+                  <Typography sx={{ fontFamily: SANS, fontWeight: 500, fontSize: '0.72rem', color: '#8c8578' }}>
+                    {it.nickname} · {it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </>
+        )}
       </Drawer>
     </Box>
   );

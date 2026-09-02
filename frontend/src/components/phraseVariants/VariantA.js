@@ -60,6 +60,7 @@ function getRollingWeekTicks(loggedDates) {
 
 const VariantA = ({
   phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onRetire, onViewHistory,
+  onUseCommunityPhrase, hasActivePhrase,
 }) => {
   if (!phrase) {
     return (
@@ -188,7 +189,7 @@ const VariantA = ({
       >
         {logging ? <CircularProgress size={18} /> : (phrase.logged_today ? '오늘도 되새겼어요' : '오늘의 문장 되새기기')}
       </Button>
-      <CommunityTicker />
+      <CommunityTicker onUseCommunityPhrase={onUseCommunityPhrase} hasActivePhrase={hasActivePhrase} />
     </Scene>
   );
 };
