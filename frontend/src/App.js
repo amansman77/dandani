@@ -430,6 +430,8 @@ function App() {
           onRestartOnboarding={handleRestartOnboarding}
           showEditPhrase={activeTab === 0 && !showCurrentChallengeDetail && hasActivePhrase}
           onEditPhrase={() => setPhraseEditing(true)}
+          isEditing={activeTab === 0 && phraseEditing}
+          onCancelEdit={() => setPhraseEditing(false)}
         />
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>

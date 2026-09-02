@@ -103,11 +103,6 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     }
   };
 
-  const handleCancelEdit = () => {
-    setInputValue('');
-    onEditingChange(false);
-  };
-
   const handleLogToday = async () => {
     if (!phrase || logging) return;
     setLogging(true);
@@ -179,7 +174,6 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
         onUseCommunityPhrase={handleUseCommunityPhrase}
         hasActivePhrase={Boolean(phrase)}
         isEditing={isEditing}
-        onCancelEdit={handleCancelEdit}
       />
     </Box>
   );

@@ -59,24 +59,13 @@ function getRollingWeekTicks(loggedDates) {
 
 const VariantA = ({
   phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onViewHistory,
-  onUseCommunityPhrase, hasActivePhrase, isEditing, onCancelEdit,
+  onUseCommunityPhrase, hasActivePhrase, isEditing,
 }) => {
   if (!phrase || isEditing) {
+    // 취소는 이제 헤더의 "안내" 자리(같은 왼쪽 위)를 대신하는 걸로 옮겨가서,
+    // 여기서 또 하나 띄우면 취소가 두 번 보이게 된다 — 그래서 안 넣는다.
     return (
       <Scene>
-        {isEditing && (
-          // 수정 도중엔 서버에 아직 아무것도 안 바뀐 상태라, 언제든 원래 문구로
-          // 조용히 되돌아갈 수 있어야 한다.
-          <Typography
-            onClick={onCancelEdit}
-            sx={{
-              position: 'absolute', top: 16, left: 20, fontFamily: SANS, fontSize: '0.8rem',
-              color: '#a39a89', cursor: 'pointer',
-            }}
-          >
-            ‹ 취소
-          </Typography>
-        )}
         <Eyebrow sx={{ mb: 2.5 }}>{isEditing ? '문구 수정' : '오늘부터, 나에게'}</Eyebrow>
         <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700, maxWidth: 'none' }}>
           매일 아침 나에게 되새기고 싶은
