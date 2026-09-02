@@ -46,13 +46,35 @@ const Tick = styled(Box, { shouldForwardProp: (prop) => prop !== 'filled' })(({ 
   background: filled ? '#c98354' : '#ddceb9',
 }));
 
+function dateKeyDaysAgo(offsetDays) {
+  return new Date(Date.now() - offsetDays * 86400000).toISOString().split('T')[0];
+}
+
+// 스트릭(연속 일수) 표시. 이전엔 지난 7일 중 그날 기록이 있는지를 하루씩 따로
+// 봤는데, 그러면 중간에 하루 빠졌다가 다시 시작한 경우에도 예전 기록이 그대로
+// 켜져 있어서 "지금 며칠째 이어지는 중"인지가 안 보였다. 이제는 오늘(또는
+// 아직 오늘 기록 전이면 어제까지, 듀오링고식 유예)부터 거꾸로 걸으며 끊기지
+// 않는 구간만 스트릭으로 보고, 그 구간에 든 날짜만 채운다 — 끊기기 전의 옛날
+// 기록은 화면(7칸)에 남아있어도 더 이상 채워 보이지 않는다.
 function getRollingWeekTicks(loggedDates) {
   const set = new Set(loggedDates || []);
+
+  const streakDates = new Set();
+  let anchor = null;
+  if (set.has(dateKeyDaysAgo(0))) anchor = 0;
+  else if (set.has(dateKeyDaysAgo(1))) anchor = 1; // 오늘 기록 전이어도 어제까지 이어졌으면 유예
+
+  if (anchor !== null) {
+    let offset = anchor;
+    while (set.has(dateKeyDaysAgo(offset))) {
+      streakDates.add(dateKeyDaysAgo(offset));
+      offset += 1;
+    }
+  }
+
   const ticks = [];
   for (let i = 6; i >= 0; i -= 1) {
-    const d = new Date(Date.now() - i * 86400000);
-    const key = d.toISOString().split('T')[0];
-    ticks.push(set.has(key));
+    ticks.push(streakDates.has(dateKeyDaysAgo(i)));
   }
   return ticks;
 }
