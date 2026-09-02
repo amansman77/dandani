@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Drawer, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, Drawer, Button, CircularProgress, Skeleton } from '@mui/material';
 import { getUserId } from '../utils/userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -15,6 +15,9 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   const [items, setItems] = useState([]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | exit | enter
+  // 데이터가 오기 전엔 갑자기 카드가 툭 튀어나오는 대신, 같은 자리에 스켈레톤을
+  // 먼저 보여준다. 완전히 실패하거나 커뮤니티 풀이 비어있으면 조용히 사라진다.
+  const [status, setStatus] = useState('loading'); // loading | empty | ready
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null); // 목록에서 고른 문구(확인 화면으로 전환)
   const [applying, setApplying] = useState(false);
@@ -46,11 +49,21 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         const response = await fetch(`${API_URL}/api/phrases/community`, {
           headers: { 'X-User-ID': getUserId() },
         });
-        if (!response.ok) return;
+        if (!response.ok) { setStatus('empty'); return; }
         const data = await response.json();
-        setItems(data.items || []);
+        const list = data.items || [];
+        if (list.length === 0) { setStatus('empty'); return; }
+        setItems(list);
+        setStatus('ready');
+        // 처음 나타날 때도 스택 회전과 같은 "뒤쪽에서 떠올라 자리 잡는" 모션을
+        // 그대로 태워서, 로딩 끝나자마자 뚝 떨어지듯 보이지 않게 한다.
+        setPhase('enter');
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => setPhase('idle'));
+        });
       } catch (err) {
         // 티커는 부가 기능이라 실패해도 조용히 무시
+        setStatus('empty');
       }
     };
     fetchCommunity();
@@ -74,7 +87,46 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
     return () => clearInterval(timer);
   }, [items, open]);
 
-  if (items.length === 0) return null;
+  if (status === 'empty') return null;
+
+  if (status === 'loading') {
+    return (
+      <Box sx={{ mt: 3, maxWidth: 260, width: '100%' }}>
+        <Box
+          sx={{
+            textAlign: 'left',
+            borderRadius: '14px',
+            border: '1px solid #e8dcc6',
+            background: 'rgba(255,255,255,0.85)',
+            padding: '14px 16px 12px',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: '6px', mb: 1 }}>
+            <Box sx={{ display: 'flex' }}>
+              {[0, 1, 2].map((i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    width: 9,
+                    height: 9,
+                    borderRadius: '50%',
+                    background: '#c9b79c',
+                    border: '1.5px solid #f8f1e6',
+                    marginLeft: i === 0 ? 0 : '-4px',
+                  }}
+                />
+              ))}
+            </Box>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578' }}>
+              다른 사람들의 아침
+            </Typography>
+          </Box>
+          <Skeleton variant="text" sx={{ fontSize: '0.82rem', bgcolor: '#ecdfc7' }} width="88%" />
+          <Skeleton variant="text" sx={{ fontSize: '0.68rem', bgcolor: '#ecdfc7' }} width="42%" />
+        </Box>
+      </Box>
+    );
+  }
 
   const item = items[index];
   const daysLabel = item.logged_days === 0 ? '오늘부터' : `${item.logged_days}일째`;
