@@ -92,7 +92,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   if (status === 'loading') {
     // 되새기기 버튼과 확실히 떨어져 보이도록 (기존 mt:3에서 늘림)
     return (
-      <Box sx={{ mt: 5.5, maxWidth: 260, width: '100%' }}>
+      <Box sx={{ mt: 7, maxWidth: 260, width: '100%' }}>
         <Box
           sx={{
             textAlign: 'left',
@@ -142,7 +142,9 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   return (
     <Box
       sx={{
-        mt: 5.5, // 되새기기 버튼과 확실히 떨어져 보이도록 (기존 mt:3에서 늘림)
+        // VariantA Scene 안에서 제일 큰 내부 간격은 ticks→버튼 mb:4(32px). 이 카드는
+        // "다른 섹션"이니 그보다 확실히 더 떨어뜨려서 32px보다 큰 값(56px)으로 잡음.
+        mt: 7,
         maxWidth: 260,
         width: '100%',
         // 뒤에 쌓인 카드 가장자리를 box-shadow 두 겹으로 흉내 낸다 — 문구 길이가
