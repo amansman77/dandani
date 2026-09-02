@@ -79,7 +79,9 @@ const CommunityTicker = () => {
                 background: '#c9b79c',
                 border: '1.5px solid #f8f1e6',
                 marginLeft: i === 0 ? 0 : '-4px',
-                animation: items.length > 1 ? `ticker-pulse 1.6s ease-in-out ${i * 0.2}s infinite` : 'none',
+                // 롤업 대상이 1명뿐이라 문구가 안 바뀌는 순간에도, 이 점만은 계속 살아있다는
+                // 신호를 줘야 해서 items.length 조건 없이 항상 돈다.
+                animation: `ticker-pulse 1.6s ease-in-out ${i * 0.2}s infinite`,
                 '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
                 '@keyframes ticker-pulse': {
                   '0%, 100%': { opacity: 0.55, transform: 'scale(0.85)' },
