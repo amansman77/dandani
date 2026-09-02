@@ -186,24 +186,37 @@ const CommunityTicker = () => {
             <Box
               key={`${it.nickname}-${i}`}
               sx={{
-                padding: '13px 0',
+                position: 'relative',
+                padding: '14px 0 14px 14px',
                 borderTop: i === 0 ? 'none' : '1px solid #ecdfc7',
                 textAlign: 'left',
+                // 목록은 아이콘·사진 없이 텍스트뿐이라, 왼쪽 강조선으로 각 줄을 분리해
+                // "이건 별개의 문장이다"를 형태로도 보여준다.
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  left: 0,
+                  top: '16px',
+                  bottom: '16px',
+                  width: '2.5px',
+                  borderRadius: '2px',
+                  background: '#c98354',
+                },
               }}
             >
               <Typography
                 sx={{
                   fontFamily: SERIF,
-                  fontStyle: 'italic',
-                  fontSize: '0.85rem',
-                  color: '#6b5a4a',
-                  lineHeight: 1.55,
+                  fontWeight: 700,
+                  fontSize: '1.05rem',
+                  color: '#322f29',
+                  lineHeight: 1.4,
                   mb: 0.5,
                 }}
               >
                 “{it.phrase}”
               </Typography>
-              <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', color: '#a39a89' }}>
+              <Typography sx={{ fontFamily: SANS, fontWeight: 500, fontSize: '0.72rem', color: '#8c8578' }}>
                 {it.nickname} · {it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}
               </Typography>
             </Box>
