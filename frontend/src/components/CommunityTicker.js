@@ -5,6 +5,10 @@ import { getUserId } from '../utils/userId';
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
+// "다른 사람들의 아침" 전체 목록(바텀시트)의 문구에만 쓰는 서체 — 손편지 같은
+// 붓글씨 느낌이 이 목록의 "남이 스스로에게 쓴 다짐"이라는 성격과 더 잘 맞아서
+// 골랐다. 웹폰트는 public/index.html에서 로드한다.
+const LIST_SERIF = '"Gowun Batang", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 
 // 카드 자체가 쌓인 더미에서 빠져나가고 새 카드가 그 자리로 올라오는 것처럼 보이게 한다.
 // 뒤에 쌓인 카드 가장자리(box-shadow)는 "다음 것이 있다"를 진행바 없이도 항상 보여준다.
@@ -344,7 +348,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                 >
                   <Typography
                     sx={{
-                      fontFamily: SERIF,
+                      fontFamily: LIST_SERIF,
                       fontWeight: 700,
                       fontSize: '1.05rem',
                       color: '#322f29',
