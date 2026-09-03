@@ -36,7 +36,7 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
           '& .MuiBottomNavigationAction-root': {
             color: '#3c3a34',
             opacity: 0.55,
-            fontFamily: '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
+            fontFamily: '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
           },
           '& .MuiBottomNavigationAction-label': { fontSize: '0.7rem' },
           '& .Mui-selected': { color: '#b06a45 !important', opacity: 1 },

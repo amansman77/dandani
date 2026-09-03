@@ -6,7 +6,7 @@ const linkButtonSx = {
   background: 'none',
   padding: 0,
   cursor: 'pointer',
-  fontFamily: '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important',
+  fontFamily: '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important',
   fontSize: '0.72rem',
   color: '#a39a89',
   '&:hover': { opacity: 0.75 },

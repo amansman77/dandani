@@ -53,7 +53,7 @@ const theme = createTheme({
     divider: '#ddd9cd', // 보조 그레이 톤
   },
   typography: {
-    fontFamily: '"Noto Serif KR", "Roboto", "Helvetica", "Arial", serif',
+    fontFamily: '"Pretendard", "Noto Serif KR", "Roboto", "Helvetica", "Arial", serif',
   },
   // 커스텀 색상 추가
   customColors: {

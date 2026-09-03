@@ -3,7 +3,7 @@ import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui
 import { styled } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 
-const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
+const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 
 const Scene = styled(Box)(({ theme }) => ({
   borderRadius: 24,

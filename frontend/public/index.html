@@ -13,8 +13,18 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&family=Nanum+Myeongjo:wght@400;700;800&display=swap" />
     <style>
+      /* 서비스 기본 폰트: 프리텐다드. CDN 의존 없이 정적 파일로 직접 서빙(가변 폰트
+         1개 파일로 100~900 굵기를 다 커버). Noto Serif KR/나눔명조는 프리텐다드가
+         어떤 이유로든 못 불러와질 때를 대비한 폴백으로 계속 로드해둔다. */
+      @font-face {
+        font-family: 'Pretendard';
+        src: url('%PUBLIC_URL%/fonts/PretendardVariable.woff2') format('woff2-variations');
+        font-weight: 45 920;
+        font-style: normal;
+        font-display: swap;
+      }
       * {
-        font-family: 'Noto Serif KR', serif !important;
+        font-family: 'Pretendard', 'Noto Serif KR', serif !important;
         word-break: keep-all;
         overflow-wrap: break-word;
       }

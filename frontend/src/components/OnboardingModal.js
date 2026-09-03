@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Box, Typography } from '@mui/material';
 
-const SERIF = '"Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
-const SANS = '-apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
+const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
+const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
 
 const ONBOARDING_STEPS = [
   {
