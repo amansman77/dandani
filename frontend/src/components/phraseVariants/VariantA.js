@@ -134,7 +134,7 @@ const VariantA = ({
           minRows={2}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="예: 오늘도 흔들리지 않는다"
+          placeholder="예: 오늘의 나로 충분하다"
           sx={{
             mb: 3,
             maxWidth: 420,
