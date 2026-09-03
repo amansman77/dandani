@@ -134,7 +134,7 @@ const VariantA = ({
           minRows={2}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="예: 매일 행복하진 않지만, 행복한 일은 매일 있다고 생각하기로"
+          placeholder="예: 행복한 일은 매일 있다고 생각한다"
           sx={{
             mb: 3,
             maxWidth: 420,
