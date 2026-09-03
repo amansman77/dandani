@@ -1,10 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Drawer, Button, CircularProgress, Skeleton } from '@mui/material';
 import { getUserId } from '../utils/userId';
+import { EXAMPLE_PHRASES } from '../utils/phraseExamples';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
+
+// 실제 다른 사용자 데이터 위에, 편집팀이 고른 문구 2개(예시 1/3번)를 앞쪽에
+// 끼워 넣는다. 절대 실제 유저인 척(가짜 닉네임·가짜 N일째)하지 않고 "단단이
+// 추천"으로 명확히 구분해서 보여준다 — 이 티커는 "다른 사람들도 진짜 쓰고
+// 있다"는 신뢰를 파는 곳이라, 가짜 활동을 섞으면 그 신뢰 자체가 무너진다.
+const RECOMMENDED_ITEMS = [EXAMPLE_PHRASES[0], EXAMPLE_PHRASES[2]].map((phrase) => ({
+  phrase,
+  isRecommended: true,
+}));
+
+// 실제 유저 항목은 "닉네임 · N일째"를, 추천 항목은 가짜 활동을 안 만들고
+// "단단이 추천"이라고만 표시한다.
+const metaLabel = (it) => (
+  it.isRecommended
+    ? '단단이 추천'
+    : `${it.nickname} · ${it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}`
+);
 
 // 카드 자체가 쌓인 더미에서 빠져나가고 새 카드가 그 자리로 올라오는 것처럼 보이게 한다.
 // 뒤에 쌓인 카드 가장자리(box-shadow)는 "다음 것이 있다"를 진행바 없이도 항상 보여준다.
@@ -16,8 +34,9 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | exit | enter
   // 데이터가 오기 전엔 갑자기 카드가 툭 튀어나오는 대신, 같은 자리에 스켈레톤을
-  // 먼저 보여준다. 완전히 실패하거나 커뮤니티 풀이 비어있으면 조용히 사라진다.
-  const [status, setStatus] = useState('loading'); // loading | empty | ready
+  // 먼저 보여준다. 추천 문구 2개는 항상 있어서, 이제 실제 커뮤니티 데이터가
+  // 하나도 없거나 요청이 실패해도 티커 자체가 사라지지는 않는다.
+  const [status, setStatus] = useState('loading'); // loading | ready
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null); // 목록에서 고른 문구(확인 화면으로 전환)
   const [applying, setApplying] = useState(false);
@@ -45,26 +64,27 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
 
   useEffect(() => {
     const fetchCommunity = async () => {
+      let list = [];
       try {
         const response = await fetch(`${API_URL}/api/phrases/community`, {
           headers: { 'X-User-ID': getUserId() },
         });
-        if (!response.ok) { setStatus('empty'); return; }
-        const data = await response.json();
-        const list = data.items || [];
-        if (list.length === 0) { setStatus('empty'); return; }
-        setItems(list);
-        setStatus('ready');
-        // 처음 나타날 때도 스택 회전과 같은 "뒤쪽에서 떠올라 자리 잡는" 모션을
-        // 그대로 태워서, 로딩 끝나자마자 뚝 떨어지듯 보이지 않게 한다.
-        setPhase('enter');
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => setPhase('idle'));
-        });
+        if (response.ok) {
+          const data = await response.json();
+          list = data.items || [];
+        }
       } catch (err) {
-        // 티커는 부가 기능이라 실패해도 조용히 무시
-        setStatus('empty');
+        // 티커는 부가 기능이라 실제 데이터 요청이 실패해도 조용히 무시하고
+        // 추천 문구만이라도 보여준다 (아래에서 항상 합쳐진다).
       }
+      setItems([...RECOMMENDED_ITEMS, ...list]);
+      setStatus('ready');
+      // 처음 나타날 때도 스택 회전과 같은 "뒤쪽에서 떠올라 자리 잡는" 모션을
+      // 그대로 태워서, 로딩 끝나자마자 뚝 떨어지듯 보이지 않게 한다.
+      setPhase('enter');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setPhase('idle'));
+      });
     };
     fetchCommunity();
   }, []);
@@ -86,8 +106,6 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
     }, DWELL_MS);
     return () => clearInterval(timer);
   }, [items, open]);
-
-  if (status === 'empty') return null;
 
   if (status === 'loading') {
     // 되새기기 버튼과 확실히 떨어져 보이도록 (기존 mt:3에서 늘림)
@@ -130,7 +148,6 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   }
 
   const item = items[index];
-  const daysLabel = item.logged_days === 0 ? '오늘부터' : `${item.logged_days}일째`;
   const hasStack = items.length > 1;
 
   const cardTransform = {
@@ -215,8 +232,8 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         >
           “{item.phrase}”
         </Typography>
-        <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', color: '#a39a89' }}>
-          {item.nickname} · {daysLabel}
+        <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', fontWeight: item.isRecommended ? 700 : 400, color: item.isRecommended ? '#a9603a' : '#a39a89' }}>
+          {metaLabel(item)}
         </Typography>
         {hasStack && (
           // 곧 다음 카드로 바뀐다는 걸 채워지는 진행바로 미리 알려준다 — 스택은 "더
@@ -270,8 +287,8 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
             >
               “{selected.phrase}”
             </Typography>
-            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: '#8c8578', mb: 2.5 }}>
-              {selected.nickname} · {selected.logged_days === 0 ? '오늘부터' : `${selected.logged_days}일째`}
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', fontWeight: selected.isRecommended ? 700 : 400, color: selected.isRecommended ? '#a9603a' : '#8c8578', mb: 2.5 }}>
+              {metaLabel(selected)}
             </Typography>
             <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: '#6b6355', lineHeight: 1.7, mb: 2 }}>
               {hasActivePhrase
@@ -354,8 +371,8 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                   >
                     “{it.phrase}”
                   </Typography>
-                  <Typography sx={{ fontFamily: SANS, fontWeight: 500, fontSize: '0.72rem', color: '#8c8578' }}>
-                    {it.nickname} · {it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}
+                  <Typography sx={{ fontFamily: SANS, fontWeight: it.isRecommended ? 700 : 500, fontSize: '0.72rem', color: it.isRecommended ? '#a9603a' : '#8c8578' }}>
+                    {metaLabel(it)}
                   </Typography>
                 </Box>
               ))}
