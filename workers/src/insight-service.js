@@ -1,5 +1,5 @@
 import { getUTCDate } from './core.js';
-import { calculateRetentionMetrics, getDailyReportData } from './analytics-service.js';
+import { getDailyReportData } from './analytics-service.js';
 
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
@@ -91,16 +91,22 @@ async function callLLM(env, userMessage, maxTokens = 1000) {
 async function buildDataPrompt(env) {
   const yesterday = getUTCDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
   const reportData = await getDailyReportData(env, yesterday);
-  const m = reportData.retention_metrics.metrics;
+  const f = reportData.funnel_30d;
+  const s = reportData.daily_snapshot;
+  const topCampaigns = reportData.campaign_breakdown.slice(0, 5)
+    .map((c) => `${c.utm_source}/${c.utm_campaign}: 방문 ${c.visitors} → 작성 ${c.activated}(${c.activation_rate}%) → 지속 ${c.retained_2plus}(${c.retention_rate}%)`)
+    .join('\n');
 
-  return `아래는 단단이의 실제 최신 데이터야 (기준일: ${reportData.date}).
+  return `아래는 단단이(매일 아침 문장 하나를 되새기는 습관 앱)의 실제 최신 데이터야 (기준일: ${reportData.date}).
 
-리텐션 지표 (목표 대비 현재값):
-- 1일 재방문율: ${m.day1_retention.value}% (목표 ${m.day1_retention.target}%)
-- 1주 완료율: ${m.week1_completion.value}% (목표 ${m.week1_completion.target}%)
-- 7일 재방문율: ${m.day7_retention.value}% (목표 ${m.day7_retention.target}%)
-- 30일 완료율: ${m.day30_completion.value}% (목표 ${m.day30_completion.target}%)
-- 긍정 피드백 비율: ${m.positive_feedback.value}% (목표 ${m.positive_feedback.target}%)
+최근 30일 유입→작성→지속 퍼널 (${f.period.start} ~ ${f.period.end}):
+- 방문 ${f.visitors}명 → 문장 작성 ${f.activated}명 (${f.activation_rate}%)
+- 당일 되새김 ${f.day1_logged}명 (${f.day1_log_rate}%)
+- 2일 이상 지속 ${f.retained_2plus}명 (${f.retention_rate}%)
+- 포기 ${f.retired}명 (${f.retired_rate}%)
+
+캠페인/유입경로별 (상위 5개):
+${topCampaigns || '(데이터 없음)'}
 
 활동 추세:
 - 최근 7일 평균 활성 사용자: ${reportData.daily_trend.last_7_days_avg}명
@@ -108,7 +114,7 @@ async function buildDataPrompt(env) {
 - 최고 활성일: ${reportData.daily_trend.peak_day} (${reportData.daily_trend.peak_users}명)
 - 최저 활성일: ${reportData.daily_trend.lowest_day} (${reportData.daily_trend.lowest_users}명)
 
-어제(${reportData.date}) 활동: 활성 ${reportData.daily_stats.active_users}명, 챌린지 선택 ${reportData.event_stats.challenge_selected.count}회, 실천 완료 ${reportData.event_stats.practice_completes.count}회, 피드백 ${reportData.event_stats.feedback_submits.count}회
+어제(${reportData.date}) 활동: 방문 ${s.visitors}명, 문장 작성 ${s.phrases_started}명, 되새기기 ${s.phrases_logged_users}명, 포기 ${s.phrases_retired}명
 
 이 데이터에서 정말 주목할 만한 변화나 이상치가 있으면 한 가지만 짚어줘.
 표본이 워낙 작아서(하루 1~4명 수준) 대부분은 노이즈일 가능성이 높아 — 특별한 변화가 없으면 지어내지 말고 "오늘은 특별한 변화 없다"고 솔직하게 말해.`;

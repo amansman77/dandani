@@ -2,6 +2,7 @@
 // PostHog는 PostHogProvider를 통해 초기화되며 window.posthog로 접근 가능
 
 import { writeFirstUTMOnce } from './posthog-first-utm';
+import { getCurrentUTM } from './attribution';
 
 // Production API URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -192,9 +193,11 @@ export const logEvent = async (eventType, eventData = {}) => {
   }
 };
 
-// 페이지 방문 이벤트
+// 페이지 방문 이벤트 — utm_source/medium/campaign을 같이 남겨서, D1만 보고도
+// 캠페인별 방문→작성→지속 퍼널을 집계할 수 있게 한다 (전엔 UTM이 PostHog
+// Person 속성에만 있어서 D1 쪽 실제 사용 이벤트와 못 엮였다).
 export const logPageVisit = (page) => {
-  logEvent('page_visit', { page });
+  logEvent('page_visit', { page, ...getCurrentUTM() });
 };
 
 // 실천 과제 조회 이벤트
