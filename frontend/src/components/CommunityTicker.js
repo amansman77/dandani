@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Drawer, Button, CircularProgress, Skeleton } from '@mui/material';
 import { getUserId } from '../utils/userId';
-import { EXAMPLE_PHRASES } from '../utils/phraseExamples';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
@@ -15,7 +14,13 @@ const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "
 // 맞다 — source를 달면 "책 제목 中"으로 뜨고(전집이 아니라 원 출처를
 // 밝히는 인용구 관례), "단단이 추천" 대신 이걸 보여준다.
 const RECOMMENDED_ITEMS = [
-  { phrase: EXAMPLE_PHRASES[0], isRecommended: true },
+  {
+    // EXAMPLE_PHRASES[0]("행복한 일은 매일 있다고 생각한다")의 짧은 자기
+    // 다짐형과는 별개 — 이건 그 원문 그대로의 인용이라 출처가 다르게 붙는다.
+    phrase: '매일 행복하진 않지만, 행복한 일은 매일 있어.',
+    isRecommended: true,
+    source: '곰돌이 푸, 행복한 일은 매일 있어',
+  },
   {
     // EXAMPLE_PHRASES[2]("기분 좋은 하루를 그려본다")의 짧은 자기 다짐형과는
     // 별개 — 이건 그 원문 그대로의 인용이라 출처가 다르게 붙는다.
