@@ -33,6 +33,11 @@ const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '곰돌이 푸, 행복한 일은 매일 있어',
   },
+  {
+    phrase: '나를 즐겁게 해주는 지금 눈앞의 순간에 집중하세요.',
+    isRecommended: true,
+    source: '곰돌이 푸, 행복한 일은 매일 있어',
+  },
 ];
 
 // 항상 1·2·3 순서 그대로 뜨면 "다른 사람들의 아침"인데도 짜여진 것처럼
