@@ -17,9 +17,11 @@ const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "
 const RECOMMENDED_ITEMS = [
   { phrase: EXAMPLE_PHRASES[0], isRecommended: true },
   {
-    phrase: EXAMPLE_PHRASES[2], // 기분 좋은 하루를 그려본다
+    // EXAMPLE_PHRASES[2]("기분 좋은 하루를 그려본다")의 짧은 자기 다짐형과는
+    // 별개 — 이건 그 원문 그대로의 인용이라 출처가 다르게 붙는다.
+    phrase: '기분 좋은 하루를 보내는 모습을 짧게 떠올리며 오늘 하루 다 잘될 거라고 마음속으로 확신한다.',
     isRecommended: true,
-    source: '챌린지 버전 오늘의 추천',
+    source: '나는 아침마다 삶의 감각을 깨운다',
   },
   {
     phrase: '나의 선택이 옳다는 생각이 들 때는, 남의 말은 그저 흘려보내는 것이 어떨까요?',
