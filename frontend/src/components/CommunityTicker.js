@@ -55,6 +55,11 @@ const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '곰돌이 푸, 행복한 일은 매일 있어',
   },
+  {
+    phrase: '괴로워하고 고민하는 사이 마음은 단단해져요.',
+    isRecommended: true,
+    source: '곰돌이 푸, 행복한 일은 매일 있어',
+  },
 ];
 
 // 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
