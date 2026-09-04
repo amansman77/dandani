@@ -7,22 +7,32 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
 
-// 실제 다른 사용자 데이터 위에, 편집팀이 고른 문구 2개(예시 1/3번)를 앞쪽에
-// 끼워 넣는다. 절대 실제 유저인 척(가짜 닉네임·가짜 N일째)하지 않고 "단단이
-// 추천"으로 명확히 구분해서 보여준다 — 이 티커는 "다른 사람들도 진짜 쓰고
-// 있다"는 신뢰를 파는 곳이라, 가짜 활동을 섞으면 그 신뢰 자체가 무너진다.
-const RECOMMENDED_ITEMS = [EXAMPLE_PHRASES[0], EXAMPLE_PHRASES[2]].map((phrase) => ({
-  phrase,
-  isRecommended: true,
-}));
+// 실제 다른 사용자 데이터 위에, 편집팀이 고른 문구를 앞쪽에 끼워 넣는다.
+// 절대 실제 유저인 척(가짜 닉네임·가짜 N일째)하지 않고 "단단이 추천"으로
+// 명확히 구분해서 보여준다 — 이 티커는 "다른 사람들도 진짜 쓰고 있다"는
+// 신뢰를 파는 곳이라, 가짜 활동을 섞으면 그 신뢰 자체가 무너진다.
+// 출처가 있는 인용구는 source를 달아준다 — 탭해서 가져가면(commitNewPhrase)
+// 출처 없이 문장만 내 문구가 되니, 카드에서 보는 동안만이라도 어디서 온
+// 말인지 보여준다. 원문 책 제목("곰돌이 푸, 행복한 일은 매일 있어")은 카드
+// 폭엔 너무 길어서, 시리즈명만 짧게 남겼다.
+const RECOMMENDED_ITEMS = [
+  { phrase: EXAMPLE_PHRASES[0], isRecommended: true },
+  { phrase: EXAMPLE_PHRASES[2], isRecommended: true },
+  {
+    phrase: '나의 선택이 옳다는 생각이 들 때는, 남의 말은 그저 흘려보내는 것이 어떨까요?',
+    isRecommended: true,
+    source: '곰돌이 푸',
+  },
+];
 
 // 실제 유저 항목은 "닉네임 · N일째"를, 추천 항목은 가짜 활동을 안 만들고
-// "단단이 추천"이라고만 표시한다.
-const metaLabel = (it) => (
-  it.isRecommended
-    ? '단단이 추천'
-    : `${it.nickname} · ${it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}`
-);
+// 출처가 있으면 "출처 · 추천", 없으면 "단단이 추천"이라고 표시한다.
+const metaLabel = (it) => {
+  if (it.isRecommended) {
+    return it.source ? `${it.source} · 추천` : '단단이 추천';
+  }
+  return `${it.nickname} · ${it.logged_days === 0 ? '오늘부터' : `${it.logged_days}일째`}`;
+};
 
 // 카드 자체가 쌓인 더미에서 빠져나가고 새 카드가 그 자리로 올라오는 것처럼 보이게 한다.
 // 뒤에 쌓인 카드 가장자리(box-shadow)는 "다음 것이 있다"를 진행바 없이도 항상 보여준다.
