@@ -35,6 +35,18 @@ const RECOMMENDED_ITEMS = [
   },
 ];
 
+// 항상 1·2·3 순서 그대로 뜨면 "다른 사람들의 아침"인데도 짜여진 것처럼
+// 보인다는 피드백 — 매번 순서를 섞어서, 셋 중 뭐가 먼저 나올지 매 방문마다
+// 달라지게 한다 (Fisher–Yates).
+function shuffle(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 // 실제 유저 항목은 "닉네임 · N일째"를, 추천 항목은 가짜 활동을 안 만들고
 // 출처가 있으면 "『책 제목』 中", 없으면 "단단이 추천"이라고 표시한다.
 const metaLabel = (it) => {
@@ -97,7 +109,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         // 티커는 부가 기능이라 실제 데이터 요청이 실패해도 조용히 무시하고
         // 추천 문구만이라도 보여준다 (아래에서 항상 합쳐진다).
       }
-      setItems([...RECOMMENDED_ITEMS, ...list]);
+      setItems([...shuffle(RECOMMENDED_ITEMS), ...list]);
       setStatus('ready');
       // 처음 나타날 때도 스택 회전과 같은 "뒤쪽에서 떠올라 자리 잡는" 모션을
       // 그대로 태워서, 로딩 끝나자마자 뚝 떨어지듯 보이지 않게 한다.
