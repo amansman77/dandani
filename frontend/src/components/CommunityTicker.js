@@ -16,7 +16,11 @@ const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "
 // 밝히는 인용구 관례), "단단이 추천" 대신 이걸 보여준다.
 const RECOMMENDED_ITEMS = [
   { phrase: EXAMPLE_PHRASES[0], isRecommended: true },
-  { phrase: EXAMPLE_PHRASES[2], isRecommended: true },
+  {
+    phrase: EXAMPLE_PHRASES[2], // 기분 좋은 하루를 그려본다
+    isRecommended: true,
+    source: '챌린지 버전 오늘의 추천',
+  },
   {
     phrase: '나의 선택이 옳다는 생각이 들 때는, 남의 말은 그저 흘려보내는 것이 어떨까요?',
     isRecommended: true,
