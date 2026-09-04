@@ -6,10 +6,12 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
 const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
 
-// 실제 다른 사용자 데이터 위에, 편집팀이 고른 문구를 앞쪽에 끼워 넣는다.
-// 절대 실제 유저인 척(가짜 닉네임·가짜 N일째)하지 않고 "단단이 추천"으로
-// 명확히 구분해서 보여준다 — 이 티커는 "다른 사람들도 진짜 쓰고 있다"는
-// 신뢰를 파는 곳이라, 가짜 활동을 섞으면 그 신뢰 자체가 무너진다.
+// 실제 다른 사용자 데이터 사이사이에, 편집팀이 고른 문구를 섞어 넣는다
+// (항상 맨 앞에 고정하면 "다른 사람들의 아침"인데도 짜여진 것처럼 보인다는
+// 피드백으로, 실유저 항목과 완전히 뒤섞는 쪽으로 바꿨다). 절대 실제 유저인
+// 척(가짜 닉네임·가짜 N일째)하지 않고 "단단이 추천"으로 명확히 구분해서
+// 보여준다 — 이 티커는 "다른 사람들도 진짜 쓰고 있다"는 신뢰를 파는
+// 곳이라, 가짜 활동을 섞으면 그 신뢰 자체가 무너진다.
 // 책이나 다른 작품에서 그대로 인용한 문장은 "추천"이 아니라 출처 표시가
 // 맞다 — source를 달면 "책 제목 中"으로 뜨고(전집이 아니라 원 출처를
 // 밝히는 인용구 관례), "단단이 추천" 대신 이걸 보여준다.
@@ -38,11 +40,16 @@ const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '곰돌이 푸, 행복한 일은 매일 있어',
   },
+  {
+    phrase: '세상에는 자기 입장을 정당화하기 위해 다른 사람을 습관적으로 비판하는 사람도 있어요. 때로는 그런 사람의 비난은 흘려들으며 나를 지킬 필요가 있습니다.',
+    isRecommended: true,
+    source: '곰돌이 푸, 행복한 일은 매일 있어',
+  },
 ];
 
-// 항상 1·2·3 순서 그대로 뜨면 "다른 사람들의 아침"인데도 짜여진 것처럼
-// 보인다는 피드백 — 매번 순서를 섞어서, 셋 중 뭐가 먼저 나올지 매 방문마다
-// 달라지게 한다 (Fisher–Yates).
+// 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
+// 맨 앞줄을 차지하지 않고, 실유저 문구들 사이 아무 자리에나 나오게
+// (Fisher–Yates).
 function shuffle(arr) {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i -= 1) {
@@ -114,7 +121,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         // 티커는 부가 기능이라 실제 데이터 요청이 실패해도 조용히 무시하고
         // 추천 문구만이라도 보여준다 (아래에서 항상 합쳐진다).
       }
-      setItems([...shuffle(RECOMMENDED_ITEMS), ...list]);
+      setItems(shuffle([...RECOMMENDED_ITEMS, ...list]));
       setStatus('ready');
       // 처음 나타날 때도 스택 회전과 같은 "뒤쪽에서 떠올라 자리 잡는" 모션을
       // 그대로 태워서, 로딩 끝나자마자 뚝 떨어지듯 보이지 않게 한다.
