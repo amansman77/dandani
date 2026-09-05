@@ -11,11 +11,14 @@
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;600;700&family=Nanum+Myeongjo:wght@400;700;800&display=swap" />
     <style>
       /* 서비스 기본 폰트: 프리텐다드. CDN 의존 없이 정적 파일로 직접 서빙(가변 폰트
-         1개 파일로 100~900 굵기를 다 커버). Noto Serif KR/나눔명조는 프리텐다드가
-         어떤 이유로든 못 불러와질 때를 대비한 폴백으로 계속 로드해둔다. */
+         1개 파일로 100~900 굵기를 다 커버).
+         예전엔 폴백용으로 구글 폰트(Noto Serif KR + 나눔명조)를 같이 링크했는데,
+         프로덕션에서 재보니 그 요청이 등록하는 @font-face 약 600개가 전부
+         `unloaded` — 한 글자도 안 쓰이면서 렌더 블로킹 외부 요청만 매 방문
+         발생시키고 있었다. 프리텐다드를 자체 호스팅하는 이상 폴백은 기기에
+         이미 있는 시스템 한글 폰트로 충분해서 링크를 걷어냈다. */
       @font-face {
         font-family: 'Pretendard';
         src: url('%PUBLIC_URL%/fonts/PretendardVariable.woff2') format('woff2-variations');
@@ -32,7 +35,7 @@
          (src/theme/tokens.js)가 하고, 여기 body 규칙은 React가 붙기 전
          잠깐 보이는 화면(noscript 등)을 위한 기본값이다. */
       body {
-        font-family: 'Pretendard', 'Noto Serif KR', serif;
+        font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
         word-break: keep-all;
         overflow-wrap: break-word;
       }

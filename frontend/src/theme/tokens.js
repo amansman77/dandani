@@ -6,10 +6,15 @@
 // 남아 살아있는 화면에선 아무도 안 쓰는 상태였다. 그래서 실제로 쓰는 값만
 // 여기 모으고, 이름은 "무슨 색인지"가 아니라 "어디에 쓰는지"로 붙였다.
 
+// 실질적으로 앱 전체가 프리텐다드 하나로 렌더된다 — serif/sans 둘 다 1순위가
+// 같아서 구분은 이름뿐이고, 폴백 순서만 다르다. 호출부가 많아 상수는 둘 다
+// 남겨두되, 폴백에서 나눔명조·본명조는 뺐다: 구글 폰트 링크를 걷어낸 뒤로
+// 그 이름들은 기기에 따로 깔려 있지 않으면 못 잡는 이름이라, 있지도 않은 폰트를
+// 가리키는 스택이 된다(예전에 나눔명조를 stack에만 써놓고 로드는 안 해서
+// 아무도 그 폰트를 못 보던 버그가 있었다). 이제 폴백은 기기에 실제로 있는
+// 시스템 한글 폰트로 간다.
 export const FONT = {
-  // 프리텐다드로 통일한 뒤로 serif/sans 둘 다 첫 순위는 같다 — 차이는
-  // 프리텐다드를 못 불러왔을 때의 폴백 순서뿐이라, 의미 구분용으로 남겨둔다.
-  serif: '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif',
+  serif: '"Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", serif',
   sans: '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
 };
 

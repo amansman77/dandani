@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, TextField, Chip, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 import { FONT } from '../../theme/tokens';
