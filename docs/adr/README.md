@@ -44,6 +44,20 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 
 [상세 내용](./ADR-PROD-011-story-feed-platform.md)
 
+### 0004: 단단이 UTM 표준 및 PostHog 저장 전략
+**Status**: Accepted (2026-01-21)
+
+유입 경로 추적을 위한 `utm_source`/`utm_medium`/`utm_campaign` 표준과, PostHog Person 속성에 최초 1회(`first_utm_*`)만 저장하는 전략을 정의합니다.
+
+[상세 내용](./0004-utm-standard-and-posthog-person-properties.md)
+
+### 0005: 피벗 이후 남은 백엔드/D1 자산 — 삭제 대신 문서화
+**Status**: Accepted (2026-09-06)
+
+2026-08-28 단일 문장 되새기기로 피벗한 뒤 남은 Story Feed/Challenge 시절 백엔드 코드와 D1 테이블을, 프론트엔드처럼 삭제하지 않고 인벤토리로 문서화하기로 한 결정입니다. 살아있는 API·크론·테이블과 죽은 것들을 행 수까지 포함해 구분하고, 나중에 실제로 지울 때의 순서를 정리했습니다.
+
+[상세 내용](./0005-legacy-backend-inventory.md)
+
 ## ADR 작성 가이드
 
 새로운 ADR을 작성할 때는 다음 템플릿을 사용하세요:
