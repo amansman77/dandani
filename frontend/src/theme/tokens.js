@@ -1,0 +1,56 @@
+// 단단이 디자인 토큰 — 색/폰트의 단일 소스.
+//
+// 이전엔 폰트 스택이 7개 파일에 10번 복붙돼 있었고(프리텐다드로 바꿀 때
+// 10군데를 일일이 고쳐야 했다), 화면에 쓰는 색은 25개 hex 리터럴이 컴포넌트
+// 곳곳에 흩어져 있었다. MUI 테마 팔레트는 Story Feed 시절 파랑/빨강이 그대로
+// 남아 살아있는 화면에선 아무도 안 쓰는 상태였다. 그래서 실제로 쓰는 값만
+// 여기 모으고, 이름은 "무슨 색인지"가 아니라 "어디에 쓰는지"로 붙였다.
+
+export const FONT = {
+  // 프리텐다드로 통일한 뒤로 serif/sans 둘 다 첫 순위는 같다 — 차이는
+  // 프리텐다드를 못 불러왔을 때의 폴백 순서뿐이라, 의미 구분용으로 남겨둔다.
+  serif: '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif',
+  sans: '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+};
+
+export const COLOR = {
+  text: {
+    primary: '#322f29',   // 문구 본문, 제목
+    strong: '#4a4437',    // 시트 목록 제목
+    body: '#6b6355',      // 설명 문장
+    quote: '#6b5a4a',     // 티커 카드 안 인용문(이탤릭)
+    muted: '#8c8578',     // N번째 아침, 닉네임·N일째
+    faint: '#a39a89',     // 안내/취소 같은 약한 링크
+    navIdle: '#3c3a34',   // 하단 탭 비활성 라벨(opacity와 같이 씀)
+  },
+
+  // 테라코타 계열 — 액션과 강조. 비슷해 보여도 역할이 달라 값을 유지한다.
+  accent: {
+    main: '#a9603a',      // 주 액션(편집, 되새기기, 모두 보기, 추천 라벨)
+    line: '#c98354',      // 액션 테두리·채워진 눈금·진행바·점
+    eyebrow: '#a9764f',   // 날짜/아이브로 이탤릭
+    strong: '#b06a45',    // 탭 선택 상태, 기록 탭 진행중 배지
+  },
+
+  // 베이지 계열 — 경계선과 면.
+  line: {
+    main: '#ddceb9',      // 빈 눈금, 칩 테두리, 시트 손잡이
+    soft: '#e8dcc6',      // 티커 카드 테두리
+    faint: '#ecdfc7',     // 목록 구분선, 스켈레톤, 진행바 트랙
+    stack: '#f3e7d6',     // 카드 더미 그림자 앞장
+    dot: '#c9b79c',       // 티커의 살아있는 점 3개
+    disabled: '#cabfa9',  // 비활성 버튼 테두리/글자
+    disabledSoft: '#e2dbc9', // 비활성 밑줄 버튼 테두리
+  },
+
+  surface: {
+    sheet: '#fdf9f2',     // 바텀시트 배경
+    ring: '#f8f1e6',      // 점 테두리(페이지 배경과 같은 톤으로 파냄)
+    alert: '#f7e9de',     // 한국어 안내 알럿 배경
+  },
+
+  // 앱 전체 배경 그라디언트(App.js와 온보딩이 같은 값을 쓴다).
+  gradient: 'linear-gradient(180deg, #eef2f4 0%, #f3ece2 55%, #f8f1e6 100%)',
+
+  error: '#c0503f',
+};

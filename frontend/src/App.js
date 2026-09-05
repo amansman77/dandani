@@ -20,6 +20,7 @@ import { getUserId, getUserIdInfo, markUserInitialized } from './utils/userId';
 import { getSelectedChallenge, clearSelectedChallenge, validateAndFixStartedAt } from './utils/challengeSelection';
 import { logOnboardingComplete } from './utils/analytics';
 import { calculateChallengeEndDate, addStartedAtHeader, calculateChallengeStatus } from './utils/challengeDay';
+import { COLOR } from './theme/tokens';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -407,7 +408,7 @@ function App() {
         minHeight: '100vh',
         position: 'relative',
         overflow: 'hidden',
-        background: 'linear-gradient(180deg, #eef2f4 0%, #f3ece2 55%, #f8f1e6 100%)',
+        background: COLOR.gradient,
       }}
     >
       <Box

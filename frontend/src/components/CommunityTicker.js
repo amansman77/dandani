@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Drawer, Button, CircularProgress, Skeleton } from '@mui/material';
 import { getUserId } from '../utils/userId';
+import { COLOR, FONT } from '../theme/tokens';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
-const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
-const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
+const SERIF = FONT.serif;
+const SANS = FONT.sans;
 
 // 실제 다른 사용자 데이터 사이사이에, 편집팀이 고른 문구를 섞어 넣는다
 // (항상 맨 앞에 고정하면 "다른 사람들의 아침"인데도 짜여진 것처럼 보인다는
@@ -179,7 +180,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
           sx={{
             textAlign: 'left',
             borderRadius: '14px',
-            border: '1px solid #e8dcc6',
+            border: `1px solid ${COLOR.line.soft}`,
             background: 'rgba(255,255,255,0.85)',
             padding: '14px 16px 12px',
           }}
@@ -193,19 +194,19 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                     width: 9,
                     height: 9,
                     borderRadius: '50%',
-                    background: '#c9b79c',
-                    border: '1.5px solid #f8f1e6',
+                    background: COLOR.line.dot,
+                    border: `1.5px solid ${COLOR.surface.ring}`,
                     marginLeft: i === 0 ? 0 : '-4px',
                   }}
                 />
               ))}
             </Box>
-            <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578' }}>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: COLOR.text.muted }}>
               다른 사람들의 아침
             </Typography>
           </Box>
-          <Skeleton variant="text" sx={{ fontSize: '0.82rem', bgcolor: '#ecdfc7' }} width="88%" />
-          <Skeleton variant="text" sx={{ fontSize: '0.68rem', bgcolor: '#ecdfc7' }} width="42%" />
+          <Skeleton variant="text" sx={{ fontSize: '0.82rem', bgcolor: COLOR.line.faint }} width="88%" />
+          <Skeleton variant="text" sx={{ fontSize: '0.68rem', bgcolor: COLOR.line.faint }} width="42%" />
         </Box>
       </Box>
     );
@@ -231,7 +232,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         // 뒤에 쌓인 카드 가장자리를 box-shadow 두 겹으로 흉내 낸다 — 문구 길이가
         // 바뀌어도 카드 높이에 자동으로 맞춰지고, 실제 DOM을 더 만들 필요가 없다.
         boxShadow: hasStack
-          ? '7px 9px 0 0 #f3e7d6, 14px 18px 0 0 #ecdfc7, 0 10px 24px rgba(60,40,10,0.06)'
+          ? `7px 9px 0 0 ${COLOR.line.stack}, 14px 18px 0 0 ${COLOR.line.faint}, 0 10px 24px rgba(60,40,10,0.06)`
           : 'none',
       }}
     >
@@ -243,7 +244,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         sx={{
           textAlign: 'left',
           borderRadius: '14px',
-          border: '1px solid #e8dcc6',
+          border: `1px solid ${COLOR.line.soft}`,
           background: 'rgba(255,255,255,0.85)',
           padding: '14px 16px 12px',
           cursor: 'pointer',
@@ -262,8 +263,8 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                   width: 9,
                   height: 9,
                   borderRadius: '50%',
-                  background: '#c9b79c',
-                  border: '1.5px solid #f8f1e6',
+                  background: COLOR.line.dot,
+                  border: `1.5px solid ${COLOR.surface.ring}`,
                   marginLeft: i === 0 ? 0 : '-4px',
                   // 스택 대상이 1명뿐이라 카드가 안 바뀌는 순간에도, 이 점만은 계속
                   // 살아있다는 신호를 줘야 해서 items.length 조건 없이 항상 돈다.
@@ -277,10 +278,10 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
               />
             ))}
           </Box>
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: '#8c8578', flex: 1 }}>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: COLOR.text.muted, flex: 1 }}>
             다른 사람들의 아침
           </Typography>
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.62rem', color: '#a9603a' }}>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.62rem', color: COLOR.accent.main }}>
             모두 보기 ›
           </Typography>
         </Box>
@@ -289,25 +290,25 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
             fontFamily: SERIF,
             fontStyle: 'italic',
             fontSize: '0.82rem',
-            color: '#6b5a4a',
+            color: COLOR.text.quote,
             lineHeight: 1.55,
             mb: 0.5,
           }}
         >
           “{item.phrase}”
         </Typography>
-        <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', fontWeight: item.isRecommended ? 700 : 400, color: item.isRecommended ? '#a9603a' : '#a39a89' }}>
+        <Typography sx={{ fontFamily: SANS, fontSize: '0.68rem', fontWeight: item.isRecommended ? 700 : 400, color: item.isRecommended ? COLOR.accent.main : COLOR.text.faint }}>
           {metaLabel(item)}
         </Typography>
         {hasStack && (
           // 곧 다음 카드로 바뀐다는 걸 채워지는 진행바로 미리 알려준다 — 스택은 "더
           // 있다"를, 이 바는 "언제 바뀌는지"를 맡는다.
-          <Box sx={{ mt: 1.25, height: 2, borderRadius: 1, background: '#ecdfc7', overflow: 'hidden' }}>
+          <Box sx={{ mt: 1.25, height: 2, borderRadius: 1, background: COLOR.line.faint, overflow: 'hidden' }}>
             <Box
               key={index}
               sx={{
                 height: '100%',
-                background: '#c98354',
+                background: COLOR.accent.line,
                 width: '0%',
                 animation: `ticker-progress ${DWELL_MS}ms linear forwards`,
                 '@media (prefers-reduced-motion: reduce)': { animation: 'none', width: '55%' },
@@ -325,7 +326,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         PaperProps={{
           sx: {
             borderRadius: '18px 18px 0 0',
-            background: '#fdf9f2',
+            background: COLOR.surface.sheet,
             backgroundImage: 'none',
             maxHeight: '75vh',
             // 하단 탭바(고정, zIndex: appBar=1100)보다 시트가 항상 위에 뜨도록 —
@@ -334,33 +335,33 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
           },
         }}
       >
-        <Box sx={{ width: 34, height: 4, borderRadius: 2, background: '#ddceb9', margin: '10px auto 4px' }} />
+        <Box sx={{ width: 34, height: 4, borderRadius: 2, background: COLOR.line.main, margin: '10px auto 4px' }} />
 
         {selected ? (
           <Box sx={{ padding: '4px 20px 28px', textAlign: 'left' }}>
             <Typography
               onClick={() => { setSelected(null); setApplyError(null); }}
-              sx={{ fontFamily: SANS, fontSize: '0.78rem', color: '#a9603a', cursor: 'pointer', display: 'inline-block', mb: 2 }}
+              sx={{ fontFamily: SANS, fontSize: '0.78rem', color: COLOR.accent.main, cursor: 'pointer', display: 'inline-block', mb: 2 }}
             >
               ‹ 목록으로
             </Typography>
             <Typography
               sx={{
-                fontFamily: SERIF, fontWeight: 700, fontSize: '1.2rem', color: '#322f29', lineHeight: 1.45, mb: 0.75,
+                fontFamily: SERIF, fontWeight: 700, fontSize: '1.2rem', color: COLOR.text.primary, lineHeight: 1.45, mb: 0.75,
               }}
             >
               “{selected.phrase}”
             </Typography>
-            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', fontWeight: selected.isRecommended ? 700 : 400, color: selected.isRecommended ? '#a9603a' : '#8c8578', mb: 2.5 }}>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', fontWeight: selected.isRecommended ? 700 : 400, color: selected.isRecommended ? COLOR.accent.main : COLOR.text.muted, mb: 2.5 }}>
               {metaLabel(selected)}
             </Typography>
-            <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: '#6b6355', lineHeight: 1.7, mb: 2 }}>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: COLOR.text.body, lineHeight: 1.7, mb: 2 }}>
               {hasActivePhrase
                 ? '지금 되새기는 문구는 그만두고, 이 문구로 다시 시작해요.'
                 : '이 문구로 오늘부터 시작해요.'}
             </Typography>
             {applyError && (
-              <Typography sx={{ fontFamily: SANS, fontSize: '0.74rem', color: '#c0503f', mb: 1.5 }}>
+              <Typography sx={{ fontFamily: SANS, fontSize: '0.74rem', color: COLOR.error, mb: 1.5 }}>
                 {applyError}
               </Typography>
             )}
@@ -370,17 +371,17 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                 onClick={handleConfirmUse}
                 sx={{
                   fontFamily: SERIF, fontSize: '0.88rem', fontWeight: 400, textTransform: 'none',
-                  color: '#a9603a', border: '1.4px solid #c98354', borderRadius: '999px', padding: '8px 22px',
+                  color: COLOR.accent.main, border: `1.4px solid ${COLOR.accent.line}`, borderRadius: '999px', padding: '8px 22px',
                   minWidth: 'auto', minHeight: 'auto', lineHeight: 'normal',
                   '&:hover': { background: 'rgba(201,131,84,0.08)' },
-                  '&.Mui-disabled': { color: '#8c8578', border: '1.4px solid #cabfa9' },
+                  '&.Mui-disabled': { color: COLOR.text.muted, border: `1.4px solid ${COLOR.line.disabled}` },
                 }}
               >
                 {applying ? <CircularProgress size={16} /> : '이 문구로 시작할게요'}
               </Button>
               <Typography
                 onClick={() => !applying && setSelected(null)}
-                sx={{ fontFamily: SANS, fontSize: '0.78rem', color: '#a39a89', cursor: 'pointer' }}
+                sx={{ fontFamily: SANS, fontSize: '0.78rem', color: COLOR.text.faint, cursor: 'pointer' }}
               >
                 취소
               </Typography>
@@ -389,7 +390,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         ) : (
           <>
             <Box sx={{ padding: '10px 20px 4px' }}>
-              <Typography sx={{ fontFamily: SANS, fontSize: '0.9rem', fontWeight: 700, color: '#4a4437' }}>
+              <Typography sx={{ fontFamily: SANS, fontSize: '0.9rem', fontWeight: 700, color: COLOR.text.strong }}>
                 다른 사람들의 아침 · {items.length}
               </Typography>
             </Box>
@@ -404,7 +405,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                   sx={{
                     position: 'relative',
                     padding: '14px 4px 14px 14px',
-                    borderTop: i === 0 ? 'none' : '1px solid #ecdfc7',
+                    borderTop: i === 0 ? 'none' : `1px solid ${COLOR.line.faint}`,
                     textAlign: 'left',
                     cursor: 'pointer',
                     borderRadius: '8px',
@@ -418,7 +419,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                       bottom: '16px',
                       width: '2.5px',
                       borderRadius: '2px',
-                      background: '#c98354',
+                      background: COLOR.accent.line,
                     },
                     '&:hover': { background: 'rgba(201,131,84,0.06)' },
                   }}
@@ -428,14 +429,14 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                       fontFamily: SERIF,
                       fontWeight: 700,
                       fontSize: '1.05rem',
-                      color: '#322f29',
+                      color: COLOR.text.primary,
                       lineHeight: 1.4,
                       mb: 0.5,
                     }}
                   >
                     “{it.phrase}”
                   </Typography>
-                  <Typography sx={{ fontFamily: SANS, fontWeight: it.isRecommended ? 700 : 500, fontSize: '0.72rem', color: it.isRecommended ? '#a9603a' : '#8c8578' }}>
+                  <Typography sx={{ fontFamily: SANS, fontWeight: it.isRecommended ? 700 : 500, fontSize: '0.72rem', color: it.isRecommended ? COLOR.accent.main : COLOR.text.muted }}>
                     {metaLabel(it)}
                   </Typography>
                 </Box>

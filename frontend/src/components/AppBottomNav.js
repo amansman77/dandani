@@ -1,6 +1,7 @@
 import React from 'react';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { COLOR, FONT } from '../theme/tokens';
 
 const NavDot = styled('span')({
   display: 'block',
@@ -34,12 +35,12 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
         sx={{
           background: 'transparent',
           '& .MuiBottomNavigationAction-root': {
-            color: '#3c3a34',
+            color: COLOR.text.navIdle,
             opacity: 0.55,
-            fontFamily: '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important',
+            fontFamily: FONT.serif,
           },
           '& .MuiBottomNavigationAction-label': { fontSize: '0.7rem' },
-          '& .Mui-selected': { color: '#b06a45 !important', opacity: 1 },
+          '& .Mui-selected': { color: COLOR.accent.strong, opacity: 1 },
         }}
       >
         <BottomNavigationAction label="오늘" icon={<NavDot />} />

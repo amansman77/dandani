@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, Box, Typography } from '@mui/material';
+import { COLOR, FONT } from '../theme/tokens';
 
-const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
-const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
+const SERIF = FONT.serif;
+const SANS = FONT.sans;
 
 const ONBOARDING_STEPS = [
   {
@@ -91,7 +92,7 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
       disableRestoreFocus
       PaperProps={{
         sx: {
-          background: 'linear-gradient(180deg, #eef2f4 0%, #f3ece2 55%, #f8f1e6 100%)',
+          background: COLOR.gradient,
           boxShadow: 'none',
         },
       }}
@@ -120,7 +121,7 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
                   width: 6,
                   height: 6,
                   borderRadius: '50%',
-                  backgroundColor: i <= activeStep ? '#c98354' : '#ddceb9',
+                  backgroundColor: i <= activeStep ? COLOR.accent.line : COLOR.line.main,
                 }}
               />
             ))}
@@ -136,7 +137,7 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
               cursor: 'pointer',
               fontFamily: SANS,
               fontSize: '0.72rem',
-              color: '#a39a89',
+              color: COLOR.text.faint,
             }}
           >
             건너뛰기
@@ -144,10 +145,10 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
         </Box>
 
         <Box sx={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', px: 4 }}>
-          <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.85rem', color: '#a9764f', mb: 2 }}>
+          <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.85rem', color: COLOR.accent.eyebrow, mb: 2 }}>
             {currentStep.stepLabel}
           </Typography>
-          <Typography sx={{ fontFamily: SERIF, fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.5, color: '#322f29', mb: 2.5 }}>
+          <Typography sx={{ fontFamily: SERIF, fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.5, color: COLOR.text.primary, mb: 2.5 }}>
             {currentStep.heading}
           </Typography>
           <Typography
@@ -155,9 +156,9 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
               fontFamily: SANS,
               fontSize: '0.9rem',
               lineHeight: 1.85,
-              color: '#6b6355',
+              color: COLOR.text.body,
               maxWidth: 280,
-              '& b': { color: '#322f29', fontWeight: 600 },
+              '& b': { color: COLOR.text.primary, fontWeight: 600 },
             }}
           >
             {currentStep.body}
@@ -176,8 +177,8 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
               cursor: 'pointer',
               fontFamily: SERIF,
               fontSize: '0.95rem',
-              color: '#a9603a',
-              borderBottom: '1px solid #c98354',
+              color: COLOR.accent.main,
+              borderBottom: `1px solid ${COLOR.accent.line}`,
               paddingBottom: '3px',
               '&:hover': { opacity: 0.75 },
             }}
@@ -195,7 +196,7 @@ const OnboardingModal = ({ open, onClose, onComplete }) => {
               cursor: activeStep === 0 ? 'default' : 'pointer',
               fontFamily: SANS,
               fontSize: '0.72rem',
-              color: '#a39a89',
+              color: COLOR.text.faint,
               visibility: activeStep === 0 ? 'hidden' : 'visible',
             }}
           >

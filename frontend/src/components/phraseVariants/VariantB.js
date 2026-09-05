@@ -2,8 +2,9 @@ import React from 'react';
 import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
+import { FONT } from '../../theme/tokens';
 
-const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
+const SERIF = FONT.serif;
 
 const Scene = styled(Box)(({ theme }) => ({
   borderRadius: 24,

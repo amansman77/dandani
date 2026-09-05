@@ -3,9 +3,10 @@ import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui
 import { styled, keyframes } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 import CommunityTicker from '../CommunityTicker';
+import { COLOR, FONT } from '../../theme/tokens';
 
-const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
-const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
+const SERIF = FONT.serif;
+const SANS = FONT.sans;
 
 const Scene = styled(Box)(({ theme }) => ({
   position: 'relative',
@@ -22,7 +23,7 @@ const Eyebrow = styled(Typography)({
   fontFamily: SERIF,
   fontStyle: 'italic',
   fontSize: '0.85rem',
-  color: '#a9764f',
+  color: COLOR.accent.eyebrow,
   position: 'relative',
 });
 
@@ -31,7 +32,7 @@ const Phrase = styled(Typography)({
   fontSize: '1.7rem',
   lineHeight: 1.75,
   letterSpacing: '0.01em',
-  color: '#322f29',
+  color: COLOR.text.primary,
   whiteSpace: 'pre-wrap',
   maxWidth: 230,
   marginLeft: 'auto',
@@ -54,7 +55,7 @@ const Tick = styled(Box, { shouldForwardProp: (prop) => prop !== 'filled' })(({ 
   width: 3,
   borderRadius: 2,
   height: filled ? 20 : 16,
-  background: filled ? '#c98354' : '#ddceb9',
+  background: filled ? COLOR.accent.line : COLOR.line.main,
   transformOrigin: 'center',
   animation: `${tickWave} 6.4s ease-in-out infinite`,
   '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
@@ -121,8 +122,8 @@ const VariantA = ({
               sx={{
                 cursor: 'pointer',
                 fontFamily: SERIF,
-                borderColor: '#ddceb9',
-                color: '#6b6355',
+                borderColor: COLOR.line.main,
+                color: COLOR.text.body,
                 background: 'rgba(255,255,255,0.5)',
               }}
             />
@@ -152,8 +153,8 @@ const VariantA = ({
             fontSize: '0.95rem',
             fontWeight: 400,
             textTransform: 'none',
-            color: '#a9603a',
-            borderBottom: '1px solid #c98354',
+            color: COLOR.accent.main,
+            borderBottom: `1px solid ${COLOR.accent.line}`,
             borderRadius: 0,
             padding: 0,
             minWidth: 'auto',
@@ -161,7 +162,7 @@ const VariantA = ({
             lineHeight: 'normal',
             paddingBottom: '3px',
             '&:hover': { background: 'transparent', opacity: 0.75 },
-            '&.Mui-disabled': { color: '#c9bfa8', borderColor: '#e2dbc9' },
+            '&.Mui-disabled': { color: COLOR.line.disabled, borderColor: COLOR.line.disabledSoft },
           }}
         >
           {submitting ? <CircularProgress size={18} /> : (isEditing ? '이 문장으로 바꿀게요' : '이 문장으로 시작할게요')}
@@ -181,7 +182,7 @@ const VariantA = ({
       </Eyebrow>
       <Typography
         variant="body2"
-        sx={{ fontFamily: SANS, fontSize: '0.75rem', color: '#8c8578', mb: 2.5, position: 'relative' }}
+        sx={{ fontFamily: SANS, fontSize: '0.75rem', color: COLOR.text.muted, mb: 2.5, position: 'relative' }}
       >
         {morningNumber}번째 아침이에요
       </Typography>
@@ -200,15 +201,15 @@ const VariantA = ({
           fontSize: '0.92rem',
           fontWeight: 400,
           textTransform: 'none',
-          color: phrase.logged_today ? '#8c8578' : '#a9603a',
-          border: phrase.logged_today ? '1.4px solid #cabfa9' : '1.4px solid #c98354',
+          color: phrase.logged_today ? COLOR.text.muted : COLOR.accent.main,
+          border: phrase.logged_today ? `1.4px solid ${COLOR.line.disabled}` : `1.4px solid ${COLOR.accent.line}`,
           borderRadius: '999px',
           padding: '9px 24px',
           minWidth: 'auto',
           minHeight: 'auto',
           lineHeight: 'normal',
-          '&:hover': { background: 'rgba(201,131,84,0.08)', border: phrase.logged_today ? '1.4px solid #cabfa9' : '1.4px solid #c98354' },
-          '&.Mui-disabled': { color: '#8c8578', border: '1.4px solid #cabfa9' },
+          '&:hover': { background: 'rgba(201,131,84,0.08)', border: phrase.logged_today ? `1.4px solid ${COLOR.line.disabled}` : `1.4px solid ${COLOR.accent.line}` },
+          '&.Mui-disabled': { color: COLOR.text.muted, border: `1.4px solid ${COLOR.line.disabled}` },
         }}
       >
         {logging ? <CircularProgress size={18} /> : (phrase.logged_today ? '오늘도 되새겼어요' : '오늘의 문장 되새기기')}

@@ -5,66 +5,37 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { PostHogProvider } from 'posthog-js/react';
 import App from './App';
 import { initAnalytics } from './utils/analytics';
+import { COLOR, FONT } from './theme/tokens';
 
+// 팔레트엔 원래 Story Feed 시절 색(파랑 #3f7198 / 빨강 #df4846 / 초록 …)이
+// 그대로 남아 있었는데, 이 값들을 참조하는 파일은 전부 피벗 전에 화면에서
+// 빠진 컴포넌트들뿐이었다. 지금 실제로 보이는 화면은 팔레트를 전혀 안 거치고
+// hex를 직접 박아 쓰고 있었다 — 그래서 팔레트를 진짜 쓰는 색으로 맞췄다.
+// 이러면 색을 명시 안 한 MUI 기본 동작(예: CircularProgress의 primary)도
+// 앱 톤을 따라온다. secondary/success/warning/info와 customColors는 죽은
+// 컴포넌트만 쓰던 값이라 뺐다 — MUI 기본값이 대신 들어간다.
 const theme = createTheme({
   palette: {
     mode: 'light',
-    // 메인 컬러
     primary: {
-      main: '#3f7198', // 메인 블루
-      light: '#5a8bb0',
-      dark: '#2d5a7a',
+      main: COLOR.accent.main,
+      light: COLOR.accent.eyebrow,
+      dark: COLOR.accent.strong,
       contrastText: '#ffffff',
     },
-    secondary: {
-      main: '#df4846', // 메인 레드
-      light: '#e66b69',
-      dark: '#c73d3b',
-      contrastText: '#ffffff',
-    },
-    // 서브 컬러
-    success: {
-      main: '#579f59', // 메인 그린
-      light: '#7bb17d',
-      dark: '#4a8a4c',
-      contrastText: '#ffffff',
-    },
-    warning: {
-      main: '#ee7c6f', // 서브 핑크
-      light: '#f1998e',
-      dark: '#d66558',
-      contrastText: '#ffffff',
-    },
-    info: {
-      main: '#a5a498', // 서브 그레이
-      light: '#b8b7ac',
-      dark: '#8f8e84',
-      contrastText: '#ffffff',
-    },
-    // 배경 & 포인트
     background: {
-      default: '#faf5e9', // 배경 베이지
-      paper: '#ffffff',
+      default: COLOR.surface.ring,
+      paper: COLOR.surface.sheet,
     },
     text: {
-      primary: '#21211c', // 포인트 블랙
-      secondary: '#6b6b6b', // 더 진한 서브 그레이
+      primary: COLOR.text.primary,
+      secondary: COLOR.text.body,
     },
-    divider: '#ddd9cd', // 보조 그레이 톤
+    divider: COLOR.line.main,
+    error: { main: COLOR.error },
   },
   typography: {
-    fontFamily: '"Pretendard", "Noto Serif KR", "Roboto", "Helvetica", "Arial", serif',
-  },
-  // 커스텀 색상 추가
-  customColors: {
-    mainBlue: '#3f7198',
-    mainRed: '#df4846',
-    mainGreen: '#579f59',
-    subPink: '#ee7c6f',
-    subGray: '#a5a498',
-    backgroundGray: '#ddd9cd',
-    backgroundBeige: '#faf5e9',
-    pointBlack: '#21211c',
+    fontFamily: FONT.sans,
   },
 });
 

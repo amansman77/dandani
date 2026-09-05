@@ -23,8 +23,16 @@
         font-style: normal;
         font-display: swap;
       }
-      * {
-        font-family: 'Pretendard', 'Noto Serif KR', serif !important;
+      /* font-family / word-break / overflow-wrap은 전부 상속되는 속성이라
+         body 한 곳에만 걸면 하위 전체(MUI가 body 밑에 따로 띄우는 Dialog·
+         Drawer 포털 포함)에 그대로 내려간다. 예전엔 여기가 `*` 전체 선택자에
+         !important였는데, 그러면 컴포넌트가 폰트를 지정할 때마다 똑같이
+         !important를 붙여야만 먹히는 구조가 돼서(코드에 !important가 13개
+         생긴 원인) 상속 방식으로 바꿨다. 실제 폰트 지정은 MUI 테마
+         (src/theme/tokens.js)가 하고, 여기 body 규칙은 React가 붙기 전
+         잠깐 보이는 화면(noscript 등)을 위한 기본값이다. */
+      body {
+        font-family: 'Pretendard', 'Noto Serif KR', serif;
         word-break: keep-all;
         overflow-wrap: break-word;
       }

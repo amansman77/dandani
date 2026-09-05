@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
 import { getUserId } from '../utils/userId';
+import { COLOR, FONT } from '../theme/tokens';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
-const SERIF = '"Pretendard", "Nanum Myeongjo", Georgia, "Noto Serif KR", serif !important';
-const SANS = '"Pretendard", -apple-system, "system-ui", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif !important';
+const SERIF = FONT.serif;
+const SANS = FONT.sans;
 
 const formatDate = (isoString) => {
   if (!isoString) return '';
@@ -54,13 +55,13 @@ const PhraseHistory = () => {
     <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
       {(!phrases || phrases.length === 0) ? (
         <Box sx={{ textAlign: 'center', py: 8, px: 3 }}>
-          <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.85rem', color: '#a9764f', mb: 2 }}>
+          <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.85rem', color: COLOR.accent.eyebrow, mb: 2 }}>
             아직, 여기엔
           </Typography>
-          <Typography sx={{ fontFamily: SERIF, fontSize: '1.2rem', color: '#322f29', mb: 1.5, lineHeight: 1.6 }}>
+          <Typography sx={{ fontFamily: SERIF, fontSize: '1.2rem', color: COLOR.text.primary, mb: 1.5, lineHeight: 1.6 }}>
             쌓인 아침이 없어요
           </Typography>
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: '#8c8578', lineHeight: 1.8 }}>
+          <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: COLOR.text.muted, lineHeight: 1.8 }}>
             오늘 탭에서 문장을 적으면
             <br />
             여기에 하루씩 쌓여요.
@@ -70,7 +71,7 @@ const PhraseHistory = () => {
         phrases.map((p) => (
           <Box key={p.id} sx={{ py: 2.75, borderBottom: '1px solid rgba(128,128,128,0.16)' }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', mb: 1.25 }}>
-              <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.75rem', color: '#a9764f' }}>
+              <Typography sx={{ fontFamily: SERIF, fontStyle: 'italic', fontSize: '0.75rem', color: COLOR.accent.eyebrow }}>
                 {formatDate(p.started_at)}부터
               </Typography>
               <Typography
@@ -78,7 +79,7 @@ const PhraseHistory = () => {
                   fontFamily: SANS,
                   fontSize: '0.66rem',
                   letterSpacing: '0.02em',
-                  color: p.status === 'active' ? '#b06a45' : '#a39a89',
+                  color: p.status === 'active' ? COLOR.accent.strong : COLOR.text.faint,
                 }}
               >
                 {p.status === 'active' ? '진행 중' : '종료'}
@@ -89,13 +90,13 @@ const PhraseHistory = () => {
                 fontFamily: SERIF,
                 fontSize: '1.1rem',
                 lineHeight: 1.55,
-                color: p.status === 'active' ? '#322f29' : '#6b6355',
+                color: p.status === 'active' ? COLOR.text.primary : COLOR.text.body,
                 mb: 1,
               }}
             >
               {p.phrase}
             </Typography>
-            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: '#8c8578' }}>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: COLOR.text.muted }}>
               {p.logged_days}일 되새김
             </Typography>
           </Box>
