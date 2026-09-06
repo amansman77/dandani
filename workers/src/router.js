@@ -1,74 +1,24 @@
 import { corsHeaders, getUTCDate, jsonResponse, logUserEvent } from './core.js';
 import {
-  getChallengeDetail,
-  getChallenges,
-  getPracticeHistory,
-  getPracticeRecord,
-  getTodayPractice,
-  saveRecordFromAssistant,
-  submitFeedback,
-  updatePracticeRecord
-} from './practice-service.js';
-import { createTimefoldEnvelope, getTimefoldEnvelope } from './timefold-service.js';
-import {
   calculateRetentionMetrics,
   getDailyReportData
 } from './analytics-service.js';
 import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
-import { getStoryFeed, getStoryDetail, tryStory, seedAiStories, debugNvidiaPing, getMyStoryFeed, saveStoryTryEmotion } from './story-service.js';
-import { createChallenge, getActiveChallenge, logChallengeDay, getChallengeCatalogDetail } from './challenge-service.js';
 import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
 
+// 2026-08-28 피벗 이후 Story Feed/Challenge/Timefold 라우트는 부르는 화면이
+// 없어졌고, 2026-09-06 프론트에서 그 화면들을 삭제하면서 완전히 도달 불가가
+// 됐다. 인증 없이 열린 쓰기 라우트(POST /api/stories/seed 등)를 그대로 두는
+// 게 부담이라 라우터에서 먼저 뗐다 — 서비스 파일(practice/story/challenge/
+// timefold-service.js)은 되살릴 여지를 두고 아직 남겨뒀다.
+// 전체 인벤토리와 삭제 순서는 docs/adr/0005-legacy-backend-inventory.md 참고.
+
 async function handleGet(url, request, env) {
-  if (url.pathname === '/api/practice/today') {
-    return jsonResponse(await getTodayPractice(env, request));
-  }
-  if (url.pathname === '/api/challenges') {
-    return jsonResponse(await getChallenges(env));
-  }
-  if (url.pathname.startsWith('/api/challenges/')) {
-    const challengeId = url.pathname.split('/')[3];
-    return jsonResponse(await getChallengeDetail(env, challengeId, request));
-  }
-  if (url.pathname === '/api/feedback/record') {
-    const challengeId = url.searchParams.get('challengeId');
-    const practiceDay = url.searchParams.get('practiceDay');
-    if (!challengeId || !practiceDay) {
-      return jsonResponse({ error: 'Missing required parameters' }, 400);
-    }
-    return jsonResponse(await getPracticeRecord(env, challengeId, practiceDay, request));
-  }
-  if (url.pathname === '/api/feedback/history') {
-    const challengeId = url.searchParams.get('challengeId');
-    if (!challengeId) {
-      return jsonResponse({ error: 'Missing challengeId parameter' }, 400);
-    }
-    return jsonResponse(await getPracticeHistory(env, challengeId, request));
-  }
-  if (url.pathname.startsWith('/api/timefold/envelope/')) {
-    return jsonResponse(await getTimefoldEnvelope(request));
-  }
-  if (url.pathname === '/api/stories') {
-    return jsonResponse(await getStoryFeed(env));
-  }
-  if (url.pathname === '/api/stories/debug-ping') {
-    return jsonResponse(await debugNvidiaPing(env));
-  }
   if (url.pathname === '/api/insight/debug') {
     const category = url.searchParams.get('category');
     return jsonResponse(await generateDailyInsight(env, new Date(), category));
-  }
-  if (url.pathname === '/api/my-feed') {
-    return jsonResponse(await getMyStoryFeed(env, request));
-  }
-  if (url.pathname === '/api/user-challenges/active') {
-    return jsonResponse(await getActiveChallenge(env, request));
-  }
-  if (url.pathname.match(/^\/api\/user-challenges\/catalog\/[^/]+$/)) {
-    const challengeId = url.pathname.split('/')[4];
-    return jsonResponse(await getChallengeCatalogDetail(env, challengeId));
   }
   if (url.pathname === '/api/phrases/active') {
     return jsonResponse(await getActivePhrase(env, request));
@@ -78,10 +28,6 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname === '/api/phrases/community') {
     return jsonResponse(await getCommunityPhrases(env, request));
-  }
-  if (url.pathname.startsWith('/api/stories/')) {
-    const storyId = url.pathname.split('/')[3];
-    return jsonResponse(await getStoryDetail(env, storyId));
   }
   if (url.pathname === '/api/analytics/retention') {
     return jsonResponse(await calculateRetentionMetrics(env));
@@ -115,35 +61,11 @@ async function handleGet(url, request, env) {
 }
 
 async function handlePost(url, request, env) {
-  if (url.pathname === '/api/feedback/submit') {
-    return jsonResponse(await submitFeedback(env, request));
-  }
-  if (url.pathname === '/api/timefold/envelope') {
-    return jsonResponse(await createTimefoldEnvelope(env, request));
-  }
-  if (url.pathname === '/api/records') {
-    return jsonResponse(await saveRecordFromAssistant(env, request));
-  }
   if (url.pathname === '/api/analytics/event') {
     const body = await request.json();
     const { event_type, event_data } = body;
     await logUserEvent(env, request, event_type, event_data);
     return jsonResponse({ success: true });
-  }
-  if (url.pathname.match(/^\/api\/stories\/[^/]+\/try$/)) {
-    const storyId = url.pathname.split('/')[3];
-    return jsonResponse(await tryStory(env, storyId, request));
-  }
-  if (url.pathname.match(/^\/api\/story-tries\/[^/]+\/emotion$/)) {
-    const tryId = url.pathname.split('/')[3];
-    return jsonResponse(await saveStoryTryEmotion(env, tryId, request));
-  }
-  if (url.pathname === '/api/user-challenges') {
-    return jsonResponse(await createChallenge(env, request));
-  }
-  if (url.pathname.match(/^\/api\/user-challenges\/[^/]+\/log$/)) {
-    const challengeId = url.pathname.split('/')[3];
-    return jsonResponse(await logChallengeDay(env, challengeId, request));
   }
   if (url.pathname === '/api/phrases') {
     return jsonResponse(await createPhrase(env, request));
@@ -155,19 +77,6 @@ async function handlePost(url, request, env) {
   if (url.pathname.match(/^\/api\/phrases\/[^/]+\/retire$/)) {
     const phraseId = url.pathname.split('/')[3];
     return jsonResponse(await retirePhrase(env, phraseId, request));
-  }
-  if (url.pathname === '/api/stories/seed') {
-    const params = new URL(request.url).searchParams;
-    const count = parseInt(params.get('count'), 10) || 12;
-    const offset = parseInt(params.get('offset'), 10) || 0;
-    return jsonResponse(await seedAiStories(env, count, offset));
-  }
-  return jsonResponse({ error: 'Not Found' }, 404);
-}
-
-async function handlePut(url, request, env) {
-  if (url.pathname === '/api/feedback/update') {
-    return jsonResponse(await updatePracticeRecord(env, request));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }
@@ -185,9 +94,6 @@ export async function handleRequest(request, env) {
     }
     if (request.method === 'POST') {
       return await handlePost(url, request, env);
-    }
-    if (request.method === 'PUT') {
-      return await handlePut(url, request, env);
     }
     return jsonResponse({ error: 'Method Not Allowed' }, 405);
   } catch (error) {
