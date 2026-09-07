@@ -26,7 +26,7 @@ import { COLOR, FONT } from '../theme/tokens';
 // HOLD_MS로 떼어냈다 — 이제 문장을 더 오래 두고 싶으면 이 값만 만지면
 // 되고, 앞의 연출 길이(ANIM_MS)와 서로 간섭하지 않는다.
 const ANIM_MS = 4200;     // 빛·별·여명·문장이 다 자리 잡기까지
-const HOLD_MS = 1000;     // 그 뒤로 아무것도 안 움직이고 문장만 머무는 시간
+const HOLD_MS = 1500;     // 그 뒤로 아무것도 안 움직이고 문장만 머무는 시간
 const LINE_IN_MS = 1100;  // 문장이 떠오르는 데 걸리는 시간
 const MAX_WAIT_MS = 7400; // 폰트가 아무리 늦어도 여기서는 넘긴다(ANIM_MS+HOLD_MS보다 커야 한다)
 const FADE_MS = 700;      // 걷히는 것도 천천히
@@ -233,13 +233,14 @@ const SplashScreen = ({ onDone }) => {
           justifyContent: 'center',
           padding: '0 40px',
           textAlign: 'center',
-          // 온보딩 본문(OnboardingModal 1단계)과 글꼴·크기·행간·색을 그대로 맞춘다.
-          // 같은 문장이 같은 자리에 같은 모양으로 있어서, 스플래시가 걷혀도
-          // 이 줄만은 화면에 남아 있는 것처럼 보인다 — 화면이 바뀌는 게 아니라
-          // 문장 주위로 나머지가 차오르는 인상이 된다.
+          // 원래는 온보딩 본문(0.9rem)과 크기까지 똑같이 맞춰서, 스플래시가
+          // 걷혀도 이 줄만은 제자리에 남아 있는 것처럼 보이게 했었다(세로 위치
+          // 차이 1.8px). 지금은 문장을 더 크게 보여달라는 요청으로 1.15rem이라,
+          // 그 "그대로 이어지는" 효과는 포기했다 — 대신 스플래시의 한 줄이
+          // 자기 무게를 갖는 쪽을 택했다. 되돌리려면 0.9rem으로만 내리면 된다.
           fontFamily: FONT.sans,
-          fontSize: '0.9rem',
-          lineHeight: 1.85,
+          fontSize: '1.15rem',
+          lineHeight: 1.8,
           color: COLOR.text.body,
           opacity: showLine ? 1 : 0,
           transform: showLine ? 'translateY(0)' : 'translateY(5px)',
