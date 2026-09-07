@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Container, Box, Snackbar } from '@mui/material';
+import React, { useState, useEffect, useRef } from 'react';
+import { Container, Box } from '@mui/material';
 import OnboardingModal from './components/OnboardingModal';
 import SplashScreen from './components/SplashScreen';
+import ShareSheet from './components/ShareSheet';
 import AppHeaderSection from './components/AppHeaderSection';
 import AppBottomNav from './components/AppBottomNav';
 import DailyPhrase from './components/DailyPhrase';
 import PhraseHistory from './components/PhraseHistory';
 import { pushNavState, replaceNavState } from './utils/navHistory';
 import { getUserIdInfo, markUserInitialized } from './utils/userId';
-import { logOnboardingComplete, logPhraseShared } from './utils/analytics';
+import { logOnboardingComplete } from './utils/analytics';
 import { COLOR } from './theme/tokens';
 
 function App() {
@@ -24,38 +25,7 @@ function App() {
   // 진입할 때마다 — 매일 아침 여는 앱이라 "열면 해가 뜬다"를 의식의 일부로 둔다
   const [splashOpen, setSplashOpen] = useState(true);
 
-  const [shareNotice, setShareNotice] = useState('');
-
-  // 공유하는 링크에도 UTM을 달아둔다 — 그래야 캠페인 리포트에서 인스타 광고로
-  // 들어온 사람과 지인 공유로 들어온 사람이 갈라져 보인다.
-  const handleShare = useCallback(async () => {
-    if (!activePhrase) return;
-    const url = 'https://dandani.yetimates.com/?utm_source=share&utm_medium=organic&utm_campaign=phrase_share';
-    const text = activePhrase.visit_days
-      ? `"${activePhrase.phrase}" — ${activePhrase.visit_days}번째 아침`
-      : `"${activePhrase.phrase}"`;
-
-    // navigator.share는 OS 공유 시트를 띄우므로, 그 자체가 "어디로 보낼지"를
-    // 한 번 더 고르는 확인 단계다. 여기서 따로 확인 화면을 겹칠 필요가 없다.
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: '단단이', text, url });
-        logPhraseShared('share_sheet');
-        return;
-      }
-    } catch (err) {
-      // 사용자가 공유 시트를 그냥 닫으면 AbortError — 실패가 아니라 취소다.
-      if (err && err.name === 'AbortError') return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-      logPhraseShared('clipboard');
-      setShareNotice('문장과 링크를 복사했어요');
-    } catch (err) {
-      setShareNotice('공유를 지원하지 않는 환경이에요');
-    }
-  }, [activePhrase]);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
@@ -153,7 +123,7 @@ function App() {
           showEditPhrase={activeTab === 0 && Boolean(activePhrase) && !phraseEditing}
           onEditPhrase={() => setPhraseEditing(true)}
           showShare={activeTab === 0 && Boolean(activePhrase) && !phraseEditing}
-          onShare={handleShare}
+          onShare={() => setShareOpen(true)}
           isEditing={activeTab === 0 && phraseEditing}
           onCancelEdit={() => setPhraseEditing(false)}
         />
@@ -177,15 +147,10 @@ function App() {
           onComplete={handleOnboardingComplete}
         />
 
-        {/* OS 공유 시트가 없는 브라우저(주로 데스크톱)에선 클립보드로 대신
-            복사하는데, 아무 반응이 없으면 눌린 건지 모른다. */}
-        <Snackbar
-          open={Boolean(shareNotice)}
-          autoHideDuration={2400}
-          onClose={() => setShareNotice('')}
-          message={shareNotice}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          sx={{ bottom: { xs: 88 } }}
+        <ShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          phrase={activePhrase}
         />
 
       </Box>
