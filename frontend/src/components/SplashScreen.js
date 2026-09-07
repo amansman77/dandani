@@ -20,8 +20,15 @@ import { COLOR, FONT } from '../theme/tokens';
 // 여명이 겹쳐 몰려 있던 걸 앞뒤로 떼어놓고 (3) 마지막에 아무것도 안
 // 움직이는 정지 구간을 두는 세 가지를 같이 했다. 여유는 대부분 (3)에서
 // 나온다 — 다 끝난 화면이 잠깐 가만히 있어야 숨 돌릴 틈이 생긴다.
-const ANIM_MS = 4200;     // 연출이 끝까지 도는 시간
-const MAX_WAIT_MS = 6400; // 폰트가 아무리 늦어도 여기서는 넘긴다(ANIM_MS보다 넉넉히 커야 한다)
+//
+// 그 정지 구간은 예전엔 "ANIM_MS에서 문장 페이드인을 뺀 나머지"라는 식으로
+// 우연히 남는 시간이었다. 문장이 머무는 시간을 따로 조절하고 싶어서
+// HOLD_MS로 떼어냈다 — 이제 문장을 더 오래 두고 싶으면 이 값만 만지면
+// 되고, 앞의 연출 길이(ANIM_MS)와 서로 간섭하지 않는다.
+const ANIM_MS = 4200;     // 빛·별·여명·문장이 다 자리 잡기까지
+const HOLD_MS = 1000;     // 그 뒤로 아무것도 안 움직이고 문장만 머무는 시간
+const LINE_IN_MS = 1100;  // 문장이 떠오르는 데 걸리는 시간
+const MAX_WAIT_MS = 7400; // 폰트가 아무리 늦어도 여기서는 넘긴다(ANIM_MS+HOLD_MS보다 커야 한다)
 const FADE_MS = 700;      // 걷히는 것도 천천히
 
 // 앱 배경 그라디언트(App.js의 COLOR.gradient)와 같은 색을 캔버스에서도 쓴다
@@ -176,15 +183,15 @@ const SplashScreen = ({ onDone }) => {
     }
 
     // 글자는 여명이 시작되는 순간 같이 들어온다 — 별이 잦아들면서 글이
-    // 떠오르는 교대가 되게. 900ms에 걸쳐 천천히 나타나고, 그 뒤엔 끝까지
-    // 아무것도 움직이지 않는 시간이 남는다.
+    // 떠오르는 교대가 되게. LINE_IN_MS에 걸쳐 천천히 나타나고, 다 뜬 뒤엔
+    // HOLD_MS만큼 그대로 머문다.
     const lineTimer = reduced ? null : setTimeout(() => setShowLine(true), ANIM_MS * 0.56);
 
     // 실제로 기다리는 대상: 폰트. 단, 아무리 늦어도 MAX_WAIT_MS에서 넘긴다.
     const fontsReady = (document.fonts && document.fonts.ready)
       ? document.fonts.ready.catch(() => {})
       : Promise.resolve();
-    const floor = new Promise((res) => setTimeout(res, reduced ? 1000 : ANIM_MS));
+    const floor = new Promise((res) => setTimeout(res, reduced ? 1400 : ANIM_MS + HOLD_MS));
     const ceiling = new Promise((res) => setTimeout(res, MAX_WAIT_MS));
 
     let exitTimer = null;
@@ -236,7 +243,7 @@ const SplashScreen = ({ onDone }) => {
           color: COLOR.text.body,
           opacity: showLine ? 1 : 0,
           transform: showLine ? 'translateY(0)' : 'translateY(5px)',
-          transition: 'opacity 900ms ease-out, transform 900ms ease-out',
+          transition: `opacity ${LINE_IN_MS}ms ease-out, transform ${LINE_IN_MS}ms ease-out`,
         }}
       >
         {/* 온보딩과 같은 자리에서 줄을 나눠, 다음 화면으로 넘어갈 때 결이 이어지게 */}
