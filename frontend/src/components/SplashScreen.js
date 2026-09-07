@@ -26,9 +26,10 @@ import { COLOR, FONT } from '../theme/tokens';
 // HOLD_MS로 떼어냈다 — 이제 문장을 더 오래 두고 싶으면 이 값만 만지면
 // 되고, 앞의 연출 길이(ANIM_MS)와 서로 간섭하지 않는다.
 const ANIM_MS = 4200;     // 빛·별·여명·문장이 다 자리 잡기까지
-const HOLD_MS = 1500;     // 그 뒤로 아무것도 안 움직이고 문장만 머무는 시간
+const HOLD_MS = 2100;     // 그 뒤로 아무것도 안 움직이고 문장만 머무는 시간
 const LINE_IN_MS = 1100;  // 문장이 떠오르는 데 걸리는 시간
-const MAX_WAIT_MS = 7400; // 폰트가 아무리 늦어도 여기서는 넘긴다(ANIM_MS+HOLD_MS보다 커야 한다)
+const MAX_WAIT_MS = 9000; // 폰트가 아무리 늦어도 여기서는 넘긴다(ANIM_MS+HOLD_MS보다 넉넉히 커야
+                          // 한다 — 여유가 좁으면 느린 회선에서 폰트를 못 기다리고 대체 글꼴로 넘어간다)
 const FADE_MS = 700;      // 걷히는 것도 천천히
 
 // 앱 배경 그라디언트(App.js의 COLOR.gradient)와 같은 색을 캔버스에서도 쓴다
