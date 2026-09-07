@@ -4,11 +4,32 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <!-- 모바일 브라우저 상단 바 색. 검정으로 박혀 있었는데 앱 배경과 안 맞았다 -->
+    <meta name="theme-color" content="#eef2f4" />
     <meta
       name="description"
-      content="Dandani - 감정적으로 단단해지는 연습"
+      content="나에게 하고 싶은 말 한 문장을 적고, 매일 아침 다시 읽는 아주 작은 의식."
     />
+
+    <!-- 카카오톡·트위터 등에 링크를 붙였을 때 뜨는 미리보기.
+         크롤러는 JS를 실행하지 않으므로 여기 정적으로 있어야 한다.
+         og:image는 반드시 절대 URL이어야 해서 %PUBLIC_URL%을 못 쓴다. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="단단이" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:url" content="https://dandani.yetimates.com/" />
+    <meta property="og:title" content="단단이 — 매일 아침, 한 문장" />
+    <meta property="og:description" content="나에게 하고 싶은 말 한 문장을 적고, 매일 아침 다시 읽는 아주 작은 의식." />
+    <meta property="og:image" content="https://dandani.yetimates.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="단단이 — 매일 아침, 나에게 하고 싶은 말 한 문장을 적어보세요." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="단단이 — 매일 아침, 한 문장" />
+    <meta name="twitter:description" content="나에게 하고 싶은 말 한 문장을 적고, 매일 아침 다시 읽는 아주 작은 의식." />
+    <meta name="twitter:image" content="https://dandani.yetimates.com/og-image.png" />
+
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <style>
@@ -49,7 +70,7 @@
 
       gtag('config', 'G-DE4BQNRB4G');
     </script>
-    <title>Dandani</title>
+    <title>단단이</title>
   </head>
   <body>
     <noscript>이 앱을 실행하기 위해서는 자바스크립트를 활성화해야 합니다.</noscript>
