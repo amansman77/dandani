@@ -2,18 +2,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 
-// 첫 방문에만 뜨는 스플래시("발화" 안).
+// 앱을 열 때마다 뜨는 스플래시("발화" 안).
 //
-// 왜 첫 방문에만인가: 실제로 기다림이 생기는 구간은 프리텐다드 가변폰트
-// 2MB를 처음 내려받을 때뿐이다. 폰트가 캐시된 재방문에 이걸 또 띄우면
-// 브랜드 연출이 아니라 그냥 지연이 된다.
+// 처음엔 첫 방문에만 띄웠다(폰트 2MB 내려받는 동안을 덮는 용도). 지금은
+// 매 진입마다 띄운다 — 매일 아침 여는 앱이라 "열면 해가 뜬다"가 의식의
+// 일부가 되는 쪽을 택했다. 대신 재방문엔 폰트가 이미 캐시돼 있어서 실제
+// 대기는 없고 ANIM_MS만큼이 순수한 연출 시간이 된다. 길다고 느껴지면
+// 여기 값만 줄이면 된다.
 //
 // 왜 어두운 데서 시작하나: 별(빛)은 자기보다 어두운 바닥이 있어야 보인다.
 // 앱 배경(거의 흰 크림) 위에 흰 빛을 더하면 아무것도 안 보인다. 그래서
 // 어스름한 톤에서 시작해 마지막에 앱의 실제 배경 그라디언트로 "발화"하며
 // 착지한다 — 스플래시가 걷히는 순간 첫 화면과 색이 이어져 이음매가 없다.
-
-const SEEN_KEY = 'dandani:splash_seen';
 
 const ANIM_MS = 2000;   // 연출이 끝까지 도는 시간
 const MAX_WAIT_MS = 4000; // 폰트가 아무리 늦어도 여기서는 넘긴다
@@ -90,16 +90,6 @@ function drawStar(ctx, p, alpha, s, tw) {
   lg.addColorStop(0.5, core);
   lg.addColorStop(1, 'rgba(255,240,210,0)');
   ctx.fillStyle = lg; ctx.fillRect(p.x - 0.5, p.y - L, 1, L * 2);
-}
-
-export function shouldShowSplash() {
-  try {
-    return !window.localStorage.getItem(SEEN_KEY);
-  } catch (err) {
-    // 시크릿 모드 등에서 localStorage 접근 자체가 막힐 수 있다.
-    // 그때는 스플래시를 띄우지 않는 쪽으로 — 매번 보는 것보다 낫다.
-    return false;
-  }
 }
 
 const SplashScreen = ({ onDone }) => {
@@ -190,10 +180,7 @@ const SplashScreen = ({ onDone }) => {
     let exitTimer = null;
     Promise.race([Promise.all([fontsReady, floor]), ceiling]).then(() => {
       setLeaving(true);
-      exitTimer = setTimeout(() => {
-        try { window.localStorage.setItem(SEEN_KEY, '1'); } catch (err) { /* 저장 못 해도 진행 */ }
-        onDone();
-      }, FADE_MS);
+      exitTimer = setTimeout(onDone, FADE_MS);
     });
 
     return () => {
