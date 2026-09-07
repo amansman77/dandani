@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 
@@ -39,6 +39,13 @@ const EXIT_LINE_MS = 520;   // 문장이 빠지는 시간 (지연 없음)
 const EXIT_BG_DELAY = 300;  // 배경이 뒤따라 빠지기 시작하는 시점
 const EXIT_BG_MS = 620;     // 배경이 빠지는 시간
 const FADE_MS = EXIT_BG_DELAY + EXIT_BG_MS; // 언마운트까지 = 920ms
+
+// 건너뛰기는 처음부터 보이면 "이건 건너뛰어도 되는 화면"이라고 먼저 알려주는
+// 셈이라, 잠깐 뒤에 옅게 나타난다. 자리는 하단 가운데 — 문장을 다 읽고 시선이
+// 내려온 뒤에 눈에 들어오고, 온보딩의 건너뛰기(우상단)와 위치가 겹치지 않아
+// 둘이 서로 다른 것으로 읽힌다.
+const SKIP_IN_DELAY = 1000;
+const SKIP_IN_MS = 600;
 
 // 앱 배경 그라디언트(App.js의 COLOR.gradient)와 같은 색을 캔버스에서도 쓴다
 const SKY = [[0, [238, 242, 244]], [0.55, [243, 236, 226]], [1, [248, 241, 230]]];
@@ -132,6 +139,7 @@ const SplashScreen = ({ onDone }) => {
   const canvasRef = useRef(null);
   const [leaving, setLeaving] = useState(false);
   const [showLine, setShowLine] = useState(false);
+  const [showSkip, setShowSkip] = useState(false);
 
   // onDone을 ref에 담아두고 아래 effect는 빈 배열로 딱 한 번만 돌린다.
   // 예전엔 effect가 [onDone]에 걸려 있었는데, App이 onDone을 인라인 화살표로
@@ -142,6 +150,18 @@ const SplashScreen = ({ onDone }) => {
   // 영향받지 않도록 여기서 끊는다.
   const onDoneRef = useRef(onDone);
   useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+
+  // 자동으로 끝나든 사용자가 건너뛰든 같은 퇴장 연출을 탄다 — 건너뛰기가
+  // 즉시 사라지는 식이면 여기까지 다듬어온 결과 어긋난다. 두 경로가 겹쳐
+  // 두 번 실행되지 않도록 ref로 막는다.
+  const exitStartedRef = useRef(false);
+  const exitTimerRef = useRef(null);
+  const beginExit = useCallback(() => {
+    if (exitStartedRef.current) return;
+    exitStartedRef.current = true;
+    setLeaving(true);
+    exitTimerRef.current = setTimeout(() => onDoneRef.current(), FADE_MS);
+  }, []);
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -241,6 +261,7 @@ const SplashScreen = ({ onDone }) => {
     // 떠오르는 교대가 되게. LINE_IN_MS에 걸쳐 천천히 나타나고, 다 뜬 뒤엔
     // HOLD_MS만큼 그대로 머문다.
     const lineTimer = reduced ? null : setTimeout(() => setShowLine(true), ANIM_MS * 0.56);
+    const skipTimer = setTimeout(() => setShowSkip(true), SKIP_IN_DELAY);
 
     // 실제로 기다리는 대상: 폰트. 단, 아무리 늦어도 MAX_WAIT_MS에서 넘긴다.
     const fontsReady = (document.fonts && document.fonts.ready)
@@ -249,16 +270,13 @@ const SplashScreen = ({ onDone }) => {
     const floor = new Promise((res) => setTimeout(res, reduced ? 1400 : ANIM_MS + HOLD_MS));
     const ceiling = new Promise((res) => setTimeout(res, MAX_WAIT_MS));
 
-    let exitTimer = null;
-    Promise.race([Promise.all([fontsReady, floor]), ceiling]).then(() => {
-      setLeaving(true);
-      exitTimer = setTimeout(() => onDoneRef.current(), FADE_MS);
-    });
+    Promise.race([Promise.all([fontsReady, floor]), ceiling]).then(beginExit);
 
     return () => {
       if (raf) cancelAnimationFrame(raf);
       if (lineTimer) clearTimeout(lineTimer);
-      if (exitTimer) clearTimeout(exitTimer);
+      if (skipTimer) clearTimeout(skipTimer);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
       window.removeEventListener('resize', resize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -315,6 +333,38 @@ const SplashScreen = ({ onDone }) => {
           매일 아침, 나에게 하고 싶은
           <br />말 한 문장을 적어보세요.
         </span>
+      </Box>
+
+      <Box
+        component="button"
+        type="button"
+        onClick={beginExit}
+        aria-label="시작 화면 건너뛰기"
+        sx={{
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          // 홈 인디케이터를 피해서 앉힌다
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 40px)',
+          // 글자만 두면 탭하기 어려워서, 보이는 크기와 별개로 여백으로 영역을 넓힌다.
+          // 세로 44px(터치 최소 권장치)이 나오도록 잡았다.
+          padding: '15px 22px',
+          border: 'none',
+          background: 'none',
+          cursor: 'pointer',
+          fontFamily: FONT.sans,
+          fontSize: '0.72rem',
+          letterSpacing: '0.02em',
+          color: COLOR.text.faint,
+          // 걷히기 시작하면 문장과 같이 물러난다 — 사라지는 화면에 버튼만 남으면 어색하다
+          opacity: leaving ? 0 : (showSkip ? 1 : 0),
+          transition: leaving
+            ? `opacity ${EXIT_LINE_MS}ms cubic-bezier(.4,0,1,1)`
+            : `opacity ${SKIP_IN_MS}ms ease-out`,
+          pointerEvents: showSkip && !leaving ? 'auto' : 'none',
+        }}
+      >
+        건너뛰기
       </Box>
     </Box>
   );
