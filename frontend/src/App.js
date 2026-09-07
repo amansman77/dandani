@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Box } from '@mui/material';
 import OnboardingModal from './components/OnboardingModal';
+import SplashScreen, { shouldShowSplash } from './components/SplashScreen';
 import AppHeaderSection from './components/AppHeaderSection';
 import AppBottomNav from './components/AppBottomNav';
 import DailyPhrase from './components/DailyPhrase';
@@ -19,6 +20,9 @@ function App() {
   const [phraseEditing, setPhraseEditing] = useState(false);
   const [hasActivePhrase, setHasActivePhrase] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // 첫 방문에만. 판단은 마운트 시점에 한 번만 하고 이후 상태로만 움직인다
+  // (렌더 중에 localStorage를 다시 읽으면 사라지는 순간이 깜빡인다).
+  const [splashOpen, setSplashOpen] = useState(() => shouldShowSplash());
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
@@ -90,6 +94,8 @@ function App() {
         background: COLOR.gradient,
       }}
     >
+      {/* 앱은 뒤에서 그대로 초기화되고, 스플래시는 그 위를 덮었다 걷힌다 */}
+      {splashOpen && <SplashScreen onDone={() => setSplashOpen(false)} />}
       <Box
         sx={{
           position: 'absolute',

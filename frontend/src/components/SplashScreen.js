@@ -1,0 +1,255 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Box } from '@mui/material';
+import { COLOR, FONT } from '../theme/tokens';
+
+// 첫 방문에만 뜨는 스플래시("발화" 안).
+//
+// 왜 첫 방문에만인가: 실제로 기다림이 생기는 구간은 프리텐다드 가변폰트
+// 2MB를 처음 내려받을 때뿐이다. 폰트가 캐시된 재방문에 이걸 또 띄우면
+// 브랜드 연출이 아니라 그냥 지연이 된다.
+//
+// 왜 어두운 데서 시작하나: 별(빛)은 자기보다 어두운 바닥이 있어야 보인다.
+// 앱 배경(거의 흰 크림) 위에 흰 빛을 더하면 아무것도 안 보인다. 그래서
+// 어스름한 톤에서 시작해 마지막에 앱의 실제 배경 그라디언트로 "발화"하며
+// 착지한다 — 스플래시가 걷히는 순간 첫 화면과 색이 이어져 이음매가 없다.
+
+const SEEN_KEY = 'dandani:splash_seen';
+
+const ANIM_MS = 2000;   // 연출이 끝까지 도는 시간
+const MAX_WAIT_MS = 4000; // 폰트가 아무리 늦어도 여기서는 넘긴다
+const FADE_MS = 460;
+
+// 앱 배경 그라디언트(App.js의 COLOR.gradient)와 같은 색을 캔버스에서도 쓴다
+const SKY = [[0, [238, 242, 244]], [0.55, [243, 236, 226]], [1, [248, 241, 230]]];
+const DUSK = [58, 48, 38];
+
+const TAU = Math.PI * 2;
+const lerp = (a, b, t) => a + (b - a) * t;
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+function sampleSky(y) {
+  for (let i = 0; i < SKY.length - 1; i += 1) {
+    const [p0, c0] = SKY[i];
+    const [p1, c1] = SKY[i + 1];
+    if (y <= p1) {
+      const t = (y - p0) / (p1 - p0);
+      return [lerp(c0[0], c1[0], t), lerp(c0[1], c1[1], t), lerp(c0[2], c1[2], t)];
+    }
+  }
+  return SKY[SKY.length - 1][1];
+}
+
+// 배경이 밝아지는 정도 (0=어스름, 1=앱 배경색)
+const liftAt = (t) => easeOut(clamp01((t - 0.52) / 0.30));
+
+function buildStars(w, h) {
+  const cx = w / 2;
+  const cy = h * 0.46;
+  const maxR = Math.min(w, h) * 0.46;
+  const pts = [];
+  for (let i = 0; i < 26; i += 1) {
+    const th = Math.random() * TAU;
+    const r = maxR * (0.18 + Math.pow(Math.random(), 0.55) * 0.82);
+    pts.push({
+      x: cx + Math.cos(th) * r,
+      y: cy + Math.sin(th) * r * 1.25,
+      // 빛의 가장자리가 자기 자리에 닿는 순간 태어난다 — 불티처럼
+      born: 0.06 + (r / maxR) * 0.52,
+      size: lerp(1.4, 2.8, Math.random()),
+      bright: Math.random() < 0.2,
+      ph: Math.random() * TAU,
+    });
+  }
+  return pts;
+}
+
+function drawStar(ctx, p, alpha, s, tw) {
+  const r = p.size * s;
+  const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 3.4);
+  g.addColorStop(0, `rgba(255,252,244,${alpha})`);
+  g.addColorStop(0.34, `rgba(255,231,190,${alpha * 0.55})`);
+  g.addColorStop(1, 'rgba(255,225,180,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(p.x, p.y, r * 3.4, 0, TAU); ctx.fill();
+
+  ctx.fillStyle = `rgba(255,253,247,${alpha})`;
+  ctx.beginPath(); ctx.arc(p.x, p.y, r * 0.62, 0, TAU); ctx.fill();
+
+  if (!p.bright) return;
+  // 십자 광채는 소수에만 — 전부 주면 반짝임이 싸구려로 보인다
+  const L = r * (4.6 + tw * 1.5);
+  const core = `rgba(255,248,232,${alpha * 0.62})`;
+  let lg = ctx.createLinearGradient(p.x - L, p.y, p.x + L, p.y);
+  lg.addColorStop(0, 'rgba(255,240,210,0)');
+  lg.addColorStop(0.5, core);
+  lg.addColorStop(1, 'rgba(255,240,210,0)');
+  ctx.fillStyle = lg; ctx.fillRect(p.x - L, p.y - 0.5, L * 2, 1);
+  lg = ctx.createLinearGradient(p.x, p.y - L, p.x, p.y + L);
+  lg.addColorStop(0, 'rgba(255,240,210,0)');
+  lg.addColorStop(0.5, core);
+  lg.addColorStop(1, 'rgba(255,240,210,0)');
+  ctx.fillStyle = lg; ctx.fillRect(p.x - 0.5, p.y - L, 1, L * 2);
+}
+
+export function shouldShowSplash() {
+  try {
+    return !window.localStorage.getItem(SEEN_KEY);
+  } catch (err) {
+    // 시크릿 모드 등에서 localStorage 접근 자체가 막힐 수 있다.
+    // 그때는 스플래시를 띄우지 않는 쪽으로 — 매번 보는 것보다 낫다.
+    return false;
+  }
+}
+
+const SplashScreen = ({ onDone }) => {
+  const canvasRef = useRef(null);
+  const [leaving, setLeaving] = useState(false);
+  const [showLine, setShowLine] = useState(false);
+
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const canvas = canvasRef.current;
+    const ctx = canvas && canvas.getContext('2d');
+    let raf = null;
+    let stars = [];
+    let W = 0;
+    let H = 0;
+
+    const resize = () => {
+      if (!canvas) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = `${W}px`; canvas.style.height = `${H}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stars = buildStars(W, H);
+    };
+
+    const draw = (t, now) => {
+      const lift = liftAt(t);
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      SKY.forEach(([p]) => {
+        const c = sampleSky(p);
+        g.addColorStop(p, `rgb(${lerp(DUSK[0], c[0], lift) | 0},${lerp(DUSK[1], c[1], lift) | 0},${lerp(DUSK[2], c[2], lift) | 0})`);
+      });
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+      const R = Math.hypot(W, H) * 0.60;
+      const grow = easeOut(clamp01((t - 0.04) / 0.62)) * R;
+      if (grow > 0) {
+        const warm = 1 - lift * 0.75;
+        const rg = ctx.createRadialGradient(W / 2, H * 0.46, 0, W / 2, H * 0.46, grow);
+        rg.addColorStop(0, `rgba(255,214,166,${0.32 * warm})`);
+        rg.addColorStop(0.68, `rgba(255,198,146,${0.15 * warm})`);
+        rg.addColorStop(0.94, `rgba(255,224,180,${0.28 * warm})`);
+        rg.addColorStop(1, 'rgba(255,206,150,0)');
+        ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+      }
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      stars.forEach((p) => {
+        const age = (t - p.born) / 0.20;
+        if (age <= 0) return;
+        const appear = easeOut(clamp01(age));
+        const s = lerp(1.5, 1, appear);
+        const tw = 0.5 + 0.5 * Math.sin(now / 620 + p.ph);
+        // 날이 밝으면 별은 사라진다 — 밝은 바닥에선 어차피 안 보이기도 하고
+        const a = appear * (1 - lift * 0.94) * lerp(0.5, 1, tw);
+        if (a > 0.004) drawStar(ctx, p, a, s, tw);
+      });
+      ctx.restore();
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+
+    const started = performance.now();
+    if (reduced) {
+      draw(1, started);          // 모션을 원치 않으면 착지한 화면만
+      setShowLine(true);
+    } else {
+      const frame = (now) => {
+        draw(clamp01((now - started) / ANIM_MS), now);
+        raf = requestAnimationFrame(frame);
+      };
+      raf = requestAnimationFrame(frame);
+    }
+
+    // 글자는 빛이 걷힌 뒤에 — 별과 글이 겹치면 둘 다 죽는다
+    const lineTimer = reduced ? null : setTimeout(() => setShowLine(true), ANIM_MS * 0.62);
+
+    // 실제로 기다리는 대상: 폰트. 단, 아무리 늦어도 MAX_WAIT_MS에서 넘긴다.
+    const fontsReady = (document.fonts && document.fonts.ready)
+      ? document.fonts.ready.catch(() => {})
+      : Promise.resolve();
+    const floor = new Promise((res) => setTimeout(res, reduced ? 700 : ANIM_MS));
+    const ceiling = new Promise((res) => setTimeout(res, MAX_WAIT_MS));
+
+    let exitTimer = null;
+    Promise.race([Promise.all([fontsReady, floor]), ceiling]).then(() => {
+      setLeaving(true);
+      exitTimer = setTimeout(() => {
+        try { window.localStorage.setItem(SEEN_KEY, '1'); } catch (err) { /* 저장 못 해도 진행 */ }
+        onDone();
+      }, FADE_MS);
+    });
+
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      if (lineTimer) clearTimeout(lineTimer);
+      if (exitTimer) clearTimeout(exitTimer);
+      window.removeEventListener('resize', resize);
+    };
+  }, [onDone]);
+
+  return (
+    <Box
+      role="status"
+      aria-live="polite"
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        // MUI Dialog(1300)보다 위 — 온보딩 모달을 덮어야 한다
+        zIndex: 2000,
+        background: COLOR.gradient,
+        opacity: leaving ? 0 : 1,
+        transition: `opacity ${FADE_MS}ms ease`,
+        pointerEvents: leaving ? 'none' : 'auto',
+      }}
+    >
+      <Box component="canvas" ref={canvasRef} sx={{ position: 'absolute', inset: 0, display: 'block' }} />
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0 40px',
+          textAlign: 'center',
+          // 온보딩 본문(OnboardingModal 1단계)과 글꼴·크기·행간·색을 그대로 맞춘다.
+          // 같은 문장이 같은 자리에 같은 모양으로 있어서, 스플래시가 걷혀도
+          // 이 줄만은 화면에 남아 있는 것처럼 보인다 — 화면이 바뀌는 게 아니라
+          // 문장 주위로 나머지가 차오르는 인상이 된다.
+          fontFamily: FONT.sans,
+          fontSize: '0.9rem',
+          lineHeight: 1.85,
+          color: COLOR.text.body,
+          opacity: showLine ? 1 : 0,
+          transform: showLine ? 'translateY(0)' : 'translateY(5px)',
+          transition: 'opacity 620ms ease-out, transform 620ms ease-out',
+        }}
+      >
+        {/* 온보딩과 같은 자리에서 줄을 나눠, 다음 화면으로 넘어갈 때 결이 이어지게 */}
+        <span>
+          매일 아침, 나에게 하고 싶은
+          <br />말 한 문장을 적어보세요.
+        </span>
+      </Box>
+    </Box>
+  );
+};
+
+export default SplashScreen;
