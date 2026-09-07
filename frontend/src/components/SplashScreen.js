@@ -58,17 +58,29 @@ function sampleSky(y) {
 // 태어나는 중에 날이 밝아버려서 서로 밀어냈다.
 const liftAt = (t) => easeOut(clamp01((t - 0.56) / 0.26));
 
+// 문장이 놓일 영역. 별을 여기서 밀어내고, 이 자리에 빛무리를 고이게 한다.
+const bandOf = (w, h) => ({ y: h * 0.5, halfH: h * 0.15 * 0.75, halfW: w * 0.80 * 0.55 });
+
 function buildStars(w, h) {
   const cx = w / 2;
   const cy = h * 0.46;
   const maxR = Math.min(w, h) * 0.46;
+  const band = bandOf(w, h);
   const pts = [];
   for (let i = 0; i < 26; i += 1) {
-    const th = Math.random() * TAU;
-    const r = maxR * (0.18 + Math.pow(Math.random(), 0.55) * 0.82);
+    // 문장 자리에 걸리면 다시 뽑는다 — 별이 글자 위를 지나가면 읽는 데 방해가 된다
+    let x; let y; let r; let tries = 0;
+    do {
+      const th = Math.random() * TAU;
+      r = maxR * (0.18 + Math.pow(Math.random(), 0.55) * 0.82);
+      x = cx + Math.cos(th) * r;
+      y = cy + Math.sin(th) * r * 1.25;
+      tries += 1;
+    } while (tries < 24 && Math.abs(y - band.y) < band.halfH && Math.abs(x - cx) < band.halfW);
+
     pts.push({
-      x: cx + Math.cos(th) * r,
-      y: cy + Math.sin(th) * r * 1.25,
+      x,
+      y,
       // 빛의 가장자리가 자기 자리에 닿는 순간 태어난다 — 불티처럼.
       // 마지막 별이 절반쯤에 태어나 여명 전까지 잠시 머문다.
       born: 0.05 + (r / maxR) * 0.45,
@@ -166,6 +178,30 @@ const SplashScreen = ({ onDone }) => {
         if (a > 0.004) drawStar(ctx, p, a, s, tw);
       });
       ctx.restore();
+
+      // 문장이 떠오르는 것과 같이 그 자리에 빛이 고인다 — 어둠으로 자리를
+      // 만들면 대비는 세지만 끝 화면이 어두워져 앱 배경으로 착지하는 이음매가
+      // 깨진다. 빛으로 만들면 지금 구조를 그대로 두고 집중만 얻는다.
+      const spread = easeOut(clamp01((t - 0.54) / 0.26));
+      if (spread > 0) {
+        const band = bandOf(W, H);
+        const rx = W * 0.66 * spread;
+        const ry = H * 0.17 * spread;
+        const rMax = Math.max(rx, ry);
+        const a = 0.92 * spread;
+        const rg = ctx.createRadialGradient(W / 2, band.y, 0, W / 2, band.y, rMax);
+        rg.addColorStop(0, `rgba(255,252,244,${a})`);
+        rg.addColorStop(0.46, `rgba(253,246,234,${a * 0.72})`);
+        rg.addColorStop(1, 'rgba(250,242,228,0)');
+        ctx.save();
+        // 가로로 납작한 타원으로 — 두 줄짜리 문장 형태에 맞춘다
+        ctx.translate(W / 2, band.y);
+        ctx.scale(1, ry / rMax);
+        ctx.translate(-W / 2, -band.y);
+        ctx.fillStyle = rg;
+        ctx.fillRect(0, band.y - rMax, W, rMax * 2);
+        ctx.restore();
+      }
     };
 
     resize();
