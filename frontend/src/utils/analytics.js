@@ -120,6 +120,7 @@ const BACKEND_ALLOWED_EVENT_TYPES = new Set([
   'phrase_start',
   'phrase_day_logged',
   'phrase_retired',
+  'phrase_shared',
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
@@ -266,6 +267,10 @@ export const logPhraseOnboardingShown = () => {
 
 export const logPhraseExampleUsed = (example) => {
   logEvent('phrase_example_used', { example });
+};
+
+export const logPhraseShared = (method) => {
+  logEvent('phrase_shared', { method });
 };
 
 export const logPhraseDayLogged = (phraseId, loggedDays) => {

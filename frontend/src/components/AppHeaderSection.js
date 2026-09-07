@@ -22,6 +22,8 @@ const AppHeaderSection = ({
   onRestartOnboarding,
   showEditPhrase,
   onEditPhrase,
+  showShare,
+  onShare,
   isEditing,
   onCancelEdit,
 }) => {
@@ -42,11 +44,20 @@ const AppHeaderSection = ({
           </Tooltip>
         )}
 
-        {showEditPhrase && (
-          <Box component="button" type="button" onClick={onEditPhrase} sx={actionButtonSx}>
-            편집
-          </Box>
-        )}
+        {/* 오른쪽은 "내 문장에 할 수 있는 일" 묶음. 둘 다 같은 액션 색이라 한
+            덩어리로 읽히고, 왼쪽의 옅은 안내와 2단 위계가 그대로 유지된다. */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75 }}>
+          {showShare && (
+            <Box component="button" type="button" onClick={onShare} sx={actionButtonSx}>
+              공유
+            </Box>
+          )}
+          {showEditPhrase && (
+            <Box component="button" type="button" onClick={onEditPhrase} sx={actionButtonSx}>
+              편집
+            </Box>
+          )}
+        </Box>
       </Box>
 
       {isNonKoreanUser && (

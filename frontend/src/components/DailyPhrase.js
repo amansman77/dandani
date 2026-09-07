@@ -58,9 +58,10 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
 
-  // 헤더의 편집 버튼을 활성 문구가 있을 때만 보여줘야 해서, 그 여부를 App으로 올려보낸다.
+  // 헤더의 편집·공유 버튼이 활성 문구에 따라 달라져서, 문구 자체를 App으로
+  // 올려보낸다(공유는 문장과 기록 값이 필요해서 불리언으론 부족하다).
   useEffect(() => {
-    if (onActivePhraseChange) onActivePhraseChange(Boolean(phrase));
+    if (onActivePhraseChange) onActivePhraseChange(phrase || null);
   }, [phrase, onActivePhraseChange]);
 
   const handleExampleSelect = (example) => {
