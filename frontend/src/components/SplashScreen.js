@@ -133,6 +133,16 @@ const SplashScreen = ({ onDone }) => {
   const [leaving, setLeaving] = useState(false);
   const [showLine, setShowLine] = useState(false);
 
+  // onDone을 ref에 담아두고 아래 effect는 빈 배열로 딱 한 번만 돌린다.
+  // 예전엔 effect가 [onDone]에 걸려 있었는데, App이 onDone을 인라인 화살표로
+  // 넘겨서 App이 리렌더될 때마다 새 함수가 됐다. 마운트 직후 App은
+  // setIsNonKoreanUser 같은 상태 변경으로 한 번 더 렌더되고, 그때마다 effect가
+  // 정리·재실행되면서 started가 초기화돼 연출이 처음부터 다시 돌았다 —
+  // "첫 로딩 때 빛 번짐이 두 번" 나던 원인이 이거다. 부모가 memo를 하든 말든
+  // 영향받지 않도록 여기서 끊는다.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
+
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canvas = canvasRef.current;
@@ -242,7 +252,7 @@ const SplashScreen = ({ onDone }) => {
     let exitTimer = null;
     Promise.race([Promise.all([fontsReady, floor]), ceiling]).then(() => {
       setLeaving(true);
-      exitTimer = setTimeout(onDone, FADE_MS);
+      exitTimer = setTimeout(() => onDoneRef.current(), FADE_MS);
     });
 
     return () => {
@@ -251,7 +261,8 @@ const SplashScreen = ({ onDone }) => {
       if (exitTimer) clearTimeout(exitTimer);
       window.removeEventListener('resize', resize);
     };
-  }, [onDone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Box
