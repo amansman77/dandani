@@ -30,7 +30,15 @@ const HOLD_MS = 2100;     // 그 뒤로 아무것도 안 움직이고 문장만 
 const LINE_IN_MS = 1100;  // 문장이 떠오르는 데 걸리는 시간
 const MAX_WAIT_MS = 9000; // 폰트가 아무리 늦어도 여기서는 넘긴다(ANIM_MS+HOLD_MS보다 넉넉히 커야
                           // 한다 — 여유가 좁으면 느린 회선에서 폰트를 못 기다리고 대체 글꼴로 넘어간다)
-const FADE_MS = 700;      // 걷히는 것도 천천히
+// 걷힐 때는 한 겹으로 흐려지지 않고 두 층이 시차를 두고 빠진다 — 문장이 먼저,
+// 배경이 나중. 아래 온보딩에 같은 문장이 다른 크기로 있어서, 동시에 보이면
+// 이중 노출이 된다. 곡선도 ease → ease-in으로 바꿨다: 기존 ease는 앞 170ms에
+// 절반이 사라지고 남은 530ms가 옅은 잔상으로 끌려서, 급히 사라졌는데 유령만
+// 남는 느낌이었다.
+const EXIT_LINE_MS = 520;   // 문장이 빠지는 시간 (지연 없음)
+const EXIT_BG_DELAY = 300;  // 배경이 뒤따라 빠지기 시작하는 시점
+const EXIT_BG_MS = 620;     // 배경이 빠지는 시간
+const FADE_MS = EXIT_BG_DELAY + EXIT_BG_MS; // 언마운트까지 = 920ms
 
 // 앱 배경 그라디언트(App.js의 COLOR.gradient)와 같은 색을 캔버스에서도 쓴다
 const SKY = [[0, [238, 242, 244]], [0.55, [243, 236, 226]], [1, [248, 241, 230]]];
@@ -255,8 +263,9 @@ const SplashScreen = ({ onDone }) => {
         // MUI Dialog(1300)보다 위 — 온보딩 모달을 덮어야 한다
         zIndex: 2000,
         background: COLOR.gradient,
+        // 배경은 문장이 다 빠진 뒤에 뒤따라 걷힌다(EXIT_BG_DELAY만큼 늦게 시작).
         opacity: leaving ? 0 : 1,
-        transition: `opacity ${FADE_MS}ms ease`,
+        transition: `opacity ${EXIT_BG_MS}ms cubic-bezier(.4,0,1,1) ${EXIT_BG_DELAY}ms`,
         pointerEvents: leaving ? 'none' : 'auto',
       }}
     >
@@ -279,9 +288,15 @@ const SplashScreen = ({ onDone }) => {
           fontSize: '1.15rem',
           lineHeight: 1.8,
           color: COLOR.text.body,
-          opacity: showLine ? 1 : 0,
-          transform: showLine ? 'translateY(0)' : 'translateY(5px)',
-          transition: `opacity ${LINE_IN_MS}ms ease-out, transform ${LINE_IN_MS}ms ease-out`,
+          // 걷힐 때는 문장이 배경보다 "먼저" 빠진다. 아래 온보딩에 같은 문장이
+          // 있는데 크기가 달라서(0.9rem), 둘이 동시에 보이면 같은 글이 어긋난 채
+          // 포개져 이중 노출로 뭉갠다. 문장을 먼저 치우면 두 글자가 만나는 순간
+          // 자체가 없어진다.
+          opacity: leaving ? 0 : (showLine ? 1 : 0),
+          transform: showLine || leaving ? 'translateY(0)' : 'translateY(5px)',
+          transition: leaving
+            ? `opacity ${EXIT_LINE_MS}ms cubic-bezier(.4,0,1,1)`
+            : `opacity ${LINE_IN_MS}ms ease-out, transform ${LINE_IN_MS}ms ease-out`,
         }}
       >
         {/* 온보딩과 같은 자리에서 줄을 나눠, 다음 화면으로 넘어갈 때 결이 이어지게 */}
