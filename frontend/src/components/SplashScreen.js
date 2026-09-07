@@ -15,9 +15,14 @@ import { COLOR, FONT } from '../theme/tokens';
 // 어스름한 톤에서 시작해 마지막에 앱의 실제 배경 그라디언트로 "발화"하며
 // 착지한다 — 스플래시가 걷히는 순간 첫 화면과 색이 이어져 이음매가 없다.
 
-const ANIM_MS = 2000;   // 연출이 끝까지 도는 시간
-const MAX_WAIT_MS = 4000; // 폰트가 아무리 늦어도 여기서는 넘긴다
-const FADE_MS = 460;
+// 속도는 숫자 하나가 아니라 "구간 배치"의 문제다. 그냥 길게만 늘이면
+// 느린 게 아니라 늘어진 게 된다. 그래서 (1) 전체를 늘리고 (2) 빛·별·
+// 여명이 겹쳐 몰려 있던 걸 앞뒤로 떼어놓고 (3) 마지막에 아무것도 안
+// 움직이는 정지 구간을 두는 세 가지를 같이 했다. 여유는 대부분 (3)에서
+// 나온다 — 다 끝난 화면이 잠깐 가만히 있어야 숨 돌릴 틈이 생긴다.
+const ANIM_MS = 3400;     // 연출이 끝까지 도는 시간
+const MAX_WAIT_MS = 5400; // 폰트가 아무리 늦어도 여기서는 넘긴다(ANIM_MS보다 커야 한다)
+const FADE_MS = 620;      // 걷히는 것도 천천히
 
 // 앱 배경 그라디언트(App.js의 COLOR.gradient)와 같은 색을 캔버스에서도 쓴다
 const SKY = [[0, [238, 242, 244]], [0.55, [243, 236, 226]], [1, [248, 241, 230]]];
@@ -40,8 +45,10 @@ function sampleSky(y) {
   return SKY[SKY.length - 1][1];
 }
 
-// 배경이 밝아지는 정도 (0=어스름, 1=앱 배경색)
-const liftAt = (t) => easeOut(clamp01((t - 0.52) / 0.30));
+// 배경이 밝아지는 정도 (0=어스름, 1=앱 배경색).
+// 별이 다 돋고 나서 여명이 시작되도록 뒤로 미뤘다 — 예전엔 별이 아직
+// 태어나는 중에 날이 밝아버려서 서로 밀어냈다.
+const liftAt = (t) => easeOut(clamp01((t - 0.56) / 0.26));
 
 function buildStars(w, h) {
   const cx = w / 2;
@@ -54,8 +61,9 @@ function buildStars(w, h) {
     pts.push({
       x: cx + Math.cos(th) * r,
       y: cy + Math.sin(th) * r * 1.25,
-      // 빛의 가장자리가 자기 자리에 닿는 순간 태어난다 — 불티처럼
-      born: 0.06 + (r / maxR) * 0.52,
+      // 빛의 가장자리가 자기 자리에 닿는 순간 태어난다 — 불티처럼.
+      // 마지막 별이 절반쯤에 태어나 여명 전까지 잠시 머문다.
+      born: 0.05 + (r / maxR) * 0.45,
       size: lerp(1.4, 2.8, Math.random()),
       bright: Math.random() < 0.2,
       ph: Math.random() * TAU,
@@ -126,7 +134,7 @@ const SplashScreen = ({ onDone }) => {
       ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
       const R = Math.hypot(W, H) * 0.60;
-      const grow = easeOut(clamp01((t - 0.04) / 0.62)) * R;
+      const grow = easeOut(clamp01((t - 0.03) / 0.52)) * R;
       if (grow > 0) {
         const warm = 1 - lift * 0.75;
         const rg = ctx.createRadialGradient(W / 2, H * 0.46, 0, W / 2, H * 0.46, grow);
@@ -140,11 +148,11 @@ const SplashScreen = ({ onDone }) => {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       stars.forEach((p) => {
-        const age = (t - p.born) / 0.20;
+        const age = (t - p.born) / 0.22;
         if (age <= 0) return;
         const appear = easeOut(clamp01(age));
         const s = lerp(1.5, 1, appear);
-        const tw = 0.5 + 0.5 * Math.sin(now / 620 + p.ph);
+        const tw = 0.5 + 0.5 * Math.sin(now / 900 + p.ph);
         // 날이 밝으면 별은 사라진다 — 밝은 바닥에선 어차피 안 보이기도 하고
         const a = appear * (1 - lift * 0.94) * lerp(0.5, 1, tw);
         if (a > 0.004) drawStar(ctx, p, a, s, tw);
@@ -167,14 +175,16 @@ const SplashScreen = ({ onDone }) => {
       raf = requestAnimationFrame(frame);
     }
 
-    // 글자는 빛이 걷힌 뒤에 — 별과 글이 겹치면 둘 다 죽는다
-    const lineTimer = reduced ? null : setTimeout(() => setShowLine(true), ANIM_MS * 0.62);
+    // 글자는 여명이 시작되는 순간 같이 들어온다 — 별이 잦아들면서 글이
+    // 떠오르는 교대가 되게. 900ms에 걸쳐 천천히 나타나고, 그 뒤엔 끝까지
+    // 아무것도 움직이지 않는 시간이 남는다.
+    const lineTimer = reduced ? null : setTimeout(() => setShowLine(true), ANIM_MS * 0.56);
 
     // 실제로 기다리는 대상: 폰트. 단, 아무리 늦어도 MAX_WAIT_MS에서 넘긴다.
     const fontsReady = (document.fonts && document.fonts.ready)
       ? document.fonts.ready.catch(() => {})
       : Promise.resolve();
-    const floor = new Promise((res) => setTimeout(res, reduced ? 700 : ANIM_MS));
+    const floor = new Promise((res) => setTimeout(res, reduced ? 1000 : ANIM_MS));
     const ceiling = new Promise((res) => setTimeout(res, MAX_WAIT_MS));
 
     let exitTimer = null;
@@ -226,7 +236,7 @@ const SplashScreen = ({ onDone }) => {
           color: COLOR.text.body,
           opacity: showLine ? 1 : 0,
           transform: showLine ? 'translateY(0)' : 'translateY(5px)',
-          transition: 'opacity 620ms ease-out, transform 620ms ease-out',
+          transition: 'opacity 900ms ease-out, transform 900ms ease-out',
         }}
       >
         {/* 온보딩과 같은 자리에서 줄을 나눠, 다음 화면으로 넘어갈 때 결이 이어지게 */}
