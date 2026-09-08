@@ -63,13 +63,15 @@ const posthogOptions = {
     if (typeof window !== 'undefined') {
       window.posthog = posthog;
     }
-    // PostHog 초기화 완료 후 analytics 초기화
-    // 약간의 지연을 두어 window.posthog가 완전히 설정되도록 함
-    setTimeout(() => {
-      initAnalytics();
-    }, 200);
+    // PostHog가 떴을 때도 한 번 부른다(내부 가드로 중복 실행은 막힌다).
+    // 다만 이제 initAnalytics는 아래에서 이미 호출됐을 것이다 — PostHog가
+    // 안 뜨는 환경에서도 방문 기록이 남아야 하기 때문.
+    initAnalytics();
   },
 };
+
+// PostHog가 뜨든 안 뜨든(광고 차단·추적 방지) 우리 방문 기록은 남아야 한다.
+initAnalytics();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

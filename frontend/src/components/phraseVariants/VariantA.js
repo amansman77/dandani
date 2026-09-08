@@ -91,10 +91,13 @@ function getRollingWeekTicks(loggedDates) {
     }
   }
 
+  // 눈금은 왼쪽부터 스트릭 길이만큼 채운다. 예전엔 "6일 전~오늘"을 달력처럼
+  // 배치했는데, 어느 칸이 무슨 요일인지 아무 표시가 없어서 3일 이어온 사람에게는
+  // 그냥 "첫 칸이 왜 비었지?"로 보였다(실제 제보). 날짜를 읽을 수 없는 표시라면
+  // 며칠째인지를 세는 쪽이 정직하다.
+  const filled = Math.min(streakDates.size, 7);
   const ticks = [];
-  for (let i = 6; i >= 0; i -= 1) {
-    ticks.push(streakDates.has(dateKeyDaysAgo(i)));
-  }
+  for (let i = 0; i < 7; i += 1) ticks.push(i < filled);
   return ticks;
 }
 

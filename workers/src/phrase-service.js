@@ -68,11 +68,21 @@ export async function getActivePhrase(env, request) {
   // date('now')는 서버(UTC) 기준이라 한국 등 UTC+9 지역에선 자정이 아니라 오전
   // 9시에 날짜가 바뀐 것처럼 셌다. 이미 계산해둔 today(클라이언트 로컬 자정
   // 기준)를 그대로 경계로 써서 맞춘다.
+  // page_visit만 세면 분석 이벤트가 막힌 사용자(광고 차단·추적 방지)는 며칠을
+  // 써도 계속 1번째 아침으로 보인다. 되새긴 날은 그 자체로 "그날 앱에 왔다"는
+  // 우리 쪽 기록이므로 같이 센다 — 분석이 막혀도 숫자가 맞는다.
   const { visit_days: visitDaysBeforeToday } = await env.DB.prepare(`
-    SELECT COUNT(DISTINCT date(created_at)) as visit_days
-    FROM user_events
-    WHERE user_id = ? AND event_type = 'page_visit' AND created_at >= ? AND date(created_at) < ?
-  `).bind(userId, phrase.started_at, today).first();
+    SELECT COUNT(DISTINCT d) AS visit_days FROM (
+      SELECT date(created_at) AS d
+      FROM user_events
+      WHERE user_id = ? AND event_type = 'page_visit'
+        AND created_at >= ? AND date(created_at) < ?
+      UNION
+      SELECT log_date AS d
+      FROM daily_phrase_logs
+      WHERE phrase_id = ? AND log_date < ?
+    )
+  `).bind(userId, phrase.started_at, today, phrase.id, today).first();
   const visitDays = (visitDaysBeforeToday || 0) + 1;
 
   return {

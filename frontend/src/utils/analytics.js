@@ -347,36 +347,34 @@ export const initAnalytics = () => {
     return;
   }
   analyticsInitialized = true;
-  
-  // PostHog는 PostHogProvider를 통해 자동 초기화됨
-  // PostHog 초기화를 기다린 후 페이지 방문 이벤트 로깅 및 first_utm_* 저장
+
+  // 우리 D1에 남기는 방문 기록은 PostHog와 상관없이 곧바로 남긴다.
+  // 예전엔 이 호출이 PostHog의 loaded 콜백 안에서만 일어나서, 광고 차단기나
+  // 추적 방지로 PostHog 스크립트가 막힌 사용자는 page_visit이 단 한 번도
+  // 안 남았다. 그 사용자는 "N번째 아침"이 영원히 1에 머물렀고, 캠페인 리포트
+  // 에서도 방문 자체가 통째로 빠졌다(실제 사용자 제보로 발견).
+  logPageVisit('app_load');
+
+  // first_utm_*는 PostHog Person 속성이라 PostHog가 떠야만 쓸 수 있다.
+  // 이건 못 써도 서비스에 영향이 없으므로 기다리다 포기해도 된다.
   const waitForPostHog = () => {
     if (typeof window !== 'undefined' && window.posthog) {
-      console.log('[Analytics] Initializing analytics, logging page_visit event');
-      logPageVisit('app_load');
-      // PostHog 초기화 완료 후 first_utm_* 저장 (URL UTM 또는 Capacitor 시 ios_app/android_app, ADR-0004)
       writeFirstUTMOnce();
-    } else {
-      // PostHog가 아직 초기화되지 않았다면 잠시 후 재시도 (최대 3초)
-      const maxWaitTime = 3000;
-      const startTime = Date.now();
-      const checkInterval = setInterval(() => {
-        if (typeof window !== 'undefined' && window.posthog) {
-          clearInterval(checkInterval);
-          console.log('[Analytics] Initializing analytics, logging page_visit event');
-          logPageVisit('app_load');
-          // PostHog 초기화 완료 후 first_utm_* 저장 (URL UTM 또는 Capacitor 시 ios_app/android_app)
-          writeFirstUTMOnce();
-        } else if (Date.now() - startTime > maxWaitTime) {
-          clearInterval(checkInterval);
-          console.warn('[Analytics] PostHog initialization timeout, logging page_visit anyway');
-          logPageVisit('app_load');
-          writeFirstUTMOnce();
-        }
-      }, 100);
+      return;
     }
+    const maxWaitTime = 3000;
+    const startTime = Date.now();
+    const checkInterval = setInterval(() => {
+      if (typeof window !== 'undefined' && window.posthog) {
+        clearInterval(checkInterval);
+        writeFirstUTMOnce();
+      } else if (Date.now() - startTime > maxWaitTime) {
+        clearInterval(checkInterval);
+        console.warn('[Analytics] PostHog init timeout — first_utm 저장은 건너뜀');
+      }
+    }, 100);
   };
-  
+
   waitForPostHog();
   
   // 페이지 언로드 시는 별도 이벤트 로깅하지 않음 (허용되지 않는 event_type)
