@@ -3,6 +3,7 @@ import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { logPhraseShared } from '../utils/analytics';
 import { isKakaoConfigured, preloadKakao, shareToKakao } from '../utils/kakaoShare';
+import PhraseCardSheet from './PhraseCardSheet';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;
@@ -39,6 +40,7 @@ const rowSx = (primary) => ({
 
 const ShareSheet = ({ open, onClose, phrase }) => {
   const [notice, setNotice] = useState('');
+  const [cardOpen, setCardOpen] = useState(false);
 
   const hasOsShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
   // 카카오 키가 없으면(앱 미등록) 카카오 줄은 아예 안 뜨고, 카톡으로 가는 길은
@@ -135,13 +137,20 @@ const ShareSheet = ({ open, onClose, phrase }) => {
           )}
 
           <Box sx={{ mt: 2.5, borderTop: `1px solid ${COLOR.line.faint}` }}>
+            <Box component="button" type="button"
+              onClick={() => { onClose(); setCardOpen(true); }} sx={rowSx(true)}>
+              이미지 카드로 공유
+              <Typography component="span" sx={{ display: 'block', fontFamily: SANS, fontSize: '0.72rem', fontWeight: 400, color: COLOR.text.muted, mt: 0.25 }}>
+                배경 고르기 · 인스타그램
+              </Typography>
+            </Box>
             {hasKakao && (
-              <Box component="button" type="button" onClick={shareKakao} sx={rowSx(true)}>
+              <Box component="button" type="button" onClick={shareKakao} sx={rowSx(false)}>
                 카카오톡으로 보내기
               </Box>
             )}
             {hasOsShare && (
-              <Box component="button" type="button" onClick={shareToOs} sx={rowSx(!hasKakao)}>
+              <Box component="button" type="button" onClick={shareToOs} sx={rowSx(false)}>
                 다른 앱으로 공유
                 {!hasKakao && (
                   <Typography component="span" sx={{ display: 'block', fontFamily: SANS, fontSize: '0.72rem', fontWeight: 400, color: COLOR.text.muted, mt: 0.25 }}>
@@ -150,7 +159,7 @@ const ShareSheet = ({ open, onClose, phrase }) => {
                 )}
               </Box>
             )}
-            <Box component="button" type="button" onClick={shareToTwitter} sx={rowSx(!hasOsShare && !hasKakao)}>
+            <Box component="button" type="button" onClick={shareToTwitter} sx={rowSx(false)}>
               트위터에 올리기
             </Box>
             <Box component="button" type="button" onClick={copyLink} sx={rowSx(false)}>
@@ -159,6 +168,8 @@ const ShareSheet = ({ open, onClose, phrase }) => {
           </Box>
         </Box>
       </Drawer>
+
+      <PhraseCardSheet open={cardOpen} onClose={() => setCardOpen(false)} phrase={phrase} />
 
       <Snackbar
         open={Boolean(notice)}
