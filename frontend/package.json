@@ -23,7 +23,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "sh -c 'if [ -z \"$REACT_APP_KAKAO_JS_KEY\" ] && [ -n \"$KAKAO_JAVASCRIPT_KEY\" ]; then export REACT_APP_KAKAO_JS_KEY=\"$KAKAO_JAVASCRIPT_KEY\"; fi; react-scripts build'",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
