@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { logPhraseShared } from '../utils/analytics';
+import { isKakaoConfigured, shareToKakao } from '../utils/kakaoShare';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;
 
 const BASE = 'https://dandani.yetimates.com/';
+const OG_IMAGE = 'https://dandani.yetimates.com/og-image.png';
 
 // 채널마다 utm_source를 달리 달아서, 캠페인 리포트에서 "인스타 광고로 온
 // 사람"과 "지인이 카톡으로 보내줘서 온 사람"이 갈라져 보이게 한다.
@@ -38,9 +40,10 @@ const rowSx = (primary) => ({
 const ShareSheet = ({ open, onClose, phrase }) => {
   const [notice, setNotice] = useState('');
 
-  // navigator.share가 있으면 그 시트 안에 카카오톡이 들어있다. 카카오 SDK를
-  // 붙이기 전까지는 이게 카톡으로 가는 유일한 길이라, 있는 기기에선 맨 위에 둔다.
   const hasOsShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
+  // 카카오 키가 없으면(앱 미등록) 카카오 줄은 아예 안 뜨고, 카톡으로 가는 길은
+  // OS 공유 시트뿐이다 — 그때는 그 줄이 "카카오톡 등"이라고 스스로 밝힌다.
+  const hasKakao = isKakaoConfigured();
 
   if (!phrase) return null;
   const caption = captionOf(phrase);
@@ -54,6 +57,22 @@ const ShareSheet = ({ open, onClose, phrase }) => {
     } catch (err) {
       // 시트를 그냥 닫은 것(AbortError)은 실패가 아니라 취소 — 조용히 둔다.
       if (!err || err.name !== 'AbortError') setNotice('공유하지 못했어요');
+    }
+  };
+
+  const shareKakao = async () => {
+    try {
+      await shareToKakao({
+        phrase: phrase.phrase,
+        visitDays: phrase.visit_days,
+        link: linkFor('kakao'),
+        imageUrl: OG_IMAGE,
+      });
+      done('kakao');
+    } catch (err) {
+      // SDK를 못 불러왔거나(광고 차단·네트워크) 도메인 등록이 안 된 경우.
+      // 시트는 열어둔 채로 알려서, 바로 아래 다른 길을 쓸 수 있게 한다.
+      setNotice('카카오톡 공유를 열지 못했어요');
     }
   };
 
@@ -113,15 +132,22 @@ const ShareSheet = ({ open, onClose, phrase }) => {
           )}
 
           <Box sx={{ mt: 2.5, borderTop: `1px solid ${COLOR.line.faint}` }}>
-            {hasOsShare && (
-              <Box component="button" type="button" onClick={shareToOs} sx={rowSx(true)}>
-                다른 앱으로 공유
-                <Typography component="span" sx={{ display: 'block', fontFamily: SANS, fontSize: '0.72rem', fontWeight: 400, color: COLOR.text.muted, mt: 0.25 }}>
-                  카카오톡 등
-                </Typography>
+            {hasKakao && (
+              <Box component="button" type="button" onClick={shareKakao} sx={rowSx(true)}>
+                카카오톡으로 보내기
               </Box>
             )}
-            <Box component="button" type="button" onClick={shareToTwitter} sx={rowSx(!hasOsShare)}>
+            {hasOsShare && (
+              <Box component="button" type="button" onClick={shareToOs} sx={rowSx(!hasKakao)}>
+                다른 앱으로 공유
+                {!hasKakao && (
+                  <Typography component="span" sx={{ display: 'block', fontFamily: SANS, fontSize: '0.72rem', fontWeight: 400, color: COLOR.text.muted, mt: 0.25 }}>
+                    카카오톡 등
+                  </Typography>
+                )}
+              </Box>
+            )}
+            <Box component="button" type="button" onClick={shareToTwitter} sx={rowSx(!hasOsShare && !hasKakao)}>
               트위터에 올리기
             </Box>
             <Box component="button" type="button" onClick={copyLink} sx={rowSx(false)}>
