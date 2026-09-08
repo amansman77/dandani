@@ -203,18 +203,13 @@ const ShareSheet = ({ open, onClose, phrase }) => {
           )}
 
           {/* 네 가지 모두 "이걸 어디로 가져갈까"의 답이라, 한 줄에 나란히 둔다.
-              색으로 목적지를 구분한다 — 우리 색(이미지 카드) / 카카오 노랑 /
-              X 검정 / 브랜드 없는 링크는 테두리만. */}
+              순서는 실제로 많이 쓸 순서 — 한국에서 카톡이 압도적이라 맨 앞.
+              색으로 목적지를 구분한다: 카카오 노랑 / X 검정 / 우리 색(이미지
+              카드) / 브랜드 없는 링크는 테두리만. */}
           <Box sx={{
             mt: 2.5, pt: 2.5, borderTop: `1px solid ${COLOR.line.faint}`,
             display: 'flex', justifyContent: 'space-between', gap: 0.5,
           }}>
-            <Box component="button" type="button"
-              onClick={() => { onClose(); setCardOpen(true); }}
-              sx={brandBtnSx} aria-label="이미지 카드로 공유">
-              <Box sx={circleSx(COLOR.accent.main)}><CardMark /></Box>
-              이미지 카드
-            </Box>
             {hasKakao && (
               <Box component="button" type="button" onClick={shareKakao}
                 sx={brandBtnSx} aria-label="카카오톡으로 보내기">
@@ -226,6 +221,12 @@ const ShareSheet = ({ open, onClose, phrase }) => {
               sx={brandBtnSx} aria-label="트위터에 올리기">
               <Box sx={circleSx('#000000')}><XMark /></Box>
               트위터
+            </Box>
+            <Box component="button" type="button"
+              onClick={() => { onClose(); setCardOpen(true); }}
+              sx={brandBtnSx} aria-label="이미지 카드로 공유">
+              <Box sx={circleSx(COLOR.accent.main)}><CardMark /></Box>
+              이미지 카드
             </Box>
             <Box component="button" type="button" onClick={copyLink}
               sx={brandBtnSx} aria-label="링크 복사">
