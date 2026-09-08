@@ -218,9 +218,9 @@ const ShareSheet = ({ open, onClose, phrase }) => {
               </Box>
             )}
             <Box component="button" type="button" onClick={shareToTwitter}
-              sx={brandBtnSx} aria-label="트위터에 올리기">
+              sx={brandBtnSx} aria-label="X에 올리기">
               <Box sx={circleSx('#000000')}><XMark /></Box>
-              트위터
+              X
             </Box>
             <Box component="button" type="button"
               onClick={() => { onClose(); setCardOpen(true); }}
