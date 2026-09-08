@@ -52,9 +52,15 @@ const getKakao = async () => {
   return Kakao;
 };
 
-// 카톡 대화창에 뜨는 카드. 문장이 제목이고, 기록이 그 아래 한 줄.
-export const shareToKakao = async ({ phrase, visitDays, link, imageUrl }) => {
-  const Kakao = await getKakao();
+// 공유 시트가 열릴 때 미리 불러둔다. sendDefault는 데스크톱에서 팝업을 여는데,
+// SDK 로드를 await한 뒤에 열면 클릭과의 연결이 끊겨 브라우저 팝업 차단에 걸린다.
+// 시트를 여는 시점에 미리 받아두면, 누르는 순간엔 동기로 바로 열 수 있다.
+export const preloadKakao = () => {
+  if (!isKakaoConfigured()) return;
+  getKakao().catch(() => {});  // 실패해도 조용히 — 실제 공유 때 다시 시도한다
+};
+
+const send = (Kakao, { phrase, visitDays, link, imageUrl }) => {
   const linkPair = { mobileWebUrl: link, webUrl: link };
 
   Kakao.Share.sendDefault({
@@ -67,4 +73,14 @@ export const shareToKakao = async ({ phrase, visitDays, link, imageUrl }) => {
     },
     buttons: [{ title: '나도 한 문장 적어보기', link: linkPair }],
   });
+};
+
+// 카톡 대화창에 뜨는 카드. 문장이 제목이고, 기록이 그 아래 한 줄.
+// 미리 불러둔 상태면 클릭 핸들러 안에서 동기로 끝나 팝업 차단을 피한다.
+export const shareToKakao = (options) => {
+  if (window.Kakao && window.Kakao.isInitialized()) {
+    send(window.Kakao, options);
+    return Promise.resolve();
+  }
+  return getKakao().then((Kakao) => send(Kakao, options));
 };

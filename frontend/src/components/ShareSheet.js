@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { logPhraseShared } from '../utils/analytics';
-import { isKakaoConfigured, shareToKakao } from '../utils/kakaoShare';
+import { isKakaoConfigured, preloadKakao, shareToKakao } from '../utils/kakaoShare';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;
@@ -44,6 +44,9 @@ const ShareSheet = ({ open, onClose, phrase }) => {
   // 카카오 키가 없으면(앱 미등록) 카카오 줄은 아예 안 뜨고, 카톡으로 가는 길은
   // OS 공유 시트뿐이다 — 그때는 그 줄이 "카카오톡 등"이라고 스스로 밝힌다.
   const hasKakao = isKakaoConfigured();
+
+  // 시트가 열리는 순간 SDK를 미리 받아둔다 — 누를 때 동기로 열려야 팝업이 안 막힌다.
+  useEffect(() => { if (open && hasKakao) preloadKakao(); }, [open, hasKakao]);
 
   if (!phrase) return null;
   const caption = captionOf(phrase);
