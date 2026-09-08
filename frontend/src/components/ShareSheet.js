@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { logPhraseShared } from '../utils/analytics';
@@ -49,6 +49,36 @@ const ShareSheet = ({ open, onClose, phrase }) => {
 
   // 시트가 열리는 순간 SDK를 미리 받아둔다 — 누를 때 동기로 열려야 팝업이 안 막힌다.
   useEffect(() => { if (open && hasKakao) preloadKakao(); }, [open, hasKakao]);
+
+  // 시트가 떠 있을 때 뒤로가기를 누르면 시트만 닫혀야 하는데, 아무 처리가 없어서
+  // 앱 밖으로 나가버렸다(측정으로 확인). 시트가 떠 있는 동안 히스토리 항목을
+  // 하나 얹어두고, 뒤로가기가 그걸 먹게 한다.
+  //
+  // 항목은 "공유 흐름" 전체에 하나만 얹는다. 시트마다 얹으면, 공유 시트를 닫고
+  // 카드 시트를 여는 순간(같은 틱에 일어난다) 되돌리기와 얹기가 엉켜서 카드
+  // 시트가 열리자마자 닫힌다.
+  const flowOpen = open || cardOpen;
+  const closedByBackRef = useRef(false);
+  // onClose는 부모가 인라인 화살표로 넘겨서 렌더마다 새 함수다. 의존성에 넣으면
+  // 렌더할 때마다 히스토리 항목이 하나씩 쌓인다.
+  const closeFlowRef = useRef(null);
+  closeFlowRef.current = () => { setCardOpen(false); onClose(); };
+
+  useEffect(() => {
+    if (!flowOpen) return undefined;
+    closedByBackRef.current = false;
+    window.history.pushState({ dandaniSheet: true }, '');
+    const onPop = () => { closedByBackRef.current = true; closeFlowRef.current(); };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // 버튼·바깥 탭으로 닫았을 땐 우리가 얹은 항목을 직접 걷어낸다.
+      // 뒤로가기로 닫힌 경우엔 이미 걷혔으니 건드리면 한 칸 더 나간다.
+      if (!closedByBackRef.current && window.history.state?.dandaniSheet) {
+        window.history.back();
+      }
+    };
+  }, [flowOpen]);
 
   if (!phrase) return null;
   const caption = captionOf(phrase);
