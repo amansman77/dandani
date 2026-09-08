@@ -222,8 +222,14 @@ export const renderPhraseCard = async ({ phrase, visitDays, preset = 'morning' }
   ctx.font = '500 26px Pretendard, sans-serif';
   const tracking = 26 * 0.3;
   ctx.letterSpacing = '0.3em';
-  ctx.fillText('단단이', SIZE / 2 + tracking / 2, SIZE - 88);
+  ctx.fillText('단단이', SIZE / 2 + tracking / 2, SIZE - 104);
   ctx.letterSpacing = '0px';
+
+  // 공유는 이미지 파일 하나만 나가서(그래야 카톡이 메시지를 안 쪼갠다) 링크를
+  // 같이 못 보낸다. 주소를 그림 안에 적어 돌아올 길을 남긴다.
+  ctx.fillStyle = theme.meta;
+  ctx.font = '400 22px Pretendard, sans-serif';
+  ctx.fillText('dandani.yetimates.com', SIZE / 2, SIZE - 58);
 
   return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
 };

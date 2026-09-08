@@ -5,7 +5,6 @@ import { logPhraseShared } from '../utils/analytics';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
 
 const SANS = FONT.sans;
-const LINK = 'https://dandani.yetimates.com/?utm_source=card&utm_medium=organic&utm_campaign=phrase_share';
 
 const chipSx = (on) => ({
   border: `1px solid ${on ? COLOR.accent.line : COLOR.line.main}`,
@@ -83,7 +82,10 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
       return;
     }
     try {
-      await navigator.share({ files: [file], text: `“${phrase.phrase}”`, url: LINK });
+      // 파일만 넘긴다. files와 text·url을 같이 주면 카카오톡은 이걸 별개 항목으로
+      // 보고 메시지를 세 개(이미지·문장·링크)로 쪼개 보낸다 — 실제로 그랬다.
+      // 대신 주소는 카드 그림 안에 넣어서 돌아올 길을 남겼다.
+      await navigator.share({ files: [file] });
       logPhraseShared('card_share');
       onClose();
     } catch (err) {
