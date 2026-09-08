@@ -21,38 +21,26 @@ const captionOf = (phrase) =>
     ? `"${phrase.phrase}" — ${phrase.visit_days}번째 아침`
     : `"${phrase.phrase}"`;
 
-const rowSx = (primary) => ({
-  display: 'block',
-  width: '100%',
-  textAlign: 'left',
-  border: 'none',
-  background: 'none',
-  padding: '13px 0',
-  cursor: 'pointer',
-  fontFamily: SANS,
-  fontSize: '0.9rem',
-  fontWeight: primary ? 600 : 500,
-  color: primary ? COLOR.accent.main : COLOR.text.strong,
-  borderBottom: `1px solid ${COLOR.line.faint}`,
-  '&:hover': { opacity: 0.72 },
-  '&:last-of-type': { borderBottom: 'none' },
-});
-
 // 브랜드 심볼은 각 서비스의 색을 그대로 쓴다. 앱의 차분한 톤과는 이질적이지만,
 // 사람들은 노란 말풍선과 검은 X를 '모양'이 아니라 '색'으로 먼저 알아본다.
 // 대신 크기를 44px로 묶고 아래에 이름을 붙여, 작게 두 개만 놓이도록 했다.
+// 네 개가 한 줄에 들어가야 한다. 고정 폭(68px)으로 두면 320px 화면에서
+// 넘쳐서, 폭을 균등하게 나눠 갖도록 flex: 1로 둔다.
 const brandBtnSx = {
+  flex: 1,
+  minWidth: 0,
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   gap: '7px',
   border: 'none',
   background: 'none',
-  padding: '4px 12px',
+  padding: '4px 0',
   cursor: 'pointer',
   fontFamily: SANS,
-  fontSize: '0.7rem',
+  fontSize: '0.66rem',
   color: COLOR.text.muted,
+  whiteSpace: 'nowrap',
   WebkitTapHighlightColor: 'transparent',
   '&:hover': { opacity: 0.72 },
 };
@@ -66,6 +54,25 @@ const circleSx = (background) => ({
   alignItems: 'center',
   justifyContent: 'center',
 });
+
+// 카톡·트위터는 그쪽 브랜드 색, 이미지 카드는 우리 색(앱의 액션 색), 링크 복사는
+// 브랜드가 없으니 테두리만. 색이 곧 "어디로 가는가"의 표시가 된다.
+const CardMark = () => (
+  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF"
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
+    <circle cx="8.7" cy="10" r="1.4" fill="#FFFFFF" stroke="none" />
+    <path d="M4.5 17l4.3-4.3 2.8 2.8L15.4 12l4.1 4.1" />
+  </svg>
+);
+
+const LinkMark = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={COLOR.text.muted}
+    strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+    <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5" />
+    <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7L12 19" />
+  </svg>
+);
 
 const KakaoMark = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
@@ -195,32 +202,37 @@ const ShareSheet = ({ open, onClose, phrase }) => {
             </Typography>
           )}
 
-          <Box sx={{ mt: 2.5, borderTop: `1px solid ${COLOR.line.faint}` }}>
+          {/* 네 가지 모두 "이걸 어디로 가져갈까"의 답이라, 한 줄에 나란히 둔다.
+              색으로 목적지를 구분한다 — 우리 색(이미지 카드) / 카카오 노랑 /
+              X 검정 / 브랜드 없는 링크는 테두리만. */}
+          <Box sx={{
+            mt: 2.5, pt: 2.5, borderTop: `1px solid ${COLOR.line.faint}`,
+            display: 'flex', justifyContent: 'space-between', gap: 0.5,
+          }}>
             <Box component="button" type="button"
-              onClick={() => { onClose(); setCardOpen(true); }} sx={rowSx(true)}>
-              이미지 카드로 공유
-              <Typography component="span" sx={{ display: 'block', fontFamily: SANS, fontSize: '0.72rem', fontWeight: 400, color: COLOR.text.muted, mt: 0.25 }}>
-                배경 고르기 · 인스타그램
-              </Typography>
+              onClick={() => { onClose(); setCardOpen(true); }}
+              sx={brandBtnSx} aria-label="이미지 카드로 공유">
+              <Box sx={circleSx(COLOR.accent.main)}><CardMark /></Box>
+              이미지 카드
             </Box>
-            <Box component="button" type="button" onClick={copyLink} sx={rowSx(false)}>
-              링크 복사
-            </Box>
-          </Box>
-
-          {/* 카톡·트위터는 "무엇을 하는지"보다 "어디로 가는지"가 전부라, 글자 줄
-              대신 심볼로 둔다. 글자 줄과 섞지 않고 아래에 따로 묶어야 둘의 성격
-              차이(동작 / 목적지)가 드러난다. */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2.5, mt: 3 }}>
             {hasKakao && (
-              <Box component="button" type="button" onClick={shareKakao} sx={brandBtnSx} aria-label="카카오톡으로 보내기">
+              <Box component="button" type="button" onClick={shareKakao}
+                sx={brandBtnSx} aria-label="카카오톡으로 보내기">
                 <Box sx={circleSx('#FEE500')}><KakaoMark /></Box>
                 카카오톡
               </Box>
             )}
-            <Box component="button" type="button" onClick={shareToTwitter} sx={brandBtnSx} aria-label="트위터에 올리기">
+            <Box component="button" type="button" onClick={shareToTwitter}
+              sx={brandBtnSx} aria-label="트위터에 올리기">
               <Box sx={circleSx('#000000')}><XMark /></Box>
               트위터
+            </Box>
+            <Box component="button" type="button" onClick={copyLink}
+              sx={brandBtnSx} aria-label="링크 복사">
+              <Box sx={{ ...circleSx('transparent'), border: `1.4px solid ${COLOR.line.main}` }}>
+                <LinkMark />
+              </Box>
+              링크 복사
             </Box>
           </Box>
         </Box>
