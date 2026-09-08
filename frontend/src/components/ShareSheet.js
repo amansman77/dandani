@@ -38,13 +38,52 @@ const rowSx = (primary) => ({
   '&:last-of-type': { borderBottom: 'none' },
 });
 
+// 브랜드 심볼은 각 서비스의 색을 그대로 쓴다. 앱의 차분한 톤과는 이질적이지만,
+// 사람들은 노란 말풍선과 검은 X를 '모양'이 아니라 '색'으로 먼저 알아본다.
+// 대신 크기를 44px로 묶고 아래에 이름을 붙여, 작게 두 개만 놓이도록 했다.
+const brandBtnSx = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '7px',
+  border: 'none',
+  background: 'none',
+  padding: '4px 12px',
+  cursor: 'pointer',
+  fontFamily: SANS,
+  fontSize: '0.7rem',
+  color: COLOR.text.muted,
+  WebkitTapHighlightColor: 'transparent',
+  '&:hover': { opacity: 0.72 },
+};
+
+const circleSx = (background) => ({
+  width: 44,
+  height: 44,
+  borderRadius: '50%',
+  background,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+});
+
+const KakaoMark = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#3B1E1E" d="M12 3.5C6.9 3.5 2.8 6.74 2.8 10.73c0 2.55 1.68 4.79 4.21 6.07-.19.68-.68 2.47-.78 2.85-.12.48.18.47.37.34.15-.1 2.4-1.63 3.38-2.3.65.09 1.32.14 2.02.14 5.1 0 9.2-3.24 9.2-7.1S17.1 3.5 12 3.5z" />
+  </svg>
+);
+
+const XMark = () => (
+  <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#FFFFFF" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
 const ShareSheet = ({ open, onClose, phrase }) => {
   const [notice, setNotice] = useState('');
   const [cardOpen, setCardOpen] = useState(false);
 
-  const hasOsShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
-  // 카카오 키가 없으면(앱 미등록) 카카오 줄은 아예 안 뜨고, 카톡으로 가는 길은
-  // OS 공유 시트뿐이다 — 그때는 그 줄이 "카카오톡 등"이라고 스스로 밝힌다.
+  // 카카오 키가 없으면(앱 미등록) 카카오 심볼은 아예 안 뜨고 트위터만 남는다.
   const hasKakao = isKakaoConfigured();
 
   // 시트가 열리는 순간 SDK를 미리 받아둔다 — 누를 때 동기로 열려야 팝업이 안 막힌다.
@@ -84,16 +123,6 @@ const ShareSheet = ({ open, onClose, phrase }) => {
   const caption = captionOf(phrase);
 
   const done = (method) => { logPhraseShared(method); onClose(); };
-
-  const shareToOs = async () => {
-    try {
-      await navigator.share({ title: '단단이', text: caption, url: linkFor('share') });
-      done('share_sheet');
-    } catch (err) {
-      // 시트를 그냥 닫은 것(AbortError)은 실패가 아니라 취소 — 조용히 둔다.
-      if (!err || err.name !== 'AbortError') setNotice('공유하지 못했어요');
-    }
-  };
 
   const shareKakao = async () => {
     try {
@@ -174,26 +203,24 @@ const ShareSheet = ({ open, onClose, phrase }) => {
                 배경 고르기 · 인스타그램
               </Typography>
             </Box>
-            {hasKakao && (
-              <Box component="button" type="button" onClick={shareKakao} sx={rowSx(false)}>
-                카카오톡으로 보내기
-              </Box>
-            )}
-            {hasOsShare && (
-              <Box component="button" type="button" onClick={shareToOs} sx={rowSx(false)}>
-                다른 앱으로 공유
-                {!hasKakao && (
-                  <Typography component="span" sx={{ display: 'block', fontFamily: SANS, fontSize: '0.72rem', fontWeight: 400, color: COLOR.text.muted, mt: 0.25 }}>
-                    카카오톡 등
-                  </Typography>
-                )}
-              </Box>
-            )}
-            <Box component="button" type="button" onClick={shareToTwitter} sx={rowSx(false)}>
-              트위터에 올리기
-            </Box>
             <Box component="button" type="button" onClick={copyLink} sx={rowSx(false)}>
               링크 복사
+            </Box>
+          </Box>
+
+          {/* 카톡·트위터는 "무엇을 하는지"보다 "어디로 가는지"가 전부라, 글자 줄
+              대신 심볼로 둔다. 글자 줄과 섞지 않고 아래에 따로 묶어야 둘의 성격
+              차이(동작 / 목적지)가 드러난다. */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2.5, mt: 3 }}>
+            {hasKakao && (
+              <Box component="button" type="button" onClick={shareKakao} sx={brandBtnSx} aria-label="카카오톡으로 보내기">
+                <Box sx={circleSx('#FEE500')}><KakaoMark /></Box>
+                카카오톡
+              </Box>
+            )}
+            <Box component="button" type="button" onClick={shareToTwitter} sx={brandBtnSx} aria-label="트위터에 올리기">
+              <Box sx={circleSx('#000000')}><XMark /></Box>
+              트위터
             </Box>
           </Box>
         </Box>
