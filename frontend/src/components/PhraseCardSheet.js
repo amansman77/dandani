@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, Drawer, Snackbar, CircularProgress } from '@mui/material';
+import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
+import Loader from './Loader';
 import { logPhraseShared } from '../utils/analytics';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
 
@@ -147,7 +148,7 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
                 alignItems: 'center', justifyContent: 'center',
                 background: 'rgba(253,249,242,0.55)',
               }}>
-                <CircularProgress size={22} sx={{ color: COLOR.accent.line }} />
+                <Loader />
               </Box>
             )}
           </Box>

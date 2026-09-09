@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Box, CircularProgress, Alert } from '@mui/material';
+import { Box, Alert } from '@mui/material';
 import { getUserId } from '../utils/userId';
 import { getClientTimeHeaders } from '../utils/clientTime';
 import VariantA from './phraseVariants/VariantA';
+import Loader from './Loader';
 import { logPhraseOnboardingShown, logPhraseExampleUsed, logPhraseDayLogged } from '../utils/analytics';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -153,7 +154,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
+        <Loader />
       </Box>
     );
   }

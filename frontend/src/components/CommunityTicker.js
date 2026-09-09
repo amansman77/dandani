@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Drawer, Button, CircularProgress, Skeleton } from '@mui/material';
+import { Box, Typography, Drawer, Button, Skeleton } from '@mui/material';
 import { getUserId } from '../utils/userId';
+import Loader from './Loader';
 import { COLOR, FONT } from '../theme/tokens';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -377,7 +378,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                   '&.Mui-disabled': { color: COLOR.text.muted, border: `1.4px solid ${COLOR.line.disabled}` },
                 }}
               >
-                {applying ? <CircularProgress size={16} /> : '이 문구로 시작할게요'}
+                {applying ? <Loader small /> : '이 문구로 시작할게요'}
               </Button>
               <Typography
                 onClick={() => !applying && setSelected(null)}

@@ -1,8 +1,9 @@
 import React from 'react';
-import { Box, Typography, TextField, Chip, Button, CircularProgress } from '@mui/material';
+import { Box, Typography, TextField, Chip, Button } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 import CommunityTicker from '../CommunityTicker';
+import Loader from '../Loader';
 import { COLOR, FONT } from '../../theme/tokens';
 
 const SERIF = FONT.serif;
@@ -168,7 +169,7 @@ const VariantA = ({
             '&.Mui-disabled': { color: COLOR.line.disabled, borderColor: COLOR.line.disabledSoft },
           }}
         >
-          {submitting ? <CircularProgress size={18} /> : (isEditing ? '이 문장으로 바꿀게요' : '이 문장으로 시작할게요')}
+          {submitting ? <Loader small /> : (isEditing ? '이 문장으로 바꿀게요' : '이 문장으로 시작할게요')}
         </Button>
       </Scene>
     );
@@ -215,7 +216,7 @@ const VariantA = ({
           '&.Mui-disabled': { color: COLOR.text.muted, border: `1.4px solid ${COLOR.line.disabled}` },
         }}
       >
-        {logging ? <CircularProgress size={18} /> : (phrase.logged_today ? '오늘도 되새겼어요' : '오늘의 문장 되새기기')}
+        {logging ? <Loader small /> : (phrase.logged_today ? '오늘도 되새겼어요' : '오늘의 문장 되새기기')}
       </Button>
       <CommunityTicker onUseCommunityPhrase={onUseCommunityPhrase} hasActivePhrase={hasActivePhrase} />
     </Scene>
