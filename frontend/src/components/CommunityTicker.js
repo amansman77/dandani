@@ -67,6 +67,11 @@ const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '곰돌이 푸, 행복한 일은 매일 있어',
   },
+  {
+    phrase: '나라는 존재를 이루고 있는 요소 중 하나가 기억입니다. 좋은 기억은 많이 남기고 나쁜 기억을 흘려보내면 행복한 나로 살아갈 수 있을 거예요.',
+    isRecommended: true,
+    source: '곰돌이 푸, 행복한 일은 매일 있어',
+  },
 ];
 
 // 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
