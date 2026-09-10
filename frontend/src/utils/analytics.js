@@ -2,6 +2,7 @@
 // PostHog는 PostHogProvider를 통해 초기화되며 window.posthog로 접근 가능
 
 import { writeFirstUTMOnce } from './posthog-first-utm';
+import { getUserId } from './userId';
 import { getCurrentUTM } from './attribution';
 
 // Production API URL
@@ -17,10 +18,14 @@ const getSessionId = () => {
   return sessionId;
 };
 
-// 사용자 ID 가져오기
-const getUserId = () => {
-  return localStorage.getItem('dandani_user_id') || 'anonymous';
-};
+// 사용자 ID는 userId.js 것을 그대로 쓴다(없으면 만들어서 돌려준다).
+//
+// 예전엔 여기서 localStorage를 직접 읽고 없으면 'anonymous'로 떨어뜨렸다.
+// initAnalytics가 PostHog 로딩을 기다리던 동안엔 그 사이에 App이 떠서 ID를
+// 만들어놨기 때문에 대부분 문제가 안 됐는데, 방문 기록을 PostHog에서 떼어내며
+// 시작 직후로 앞당기자 React가 뜨기도 전에 실행돼서 첫 방문이 전부 'anonymous'로
+// 남았다. 그러면 UTM이 붙은 방문과 그 사람이 이후에 한 행동을 이을 수가 없다 —
+// 광고 성과 측정이 통째로 끊긴다.
 
 // 환경 변수 가져오기
 const getEnvironment = () => {
