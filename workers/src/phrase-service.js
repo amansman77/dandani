@@ -1,42 +1,10 @@
-import { getRequiredUserId, getClientLocalDate, logUserEvent } from './service-utils.js';
+import { phraseDateContext, countPhraseVisits } from './phrase-dates.js';
+import { HttpError } from './http-errors.js';
+import { getRequiredUserId, logUserEvent } from './service-utils.js';
 import { getNickname } from './nickname-service.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-}
-
-function todayDateString(request) {
-  const clientTime = request.headers.get('X-Client-Time');
-  const clientTimezone = request.headers.get('X-Client-Timezone');
-  const date = getClientLocalDate(clientTime, clientTimezone);
-  return date.toISOString().split('T')[0];
-}
-
-export async function createPhrase(env, request) {
-  const userId = getRequiredUserId(request);
-  const body = await request.json();
-  const { phrase } = body;
-
-  if (!phrase || !phrase.trim()) {
-    throw new Error('phrase is required');
-  }
-
-  const existing = await env.DB.prepare(`
-    SELECT id FROM daily_phrases WHERE user_id = ? AND status = 'active'
-  `).bind(userId).first();
-
-  if (existing) {
-    throw new Error('active phrase already exists');
-  }
-
-  const id = generateId('phrase');
-  await env.DB.prepare(`
-    INSERT INTO daily_phrases (id, user_id, phrase) VALUES (?, ?, ?)
-  `).bind(id, userId, phrase.trim()).run();
-
-  await logUserEvent(env, request, 'phrase_start', { phrase_id: id });
-
-  return { id, phrase: phrase.trim(), status: 'active' };
 }
 
 export async function getActivePhrase(env, request) {
@@ -58,36 +26,15 @@ export async function getActivePhrase(env, request) {
     SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ? ORDER BY log_date ASC
   `).bind(phrase.id).all();
 
-  const today = todayDateString(request);
-  const loggedToday = logs.some((log) => log.log_date === today);
-
-  // "N번째 아침이에요"는 되새기기 완료 횟수 대신 방문한 날 수(하루에 여러 번 켜도
-  // 1로 셈)로 보여준다. 오늘치 page_visit 이벤트가 아직 안 쌓였을 수도 있어서
-  // (분석 이벤트는 비동기로 나중에 기록됨) 그건 세지 않고, 이 요청 자체가 곧
-  // "오늘 방문"이라는 증거이므로 항상 +1 해준다.
-  // date('now')는 서버(UTC) 기준이라 한국 등 UTC+9 지역에선 자정이 아니라 오전
-  // 9시에 날짜가 바뀐 것처럼 셌다. 이미 계산해둔 today(클라이언트 로컬 자정
-  // 기준)를 그대로 경계로 써서 맞춘다.
-  // page_visit만 세면 분석 이벤트가 막힌 사용자(광고 차단·추적 방지)는 며칠을
-  // 써도 계속 1번째 아침으로 보인다. 되새긴 날은 그 자체로 "그날 앱에 왔다"는
-  // 우리 쪽 기록이므로 같이 센다 — 분석이 막혀도 숫자가 맞는다.
-  const { visit_days: visitDaysBeforeToday } = await env.DB.prepare(`
-    SELECT COUNT(DISTINCT d) AS visit_days FROM (
-      SELECT date(created_at) AS d
-      FROM user_events
-      WHERE user_id = ? AND event_type = 'page_visit'
-        AND created_at >= ? AND date(created_at) < ?
-      UNION
-      SELECT log_date AS d
-      FROM daily_phrase_logs
-      WHERE phrase_id = ? AND log_date < ?
-    )
-  `).bind(userId, phrase.started_at, today, phrase.id, today).first();
-  const visitDays = (visitDaysBeforeToday || 0) + 1;
+  const dates = phraseDateContext(request);
+  const today = dates.today;
+  const loggedToday = logs.some(log => log.log_date === today);
+  const visitDays = await countPhraseVisits(env.DB, phrase, logs, dates, userId);
 
   return {
     phrase: {
       ...phrase,
+      today,
       logged_days: logs.length,
       logged_dates: logs.map((log) => log.log_date),
       logged_today: loggedToday,
@@ -104,23 +51,27 @@ export async function logPhraseDay(env, phraseId, request) {
   `).bind(phraseId, userId).first();
 
   if (!phrase) {
-    throw new Error(`Phrase not found: ${phraseId}`);
+    throw new HttpError(404, '문장을 찾을 수 없어요.');
   }
   if (phrase.status !== 'active') {
-    throw new Error(`Phrase is not active: ${phraseId}`);
+    throw new HttpError(409, '이미 종료된 문장이에요.');
   }
 
-  const today = todayDateString(request);
+  const { today } = phraseDateContext(request);
 
   await env.DB.prepare(`
     INSERT OR IGNORE INTO daily_phrase_logs (id, phrase_id, user_id, log_date)
-    VALUES (?, ?, ?, ?)
-  `).bind(generateId('plog'), phraseId, userId, today).run();
+    SELECT ?, id, user_id, ? FROM daily_phrases
+    WHERE id = ? AND user_id = ? AND status = 'active'
+  `).bind(generateId('plog'), today, phraseId, userId).run();
 
   const { results: logs } = await env.DB.prepare(`
     SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ?
   `).bind(phraseId).all();
 
+  if (!logs.some(log => log.log_date === today)) {
+    throw new HttpError(409, '문장이 이미 변경됐어요. 새로고침 후 다시 확인해 주세요.');
+  }
   return { logged_days: logs.length };
 }
 
@@ -133,7 +84,7 @@ export async function retirePhrase(env, phraseId, request) {
   `).bind(phraseId, userId).run();
 
   if (result.meta.changes === 0) {
-    throw new Error(`Active phrase not found: ${phraseId}`);
+    throw new HttpError(409, '사용 중인 문장을 찾을 수 없어요.');
   }
 
   await logUserEvent(env, request, 'phrase_retired', { phrase_id: phraseId });
