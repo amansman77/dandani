@@ -119,6 +119,10 @@ export function getUTCDate(date = new Date()) {
   return date.toISOString().split('T')[0];
 }
 
+/**
+ * @param {string | Date | number | null | undefined} value
+ * @returns {Date | null}
+ */
 function normalizeUTCDate(value) {
   if (!value) {
     return null;
@@ -132,13 +136,18 @@ function normalizeUTCDate(value) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+/**
+ * @param {string | Date | number | null | undefined} startValue
+ * @param {Date} currentDate
+ * @param {number} totalDays
+ */
 export function calculateChallengeDayFromStart(startValue, currentDate, totalDays) {
   const normalizedStart = normalizeUTCDate(startValue);
   if (!normalizedStart || !currentDate) {
     return 1;
   }
 
-  const diffDays = Math.floor((currentDate - normalizedStart) / MS_PER_DAY);
+  const diffDays = Math.floor((currentDate.getTime() - normalizedStart.getTime()) / MS_PER_DAY);
   const rawDay = diffDays + 1;
   const safeTotalDays = Math.max(1, totalDays || 1);
 

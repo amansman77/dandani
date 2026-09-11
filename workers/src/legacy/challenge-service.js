@@ -1,4 +1,4 @@
-import { getRequiredUserId, getClientLocalDate, logUserEvent } from './service-utils.js';
+import { getRequiredUserId, getClientLocalDate, logUserEvent } from '../service-utils.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;

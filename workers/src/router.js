@@ -12,7 +12,7 @@ import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHis
 // 없어졌고, 2026-09-06 프론트에서 그 화면들을 삭제하면서 완전히 도달 불가가
 // 됐다. 인증 없이 열린 쓰기 라우트(POST /api/stories/seed 등)를 그대로 두는
 // 게 부담이라 라우터에서 먼저 뗐다 — 서비스 파일(practice/story/challenge/
-// timefold-service.js)은 되살릴 여지를 두고 아직 남겨뒀다.
+// timefold-service.js)은 workers/src/legacy/에 모아 되살릴 여지를 두고 남겨뒀다.
 // 전체 인벤토리와 삭제 순서는 docs/adr/0005-legacy-backend-inventory.md 참고.
 
 async function handleGet(url, request, env) {

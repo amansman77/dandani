@@ -1,4 +1,4 @@
-import { getRequiredUserId } from './core.js';
+import { getRequiredUserId } from '../core.js';
 
 export async function createTimefoldEnvelope(env, request) {
   const body = await request.json();

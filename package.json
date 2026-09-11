@@ -8,11 +8,25 @@
     "workers"
   ],
   "scripts": {
+    "check": "npm run lint && npm run typecheck:workers && npm test && npm run check:markdown && npm run build:frontend && npm run check:workers-bundle",
+    "lint": "npm run lint:frontend && npm run lint:workers",
+    "lint:frontend": "npm run lint --workspace=frontend",
+    "lint:workers": "npm run lint --workspace=workers",
+    "typecheck:workers": "tsc --project tsconfig.workers.json",
+    "test": "npm run test:frontend && npm run test:workers",
+    "test:frontend": "CI=true npm test --workspace=frontend -- --watchAll=false",
+    "test:workers": "npm test --workspace=workers",
+    "check:markdown": "node scripts/check-markdown-links.mjs",
+    "check:workers-bundle": "cd workers && WRANGLER_LOG_PATH=/tmp/dandani-wrangler.log wrangler deploy --dry-run",
     "install:all": "npm install && cd frontend && npm install && cd ../workers && npm install",
     "start:frontend": "cd frontend && npm start",
     "build:frontend": "cd frontend && npm run build",
     "dev:workers": "cd workers && npm run dev",
     "deploy:workers": "cd workers && npm run deploy"
+  },
+  "devDependencies": {
+    "eslint": "8.57.1",
+    "typescript": "4.9.5"
   },
   "repository": {
     "type": "git",

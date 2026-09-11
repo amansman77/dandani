@@ -144,8 +144,8 @@ export async function getDailyReportData(env, targetDate = null) {
   const last30Days = dailyActiveUsers.slice(0, 30);
   const last7DaysSum = last7Days.reduce((sum, day) => sum + day.active_users, 0);
   const last30DaysSum = last30Days.reduce((sum, day) => sum + day.active_users, 0);
-  const last7DaysAvg = last7Days.length > 0 ? (last7DaysSum / last7Days.length).toFixed(1) : 0;
-  const last30DaysAvg = last30Days.length > 0 ? (last30DaysSum / last30Days.length).toFixed(1) : 0;
+  const last7DaysAvg = last7Days.length > 0 ? (last7DaysSum / last7Days.length).toFixed(1) : '0.0';
+  const last30DaysAvg = last30Days.length > 0 ? (last30DaysSum / last30Days.length).toFixed(1) : '0.0';
 
   const peakDay = dailyActiveUsers.reduce((max, day) =>
     day.active_users > max.active_users ? day : max, dailyActiveUsers[0] || { active_users: 0, activity_date: 'N/A' });

@@ -14,8 +14,7 @@
    - 관련 API 응답 필드, DB 스키마 컬럼, UI 표시 요소를 목록화.
 
 2) **단일 모델 정의**
-   - 기준: 로컬 스토리지 `startedAt` + `challengeId`.
-   - API 계약: 모든 챌린지 관련 요청은 `X-Started-At` 헤더(또는 쿼리) 필수, 미제공 시 400 또는 폴백 규칙 명시.
+   - ADR-0003에 정의된 챌린지 모델 통일 원칙 적용
    - 상태/진행률: ADR-0002 규칙을 일정형 제거 후에도 유지(일차=startedAt 기준).
 
 3) **백엔드 정리**
@@ -41,25 +40,8 @@
    - ADR-0002 및 관련 문서에서 일정형 제거 후 모델 설명 업데이트.
    - DEVELOPMENT/README/체크리스트 등 API 계약 변경 사항 반영.
 
-## 개방 쟁점 (해결됨)
-
-### ✅ X-Started-At 미제공 시 폴백
-**결정**: 에러 반환 (400 Bad Request)
-- 명시적 오류가 암묵적 동작보다 안전
-- 클라이언트에서 `startedAt` 보장이 더 명확
-- 예외: `/api/challenges` (목록 조회)는 선택사항
-
-### ✅ 기존 데이터 백필 전략
-**결정**: 단계적 마이그레이션
-- 기존 기록은 첫 기록의 `created_at`을 `startedAt`으로 간주
-- 새로운 기록부터는 `X-Started-At` 필수
-- 일정형 챌린지는 "완료" 상태로 마킹
-
-### ✅ DB 스키마 변경 전략
-**결정**: 단계적으로 deprecate
-1. 코드에서 `start_date`/`end_date` 사용 중단 (현재 단계)
-2. 스키마에 `deprecated` 주석 추가 (향후)
-3. 기존 데이터 마이그레이션 후 컬럼 제거 (향후)
+## 아키텍처 결정 사항
+이 작업과 관련된 중요한 아키텍처 결정은 [ADR-0003: 챌린지 모델 통일](../../../adr/0003-challenge-model-unification.md)에 문서화되어 있습니다.
 
 ## 완료 요약
 
@@ -80,5 +62,5 @@
 - 실천 완료 후 진행률 자동 업데이트 기능 추가
 
 ## 참고 문서
-- [사용처 인벤토리](./archive/0001-remove-schedule-based-challenges-inventory.md)
-- [API 계약 정의](./archive/0001-remove-schedule-based-challenges-api-contract.md)
+- [사용처 인벤토리](./inventory.md)
+- [API 계약 정의](./api-contract.md)

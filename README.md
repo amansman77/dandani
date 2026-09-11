@@ -49,6 +49,15 @@ Worker를 로컬에서 함께 실행하려면 별도 터미널에서 다음을 �
 npm run dev:workers
 ```
 
+변경사항을 제출하기 전 전체 품질 게이트를 실행합니다.
+
+```bash
+npm run check
+```
+
+이 명령은 프런트엔드·Worker lint, Worker 타입 검사, 테스트, Markdown 링크 검사,
+프런트엔드 빌드, Worker 번들 dry-run을 순서대로 수행합니다.
+
 자세한 환경 설정은 루트와 각 workspace의 `package.json` 스크립트를 기준으로 하고,
 배포 방법은 [배포 가이드](DEPLOYMENT.md)를 참고하세요. 현재 기능 판단에는
 [프로젝트 컨텍스트](docs/PROJECT_CONTEXT.md)를 우선합니다.

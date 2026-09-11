@@ -97,7 +97,7 @@
 - `docs/adr/0002-challenge-status-definition.md`: 일정형/선택형 챌린지 공존 언급
 
 ### 계획 문서
-- `docs/plan/0001-remove-schedule-based-challenges.md`: 본 작업 계획
+- `docs/archive/plans/0001-remove-schedule-based-challenges.md`: 본 작업 계획
 
 ## 다음 단계
 

@@ -2,7 +2,10 @@
   "name": "dandani-workers",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
+    "lint": "eslint \"src/*.js\"",
+    "test": "node --test \"test/*.test.mjs\"",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev"

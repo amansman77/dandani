@@ -1,4 +1,4 @@
-import { getRequiredUserId } from './service-utils.js';
+import { getRequiredUserId } from '../service-utils.js';
 
 const NVIDIA_API_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 const MODEL = 'nvidia/nemotron-3-ultra-550b-a55b';
