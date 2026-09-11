@@ -115,9 +115,9 @@ const VariantA = ({
           {isEditing ? '문구 수정' : (cameFromPicker ? '고른 문장' : '오늘부터, 나에게')}
         </Eyebrow>
         <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700, maxWidth: 'none' }}>
-          {cameFromPicker && !isEditing ? (
+          {cameFromPicker ? (
             <>
-              이 문장으로 시작할까요?
+              {isEditing ? '이 문장으로 바꿀까요?' : '이 문장으로 시작할까요?'}
               <br />고쳐 써도 괜찮아요.
             </>
           ) : (
@@ -130,7 +130,7 @@ const VariantA = ({
         {/* 고르고 넘어온 화면에선 예시 칩이 방해만 된다 — 이미 문장이 담겨 있다.
             대신 목록으로 되돌아갈 길을 둔다. 고르기가 한 번 고르면 끝나는
             외길이 되지 않도록. */}
-        <Box sx={{ display: cameFromPicker && !isEditing ? 'none' : 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', mb: 3, position: 'relative' }}>
+        <Box sx={{ display: cameFromPicker ? 'none' : 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', mb: 3, position: 'relative' }}>
           {EXAMPLE_PHRASES.map((example) => (
             <Chip
               key={example}
@@ -186,7 +186,7 @@ const VariantA = ({
         >
           {submitting ? <Loader small /> : (isEditing ? '이 문장으로 바꿀게요' : '이 문장으로 시작할게요')}
         </Button>
-        {cameFromPicker && !isEditing && (
+        {onBackToPicker && (
           <Box
             component="button"
             type="button"
@@ -198,7 +198,7 @@ const VariantA = ({
               '&:hover': { opacity: 0.75 },
             }}
           >
-            다시 고를래요
+            {cameFromPicker ? '다시 고를래요' : '다른 문장에서 고를래요'}
           </Box>
         )}
       </Scene>

@@ -56,6 +56,10 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
   useEffect(() => {
     if (isEditing && phrase) {
       setInputValue(phrase.phrase);
+      // 편집은 "지금 문구를 고친다"로 시작한다. 오타 하나 고치려는 사람에게
+      // 목록부터 내밀면 방해다 — 대신 그 화면에서 목록으로 갈 수 있게 한다.
+      setEntryMode('write');
+      setPickedText(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
@@ -187,12 +191,17 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
 
   // 활성 문구가 없고, 고치는 중도 아니고, 아직 직접 쓰기를 고르지도 않았다면
   // 빈 칸 대신 고를 수 있는 문장들을 먼저 보여준다.
-  if (!phrase && !isEditing && entryMode === 'browse') {
+  if ((!phrase || isEditing) && entryMode === 'browse') {
     return (
       <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
         <PhrasePicker
           onPick={handlePickPhrase}
-          onWriteOwn={() => { setPickedText(null); setInputValue(''); setEntryMode('write'); }}
+          onWriteOwn={() => {
+            setPickedText(null);
+            // 편집 중이었다면 고치던 문구로 되돌린다(빈 칸으로 만들면 쓰던 걸 잃는다).
+            setInputValue(isEditing && phrase ? phrase.phrase : '');
+            setEntryMode('write');
+          }}
         />
       </Box>
     );
