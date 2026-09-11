@@ -52,17 +52,14 @@ Worker를 로컬에서 함께 실행하려면 별도 터미널에서 다음을 �
 npm run dev:workers
 ```
 
-자세한 환경 설정과 배포 방법은 [개발 가이드](DEVELOPMENT.md)와
-[배포 가이드](DEPLOYMENT.md)를 참고하세요. `DEVELOPMENT.md`의 챌린지/AI 상담사 설명은
-과거 구조를 포함하므로 현재 기능 판단에는 [프로젝트 컨텍스트](docs/PROJECT_CONTEXT.md)를
-우선합니다.
+자세한 환경 설정은 루트와 각 workspace의 `package.json` 스크립트를 기준으로 하고,
+배포 방법은 [배포 가이드](DEPLOYMENT.md)를 참고하세요. 현재 기능 판단에는
+[프로젝트 컨텍스트](docs/PROJECT_CONTEXT.md)를 우선합니다.
 
 ## 문서 안내
 
 * [현재 제품과 표준 용어](docs/PROJECT_CONTEXT.md)
-* [개발 환경](DEVELOPMENT.md)
 * [배포](DEPLOYMENT.md)
-* [인프라](INFRASTRUCTURE.md)
 * [아키텍처 결정](docs/adr/README.md)
 
 과거 챌린지와 Story Feed 관련 코드·데이터는 의도적으로 일부 보존되어 있습니다. 현재

@@ -80,5 +80,5 @@
 - 실천 완료 후 진행률 자동 업데이트 기능 추가
 
 ## 참고 문서
-- [사용처 인벤토리](./0001-remove-schedule-based-challenges-inventory.md)
-- [API 계약 정의](./0001-remove-schedule-based-challenges-api-contract.md)
+- [사용처 인벤토리](./archive/0001-remove-schedule-based-challenges-inventory.md)
+- [API 계약 정의](./archive/0001-remove-schedule-based-challenges-api-contract.md)
