@@ -104,19 +104,33 @@ function getRollingWeekTicks(loggedDates) {
 
 const VariantA = ({
   phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onViewHistory,
-  onUseCommunityPhrase, hasActivePhrase, isEditing,
+  onUseCommunityPhrase, hasActivePhrase, isEditing, cameFromPicker, onBackToPicker,
 }) => {
   if (!phrase || isEditing) {
     // 취소는 이제 헤더의 "안내" 자리(같은 왼쪽 위)를 대신하는 걸로 옮겨가서,
     // 여기서 또 하나 띄우면 취소가 두 번 보이게 된다 — 그래서 안 넣는다.
     return (
       <Scene>
-        <Eyebrow sx={{ mb: 2.5 }}>{isEditing ? '문구 수정' : '오늘부터, 나에게'}</Eyebrow>
+        <Eyebrow sx={{ mb: 2.5 }}>
+          {isEditing ? '문구 수정' : (cameFromPicker ? '고른 문장' : '오늘부터, 나에게')}
+        </Eyebrow>
         <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700, maxWidth: 'none' }}>
-          매일 아침 나에게 되새기고 싶은
-          <br />한 문장을 적어보세요.
+          {cameFromPicker && !isEditing ? (
+            <>
+              이 문장으로 시작할까요?
+              <br />고쳐 써도 괜찮아요.
+            </>
+          ) : (
+            <>
+              매일 아침 나에게 되새기고 싶은
+              <br />한 문장을 적어보세요.
+            </>
+          )}
         </Phrase>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', mb: 3, position: 'relative' }}>
+        {/* 고르고 넘어온 화면에선 예시 칩이 방해만 된다 — 이미 문장이 담겨 있다.
+            대신 목록으로 되돌아갈 길을 둔다. 고르기가 한 번 고르면 끝나는
+            외길이 되지 않도록. */}
+        <Box sx={{ display: cameFromPicker && !isEditing ? 'none' : 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', mb: 3, position: 'relative' }}>
           {EXAMPLE_PHRASES.map((example) => (
             <Chip
               key={example}
@@ -137,6 +151,7 @@ const VariantA = ({
           fullWidth
           multiline
           minRows={2}
+          autoFocus={Boolean(cameFromPicker) && !isEditing}
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="예: 행복한 일은 매일 있다고 생각한다"
@@ -171,6 +186,21 @@ const VariantA = ({
         >
           {submitting ? <Loader small /> : (isEditing ? '이 문장으로 바꿀게요' : '이 문장으로 시작할게요')}
         </Button>
+        {cameFromPicker && !isEditing && (
+          <Box
+            component="button"
+            type="button"
+            onClick={onBackToPicker}
+            sx={{
+              mt: 2, border: 'none', background: 'none', cursor: 'pointer',
+              fontFamily: SANS, fontSize: '0.76rem', color: COLOR.text.faint,
+              WebkitTapHighlightColor: 'transparent',
+              '&:hover': { opacity: 0.75 },
+            }}
+          >
+            다시 고를래요
+          </Box>
+        )}
       </Scene>
     );
   }

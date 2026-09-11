@@ -15,7 +15,7 @@ function todayDateString(request) {
 export async function createPhrase(env, request) {
   const userId = getRequiredUserId(request);
   const body = await request.json();
-  const { phrase } = body;
+  const { phrase, source } = body;
 
   if (!phrase || !phrase.trim()) {
     throw new Error('phrase is required');
@@ -34,7 +34,13 @@ export async function createPhrase(env, request) {
     INSERT INTO daily_phrases (id, user_id, phrase) VALUES (?, ?, ?)
   `).bind(id, userId, phrase.trim()).run();
 
-  await logUserEvent(env, request, 'phrase_start', { phrase_id: id });
+  // 목록에서 고른 문장인지 직접 쓴 문장인지 남긴다(picked / picked_edited / written).
+  // 고르기가 시작은 늘리면서 지속을 줄이는지 보려면 이 구분이 필요하다.
+  // 클라이언트가 아니라 여기서 남기므로 추적 차단에도 안 날아간다.
+  await logUserEvent(env, request, 'phrase_start', {
+    phrase_id: id,
+    source: ['picked', 'picked_edited', 'written'].includes(source) ? source : 'unknown',
+  });
 
   return { id, phrase: phrase.trim(), status: 'active' };
 }

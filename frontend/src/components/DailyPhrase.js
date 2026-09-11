@@ -4,6 +4,7 @@ import { getUserId } from '../utils/userId';
 import { getClientTimeHeaders } from '../utils/clientTime';
 import VariantA from './phraseVariants/VariantA';
 import Loader from './Loader';
+import PhrasePicker from './PhrasePicker';
 import { logPhraseOnboardingShown, logPhraseExampleUsed, logPhraseDayLogged } from '../utils/analytics';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -73,6 +74,18 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
   // 기존 활성 문구가 있으면 retire 먼저, 없으면 바로 create. 새 문구 등록 경로가
   // 여기 하나로 모여서 handleSubmit(수정 폼 제출)과 handleUseCommunityPhrase(커뮤니티
   // 문구 채택) 둘 다 재사용한다.
+  // 'browse'(고르기) | 'write'(직접 쓰기). 처음 온 사람은 고르기부터 본다.
+  // 고른 뒤에도 write로 넘어가 그 문장을 고칠 수 있다.
+  const [entryMode, setEntryMode] = useState('browse');
+  // 이 문장을 어떻게 얻었는지 — 고른 그대로인지, 고쳐 썼는지, 처음부터 쓴 건지.
+  // 고르기가 문턱은 낮추면서 애착까지 낮추는지 보려면 이 구분이 있어야 한다.
+  const [pickedText, setPickedText] = useState(null);
+
+  const startSource = (text) => {
+    if (pickedText === null) return 'written';
+    return text.trim() === pickedText.trim() ? 'picked' : 'picked_edited';
+  };
+
   const commitNewPhrase = async (text) => {
     if (phrase) {
       const retireResponse = await fetch(`${API_URL}/api/phrases/${phrase.id}/retire`, {
@@ -85,7 +98,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     const response = await fetch(`${API_URL}/api/phrases`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-      body: JSON.stringify({ phrase: text.trim() }),
+      body: JSON.stringify({ phrase: text.trim(), source: startSource(text) }),
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || '문구 등록에 실패했습니다.');
@@ -148,7 +161,16 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
   // 실패를 보여주고 다시 시도할 수 있어야 하기 때문.
   const handleUseCommunityPhrase = async (text) => {
     if (!text || !text.trim()) return;
+    setPickedText(text);
     await commitNewPhrase(text);
+  };
+
+  // 목록에서 고르면 바로 시작하지 않고, 그 문장을 입력칸에 담아 쓰기 화면으로.
+  // 그대로 시작해도 되고 고쳐도 된다.
+  const handlePickPhrase = (text) => {
+    setPickedText(text);
+    setInputValue(text);
+    setEntryMode('write');
   };
 
   if (loading) {
@@ -161,6 +183,19 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
 
   if (error) {
     return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
+  }
+
+  // 활성 문구가 없고, 고치는 중도 아니고, 아직 직접 쓰기를 고르지도 않았다면
+  // 빈 칸 대신 고를 수 있는 문장들을 먼저 보여준다.
+  if (!phrase && !isEditing && entryMode === 'browse') {
+    return (
+      <Box sx={{ width: '100%', maxWidth: 600, mx: 'auto' }}>
+        <PhrasePicker
+          onPick={handlePickPhrase}
+          onWriteOwn={() => { setPickedText(null); setInputValue(''); setEntryMode('write'); }}
+        />
+      </Box>
+    );
   }
 
   return (
@@ -177,6 +212,8 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
         onRetire={handleRetire}
         onViewHistory={onViewHistory}
         onUseCommunityPhrase={handleUseCommunityPhrase}
+        cameFromPicker={pickedText !== null}
+        onBackToPicker={() => { setPickedText(null); setInputValue(''); setEntryMode('browse'); }}
         hasActivePhrase={Boolean(phrase)}
         isEditing={isEditing}
       />
