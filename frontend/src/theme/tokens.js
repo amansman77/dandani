@@ -20,7 +20,7 @@ export const FONT = {
 
 export const COLOR = {
   text: {
-    primary: '#322f29',   // 문구 본문, 제목
+    primary: '#322f29',   // 문장 본문, 제목
     strong: '#4a4437',    // 시트 목록 제목
     body: '#6b6355',      // 설명 문장
     quote: '#6b5a4a',     // 티커 카드 안 인용문(이탤릭)

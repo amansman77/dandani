@@ -16,10 +16,10 @@ function App() {
   const [activeTab, setActiveTab] = useState(0);
   const isPoppingNavRef = useRef(false);
   const [isNonKoreanUser, setIsNonKoreanUser] = useState(false);
-  // 오늘의 문구 편집 트리거를 헤더(안내 버튼 옆)로 옮기면서, 편집 중인지/편집
-  // 가능한 문구가 있는지를 App이 들고 DailyPhrase와 주고받는다.
+  // 오늘의 문장 편집 트리거를 헤더(안내 버튼 옆)로 옮기면서, 편집 중인지/편집
+  // 가능한 문장이 있는지를 App이 들고 DailyPhrase와 주고받는다.
   const [phraseEditing, setPhraseEditing] = useState(false);
-  // 공유는 문장과 기록 값이 둘 다 필요해서 불리언이 아니라 문구 객체를 들고 있는다.
+  // 공유는 문장과 기록 값이 둘 다 필요해서 불리언이 아니라 문장 객체를 들고 있는다.
   const [activePhrase, setActivePhrase] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   // 진입할 때마다 — 매일 아침 여는 앱이라 "열면 해가 뜬다"를 의식의 일부로 둔다

@@ -2,7 +2,7 @@ import { getUserId } from './userId';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
-// 실제 다른 사용자 데이터 사이사이에, 편집팀이 고른 문구를 섞어 넣는다
+// 실제 다른 사용자 데이터 사이사이에, 편집팀이 고른 문장을 섞어 넣는다
 // (항상 맨 앞에 고정하면 "다른 사람들의 아침"인데도 짜여진 것처럼 보인다는
 // 피드백으로, 실유저 항목과 완전히 뒤섞는 쪽으로 바꿨다). 절대 실제 유저인
 // 척(가짜 닉네임·가짜 N일째)하지 않고 "단단이 추천"으로 명확히 구분해서
@@ -94,7 +94,7 @@ export const RECOMMENDED_ITEMS = [
 ];
 
 // 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
-// 맨 앞줄을 차지하지 않고, 실유저 문구들 사이 아무 자리에나 나오게
+// 맨 앞줄을 차지하지 않고, 실제 사용자 문장들 사이 아무 자리에나 나오게
 // (Fisher–Yates).
 export function shuffle(arr) {
   const copy = [...arr];
@@ -105,8 +105,8 @@ export function shuffle(arr) {
   return copy;
 }
 
-// 티커와 첫 문장 고르기 화면이 같은 재료를 쓴다. 실제 유저 문구를 못 받아와도
-// 추천 문구만으로 화면이 비지 않게 항상 합쳐서 돌려준다.
+// 티커와 첫 문장 고르기 화면이 같은 재료를 쓴다. 실제 사용자 문장을 못 받아와도
+// 추천 문장만으로 화면이 비지 않게 항상 합쳐서 돌려준다.
 export async function fetchPhrasePool() {
   let list = [];
   try {

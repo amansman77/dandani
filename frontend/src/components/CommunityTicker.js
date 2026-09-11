@@ -10,18 +10,18 @@ const SANS = FONT.sans;
 // 카드 자체가 쌓인 더미에서 빠져나가고 새 카드가 그 자리로 올라오는 것처럼 보이게 한다.
 // 뒤에 쌓인 카드 가장자리(box-shadow)는 "다음 것이 있다"를 진행바 없이도 항상 보여준다.
 const CARD_MS = 550; // 카드가 빠지고 들어오는 전환 속도 — 360ms는 너무 빨라 550ms로
-const DWELL_MS = 8000; // 다음 문구로 넘어가기 전 한 문구를 보여주는 시간 — 4.5s → 6.5s → 8s
+const DWELL_MS = 8000; // 다음 문장으로 넘어가기 전 한 문장을 보여주는 시간 — 4.5s → 6.5s → 8s
 
 const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   const [items, setItems] = useState([]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | exit | enter
   // 데이터가 오기 전엔 갑자기 카드가 툭 튀어나오는 대신, 같은 자리에 스켈레톤을
-  // 먼저 보여준다. 추천 문구 2개는 항상 있어서, 이제 실제 커뮤니티 데이터가
+  // 먼저 보여준다. 추천 문장은 항상 있어서, 이제 실제 사용자 데이터가
   // 하나도 없거나 요청이 실패해도 티커 자체가 사라지지는 않는다.
   const [status, setStatus] = useState('loading'); // loading | ready
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null); // 목록에서 고른 문구(확인 화면으로 전환)
+  const [selected, setSelected] = useState(null); // 목록에서 고른 문장(확인 화면으로 전환)
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState(null);
 
@@ -39,7 +39,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
       await onUseCommunityPhrase(selected.phrase);
       closeSheet();
     } catch (err) {
-      setApplyError(err.message || '문구를 시작하지 못했어요. 다시 시도해주세요.');
+      setApplyError(err.message || '문장을 시작하지 못했어요. 다시 시도해주세요.');
     } finally {
       setApplying(false);
     }
@@ -135,7 +135,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
         mt: 7,
         maxWidth: 260,
         width: '100%',
-        // 뒤에 쌓인 카드 가장자리를 box-shadow 두 겹으로 흉내 낸다 — 문구 길이가
+        // 뒤에 쌓인 카드 가장자리를 box-shadow 두 겹으로 흉내 낸다 — 문장 길이가
         // 바뀌어도 카드 높이에 자동으로 맞춰지고, 실제 DOM을 더 만들 필요가 없다.
         boxShadow: hasStack
           ? `7px 9px 0 0 ${COLOR.line.stack}, 14px 18px 0 0 ${COLOR.line.faint}, 0 10px 24px rgba(60,40,10,0.06)`
@@ -263,8 +263,8 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
             </Typography>
             <Typography sx={{ fontFamily: SANS, fontSize: '0.8rem', color: COLOR.text.body, lineHeight: 1.7, mb: 2 }}>
               {hasActivePhrase
-                ? '지금 되새기는 문구는 그만두고, 이 문구로 다시 시작해요.'
-                : '이 문구로 오늘부터 시작해요.'}
+                ? '지금 되새기는 문장은 그만두고, 이 문장으로 다시 시작해요.'
+                : '이 문장으로 오늘부터 시작해요.'}
             </Typography>
             {applyError && (
               <Typography sx={{ fontFamily: SANS, fontSize: '0.74rem', color: COLOR.error, mb: 1.5 }}>
@@ -283,7 +283,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
                   '&.Mui-disabled': { color: COLOR.text.muted, border: `1.4px solid ${COLOR.line.disabled}` },
                 }}
               >
-                {applying ? <Loader small /> : '이 문구로 시작할게요'}
+                {applying ? <Loader small /> : '이 문장으로 시작할게요'}
               </Button>
               <Typography
                 onClick={() => !applying && setSelected(null)}

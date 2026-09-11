@@ -51,12 +51,12 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
   }, [loading, phrase]);
 
   // 편집 버튼이 헤더(안내 버튼 옆)로 옮겨가면서, "편집 시작"이 이제 App 쪽에서
-  // isEditing을 true로 뒤집는 걸로 온다. 여기서는 그 순간 입력창에 지금 문구를
+  // isEditing을 true로 뒤집는 걸로 온다. 여기서는 그 순간 입력창에 지금 문장을
   // 미리 채워 넣는 것만 담당한다.
   useEffect(() => {
     if (isEditing && phrase) {
       setInputValue(phrase.phrase);
-      // 편집은 "지금 문구를 고친다"로 시작한다. 오타 하나 고치려는 사람에게
+      // 편집은 "지금 문장을 고친다"로 시작한다. 오타 하나 고치려는 사람에게
       // 목록부터 내밀면 방해다 — 대신 그 화면에서 목록으로 갈 수 있게 한다.
       setEntryMode('write');
       setPickedText(null);
@@ -64,7 +64,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]);
 
-  // 헤더의 편집·공유 버튼이 활성 문구에 따라 달라져서, 문구 자체를 App으로
+  // 헤더의 편집·공유 버튼이 활성 문장에 따라 달라져서, 문장 자체를 App으로
   // 올려보낸다(공유는 문장과 기록 값이 필요해서 불리언으론 부족하다).
   useEffect(() => {
     if (onActivePhraseChange) onActivePhraseChange(phrase || null);
@@ -75,9 +75,9 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     setInputValue(example);
   };
 
-  // 기존 활성 문구가 있으면 retire 먼저, 없으면 바로 create. 새 문구 등록 경로가
+  // 기존 활성 문장이 있으면 retire 먼저, 없으면 바로 create. 새 문장 등록 경로가
   // 여기 하나로 모여서 handleSubmit(수정 폼 제출)과 handleUseCommunityPhrase(커뮤니티
-  // 문구 채택) 둘 다 재사용한다.
+  // 문장 채택) 둘 다 재사용한다.
   // 'browse'(고르기) | 'write'(직접 쓰기). 처음 온 사람은 고르기부터 본다.
   // 고른 뒤에도 write로 넘어가 그 문장을 고칠 수 있다.
   const [entryMode, setEntryMode] = useState('browse');
@@ -105,7 +105,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
       body: JSON.stringify({ phrase: text.trim(), source: startSource(text) }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || '문구 등록에 실패했습니다.');
+    if (!response.ok) throw new Error(data.error || '문장 등록에 실패했습니다.');
     await fetchActivePhrase();
   };
 
@@ -160,7 +160,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     }
   };
 
-  // 커뮤니티 목록에서 다른 사람의 문구를 골라 그대로 시작한다. 화면 전체를 에러로
+  // 다른 사람들의 아침 목록에서 문장을 골라 그대로 시작한다. 화면 전체를 에러로
   // 덮어버리는 setError는 여기서는 쓰지 않고 그대로 던진다 — 확인 UI(바텀시트) 안에서
   // 실패를 보여주고 다시 시도할 수 있어야 하기 때문.
   const handleUseCommunityPhrase = async (text) => {
@@ -189,7 +189,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     return <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>;
   }
 
-  // 활성 문구가 없고, 고치는 중도 아니고, 아직 직접 쓰기를 고르지도 않았다면
+  // 활성 문장이 없고, 고치는 중도 아니고, 아직 직접 쓰기를 고르지도 않았다면
   // 빈 칸 대신 고를 수 있는 문장들을 먼저 보여준다.
   if ((!phrase || isEditing) && entryMode === 'browse') {
     return (
@@ -198,7 +198,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
           onPick={handlePickPhrase}
           onWriteOwn={() => {
             setPickedText(null);
-            // 편집 중이었다면 고치던 문구로 되돌린다(빈 칸으로 만들면 쓰던 걸 잃는다).
+            // 편집 중이었다면 고치던 문장으로 되돌린다(빈 칸으로 만들면 쓰던 걸 잃는다).
             setInputValue(isEditing && phrase ? phrase.phrase : '');
             setEntryMode('write');
           }}

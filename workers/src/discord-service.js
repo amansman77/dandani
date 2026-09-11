@@ -23,7 +23,7 @@ export function formatDiscordMessage(reportData) {
     fields: [
       {
         name: `📅 어제 스냅샷 (${date})`,
-        value: `• 방문자: ${daily_snapshot.visitors}명\n• 문장 새로 작성: ${daily_snapshot.phrases_started}명\n• 되새기기 실행: ${daily_snapshot.phrases_logged_users}명\n• 문구 포기: ${daily_snapshot.phrases_retired}명`,
+        value: `• 방문자: ${daily_snapshot.visitors}명\n• 문장 새로 작성: ${daily_snapshot.phrases_started}명\n• 되새기기 실행: ${daily_snapshot.phrases_logged_users}명\n• 문장 은퇴: ${daily_snapshot.phrases_retired}명`,
         inline: false
       },
       {

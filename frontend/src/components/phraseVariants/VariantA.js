@@ -112,7 +112,7 @@ const NATIVE_COUNT = {
   42: '마흔두', 49: '마흔아홉', 56: '쉰여섯', 63: '예순세', 70: '일흔',
 };
 
-// 이 문구에서 이 마디를 이미 봤는지. 축하는 한 번만 스쳐가야 한다 —
+// 이 문장에서 이 마디를 이미 봤는지. 축하는 한 번만 스쳐가야 한다 —
 // 매일 같은 축하가 뜨면 그건 축하가 아니라 배경이 된다.
 const seenKey = (phraseId, key) => `dandani_milestone_${phraseId}_${key}`;
 
@@ -156,7 +156,7 @@ const VariantA = ({
     return (
       <Scene>
         <Eyebrow sx={{ mb: 2.5 }}>
-          {isEditing ? '문구 수정' : (cameFromPicker ? '고른 문장' : '오늘부터, 나에게')}
+          {isEditing ? '문장 수정' : (cameFromPicker ? '고른 문장' : '오늘부터, 나에게')}
         </Eyebrow>
         <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700, maxWidth: 'none' }}>
           {cameFromPicker ? (

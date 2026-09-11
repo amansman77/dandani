@@ -128,7 +128,7 @@ const VariantC = ({
         onClick={onRetire}
         sx={{ mt: 3, color: '#c9bfa8', cursor: 'pointer' }}
       >
-        문구 바꾸기
+        문장 바꾸기
       </Typography>
     </Scene>
   );
