@@ -59,6 +59,13 @@
         font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
         word-break: keep-all;
         overflow-wrap: break-word;
+        /* 배경 그라디언트를 화면 고정 레이어로 옮기면서, 그 레이어가 못 덮는 곳
+           (iOS의 안전영역, 스크롤 끝에서 튕길 때 생기는 여백)이 브라우저 기본
+           흰색으로 드러났다 — 하단 탭 자리가 흰 띠로 보이고 화면이 잘린 것처럼
+           보이던 원인. 문서 자체에도 같은 그라디언트를 깔아두면 그 틈에 흰색
+           대신 위쪽은 새벽색, 아래쪽은 크림색이 이어진다. */
+        background-color: #f8f1e6;
+        background-image: linear-gradient(180deg, #eef2f4 0%, #f3ece2 55%, #f8f1e6 100%);
       }
     </style>
     <!-- Google tag (gtag.js) -->

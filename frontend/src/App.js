@@ -93,6 +93,8 @@ function App() {
       sx={{
         minHeight: '100vh',
         position: 'relative',
+        // 고정 배경 레이어가 못 덮는 틈에 흰색이 비치지 않도록 문서에도 바탕색을 둔다.
+        backgroundColor: COLOR.surface.ring,
       }}
     >
       {/* 배경은 문서가 아니라 화면에 고정한다.
