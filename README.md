@@ -58,6 +58,16 @@ npm run check
 이 명령은 프런트엔드·Worker lint, Worker 타입 검사, 테스트, Markdown 링크 검사,
 프런트엔드 빌드, Worker 번들 dry-run을 순서대로 수행합니다.
 
+핵심 모바일 흐름의 브라우저 스모크 테스트는 Playwright 브라우저를 한 번 설치한 뒤
+별도로 실행합니다. 테스트는 로컬 프런트엔드를 시작하고 API를 결정적인 응답으로 대체하므로
+운영 데이터에 영향을 주지 않습니다.
+
+```bash
+npm ci --prefix automation/ux-check
+npx --prefix automation/ux-check playwright install chromium
+npm run test:e2e
+```
+
 자세한 환경 설정은 루트와 각 workspace의 `package.json` 스크립트를 기준으로 하고,
 배포 방법은 [배포 가이드](DEPLOYMENT.md)를 참고하세요. 현재 기능 판단에는
 [프로젝트 컨텍스트](docs/PROJECT_CONTEXT.md)를 우선합니다.
