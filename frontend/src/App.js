@@ -93,26 +93,40 @@ function App() {
       sx={{
         minHeight: '100vh',
         position: 'relative',
-        overflow: 'hidden',
-        background: COLOR.gradient,
       }}
     >
-      {/* 앱은 뒤에서 그대로 초기화되고, 스플래시는 그 위를 덮었다 걷힌다 */}
-      {splashOpen && <SplashScreen onDone={() => setSplashOpen(false)} />}
+      {/* 배경은 문서가 아니라 화면에 고정한다.
+          예전엔 이 Box에 그라디언트를 걸었는데, 첫 화면이 문장 목록으로 바뀌면서
+          문서 높이가 3000px를 넘자 그라디언트가 그 높이 전체로 늘어났다. 그래서
+          스크롤 위치마다 전혀 다른 색이 보이고 화면이 따로 노는 느낌이 났다.
+          고정하면 어디까지 스크롤하든 같은 아침 빛이 뒤에 깔린다. */}
       <Box
         sx={{
-          position: 'absolute',
-          top: '-15%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: 480,
-          height: 480,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,225,190,0.55) 0%, rgba(255,225,190,0) 70%)',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 0,
+          overflow: 'hidden',
           pointerEvents: 'none',
+          background: COLOR.gradient,
         }}
-      />
-    <Container maxWidth="sm" sx={{ position: 'relative' }}>
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '-15%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 480,
+            height: 480,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(255,225,190,0.55) 0%, rgba(255,225,190,0) 70%)',
+          }}
+        />
+      </Box>
+
+      {/* 앱은 뒤에서 그대로 초기화되고, 스플래시는 그 위를 덮었다 걷힌다 */}
+      {splashOpen && <SplashScreen onDone={() => setSplashOpen(false)} />}
+    <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
       <Box sx={{ pt: 2, pb: 10, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* 편집 중엔 공유·편집을 둘 다 숨긴다 — 고쳐 쓰는 중에 공유하면 아직
             저장 안 된 옛 문장이 나가고, 편집 중의 "편집"은 아무 일도 안 한다.
