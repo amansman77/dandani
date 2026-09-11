@@ -2,6 +2,13 @@
 
 Problem definition → small, safe change → change review → refactor — repeat the loop.
 
+## Project Context First
+
+- Before exploring code, read `docs/PROJECT_CONTEXT.md` for the current product boundary and glossary.
+- Treat `phrase` (문장) and its daily `log` (되새기기) as the current core domain.
+- Treat challenge/practice/story/timefold code as legacy unless `workers/src/router.js` makes it reachable.
+- Do not revive or remove legacy assets without reviewing `docs/adr/0005-legacy-backend-inventory.md`.
+
 ## Mandatory Rules
 
 - Before changing anything, read the relevant files end to end, including all call/reference paths.
