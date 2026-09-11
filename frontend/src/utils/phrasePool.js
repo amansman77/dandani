@@ -86,6 +86,11 @@ export const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '나는 아침마다 삶의 감각을 깨운다',
   },
+  {
+    phrase: '오늘도 나에게 와준 하루라는 시간에 감사하며 “고마워”라고 말로 표현하면 마음이 한결 따뜻해진다.',
+    isRecommended: true,
+    source: '나는 아침마다 삶의 감각을 깨운다',
+  },
 ];
 
 // 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
