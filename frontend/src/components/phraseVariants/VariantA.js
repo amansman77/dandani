@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Chip, Button } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
@@ -76,7 +76,7 @@ function dateKeyDaysAgo(offsetDays) {
 // 아직 오늘 기록 전이면 어제까지, 듀오링고식 유예)부터 거꾸로 걸으며 끊기지
 // 않는 구간만 스트릭으로 보고, 그 구간에 든 날짜만 채운다 — 끊기기 전의 옛날
 // 기록은 화면(7칸)에 남아있어도 더 이상 채워 보이지 않는다.
-function getRollingWeekTicks(loggedDates) {
+function getStreakLength(loggedDates) {
   const set = new Set(loggedDates || []);
 
   const streakDates = new Set();
@@ -92,20 +92,64 @@ function getRollingWeekTicks(loggedDates) {
     }
   }
 
-  // 눈금은 왼쪽부터 스트릭 길이만큼 채운다. 예전엔 "6일 전~오늘"을 달력처럼
-  // 배치했는데, 어느 칸이 무슨 요일인지 아무 표시가 없어서 3일 이어온 사람에게는
-  // 그냥 "첫 칸이 왜 비었지?"로 보였다(실제 제보). 날짜를 읽을 수 없는 표시라면
-  // 며칠째인지를 세는 쪽이 정직하다.
-  const filled = Math.min(streakDates.size, 7);
+  return streakDates.size;
+}
+
+// 눈금은 왼쪽부터 스트릭 길이만큼 채운다. 예전엔 "6일 전~오늘"을 달력처럼
+// 배치했는데, 어느 칸이 무슨 요일인지 아무 표시가 없어서 3일 이어온 사람에게는
+// 그냥 "첫 칸이 왜 비었지?"로 보였다(실제 제보). 날짜를 읽을 수 없는 표시라면
+// 며칠째인지를 세는 쪽이 정직하다.
+function ticksFor(streak) {
+  const filled = Math.min(streak, 7);
   const ticks = [];
   for (let i = 0; i < 7; i += 1) ticks.push(i < filled);
   return ticks;
 }
 
+// 7의 배수만 쓰이므로 그만큼만 둔다. 벗어나면 숫자로 떨어진다.
+const NATIVE_COUNT = {
+  7: '일곱', 14: '열네', 21: '스물한', 28: '스물여덟', 35: '서른다섯',
+  42: '마흔두', 49: '마흔아홉', 56: '쉰여섯', 63: '예순세', 70: '일흔',
+};
+
+// 이 문구에서 이 마디를 이미 봤는지. 축하는 한 번만 스쳐가야 한다 —
+// 매일 같은 축하가 뜨면 그건 축하가 아니라 배경이 된다.
+const seenKey = (phraseId, key) => `dandani_milestone_${phraseId}_${key}`;
+
 const VariantA = ({
   phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onViewHistory,
   onUseCommunityPhrase, hasActivePhrase, isEditing, cameFromPicker, onBackToPicker,
 }) => {
+  // 마디(7일 연속 / 누적 7번)에 닿은 날 한 번만 스쳐가는 인사.
+  // 훅이라 조건부 return보다 반드시 위에 있어야 한다.
+  const [milestone, setMilestone] = useState(null);
+
+  useEffect(() => {
+    if (!phrase || !phrase.logged_today) return;
+    const streakNow = getStreakLength(phrase.logged_dates);
+    const totalNow = phrase.logged_days || 0;
+
+    // 완벽하게 이어온 사람은 두 마디가 같은 날 겹친다. 그때는 더 어려운 쪽
+    // (연속)만 말한다 — 같은 날 축하를 두 번 하면 둘 다 값이 떨어진다.
+    let hit = null;
+    if (streakNow > 0 && streakNow % 7 === 0) {
+      const weeks = streakNow / 7;
+      hit = { key: `streak_${streakNow}`, text: weeks === 1 ? '일주일을 이어갔어요' : `${weeks}주를 이어갔어요` };
+    } else if (totalNow > 0 && totalNow % 7 === 0) {
+      const word = NATIVE_COUNT[totalNow] || String(totalNow);
+      hit = { key: `total_${totalNow}`, text: `${word} 번의 아침이 쌓였어요` };
+    }
+    if (!hit) return;
+
+    try {
+      if (localStorage.getItem(seenKey(phrase.id, hit.key))) return;
+      localStorage.setItem(seenKey(phrase.id, hit.key), '1');
+    } catch (err) {
+      // 저장을 못 해도(사파리 비공개 모드 등) 축하는 보여준다 — 다만 다음에 또 뜰 수 있다
+    }
+    setMilestone(hit);
+  }, [phrase]);
+
   if (!phrase || isEditing) {
     // 취소는 이제 헤더의 "안내" 자리(같은 왼쪽 위)를 대신하는 걸로 옮겨가서,
     // 여기서 또 하나 띄우면 취소가 두 번 보이게 된다 — 그래서 안 넣는다.
@@ -205,7 +249,9 @@ const VariantA = ({
     );
   }
 
-  const ticks = getRollingWeekTicks(phrase.logged_dates);
+  const streak = getStreakLength(phrase.logged_dates);
+  const ticks = ticksFor(streak);
+  const totalDays = phrase.logged_days || 0;
   // 되새기기 완료 횟수(logged_days) 대신 방문한 날 수 — 서버가 오늘 몫까지 계산해서 내려준다.
   const morningNumber = phrase.visit_days;
 
@@ -221,11 +267,56 @@ const VariantA = ({
         {morningNumber}번째 아침이에요
       </Typography>
       <Phrase sx={{ mb: 3.5 }}>{phrase.phrase}</Phrase>
-      <Box sx={{ display: 'flex', gap: 0.75, mb: 4, position: 'relative' }}>
+
+      {/* 마디에 닿은 날에만, 한 번. 스플래시의 빛 문법을 아주 옅게 빌려 쓴다. */}
+      {milestone && (
+        <Box
+          sx={{
+            position: 'relative',
+            mb: 2,
+            px: 3,
+            py: 1.5,
+            borderRadius: '14px',
+            background: 'radial-gradient(ellipse at center,'
+              + ' rgba(255,240,208,0.95) 0%, rgba(255,235,196,0.35) 55%, rgba(255,235,196,0) 78%)',
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: SANS, fontSize: '0.82rem', fontWeight: 700,
+              color: COLOR.accent.main,
+            }}
+          >
+            {milestone.text}
+          </Typography>
+        </Box>
+      )}
+
+      <Box sx={{ display: 'flex', gap: 0.75, mb: 1, position: 'relative' }}>
         {ticks.map((filled, i) => (
           <Tick key={i} filled={filled} sx={{ animationDelay: `${i * 220}ms` }} />
         ))}
       </Box>
+
+      {/* 눈금은 끊기면 비지만 "모두 N번"은 절대 안 줄어든다. 하루 쉬고 돌아왔을 때
+          처음부터 다시라는 느낌이 안 들도록, 두 숫자를 나란히 둔다. */}
+      {totalDays > 0 && (
+        <Typography
+          sx={{
+            fontFamily: SANS, fontSize: '0.68rem', color: COLOR.text.muted,
+            mb: 4, position: 'relative',
+          }}
+        >
+          {streak > 0 && (
+            <Box component="span" sx={{ color: COLOR.accent.main, fontWeight: 700 }}>
+              {streak}일 연속
+            </Box>
+          )}
+          {streak > 0 && ' · '}
+          모두 {totalDays}번
+        </Typography>
+      )}
+      {totalDays === 0 && <Box sx={{ mb: 4 }} />}
       <Button
         disabled={!phrase.logged_today && logging}
         onClick={phrase.logged_today ? onViewHistory : onLogToday}
