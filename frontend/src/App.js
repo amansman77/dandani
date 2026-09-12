@@ -11,6 +11,7 @@ import { pushNavState, replaceNavState } from './utils/navHistory';
 import { getUserIdInfo, markUserInitialized } from './utils/userId';
 import { logOnboardingComplete } from './utils/analytics';
 import { COLOR } from './theme/tokens';
+import { BACKGROUNDS, getBackground, inkFor, readBackground, writeBackground } from './theme/backgrounds';
 
 function App() {
   const [activeTab, setActiveTab] = useState(0);
@@ -26,6 +27,19 @@ function App() {
   const [splashOpen, setSplashOpen] = useState(true);
 
   const [shareOpen, setShareOpen] = useState(false);
+
+  // 고른 배경은 기기에 남는다. 매일 아침 여는 화면의 인상이라 취향에 가깝고,
+  // 문구를 바꿔도 그대로 따라가는 게 자연스럽다.
+  const [bgId, setBgId] = useState(readBackground);
+  const chooseBackground = (id) => { setBgId(id); writeBackground(id); };
+
+  // 배경은 "오늘 화면에 내 문장이 놓여 있을 때"만 입힌다. 목록·기록·편집 화면까지
+  // 어둡게 만들면 거기 있는 카드·글자를 전부 다시 칠해야 하고, 그건 이번에
+  // 바꾸려던 것(문장에 화면을 다 주기)과 상관없는 일이다.
+  const cardMode = activeTab === 0 && Boolean(activePhrase) && !phraseEditing;
+  const background = getBackground(bgId);
+  const dark = cardMode && background.dark;
+  const ink = inkFor(dark);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
@@ -109,11 +123,14 @@ function App() {
           zIndex: 0,
           overflow: 'hidden',
           pointerEvents: 'none',
-          background: COLOR.gradient,
+          backgroundColor: cardMode ? background.backgroundColor : undefined,
+          backgroundImage: cardMode ? background.backgroundImage : COLOR.gradient,
+          transition: 'background-color .45s ease',
         }}
       >
         <Box
           sx={{
+            display: cardMode ? 'none' : 'block',
             position: 'absolute',
             top: '-15%',
             left: '50%',
@@ -140,6 +157,7 @@ function App() {
           onEditPhrase={() => setPhraseEditing(true)}
           showShare={activeTab === 0 && Boolean(activePhrase) && !phraseEditing}
           onShare={() => setShareOpen(true)}
+          ink={ink}
           isEditing={activeTab === 0 && phraseEditing}
           onCancelEdit={() => setPhraseEditing(false)}
         />
@@ -151,6 +169,8 @@ function App() {
               isEditing={phraseEditing}
               onEditingChange={setPhraseEditing}
               onActivePhraseChange={setActivePhrase}
+              backgrounds={{ list: BACKGROUNDS, current: bgId, onChoose: chooseBackground }}
+              ink={ink}
             />
           )}
 
@@ -171,7 +191,7 @@ function App() {
 
       </Box>
     </Container>
-    <AppBottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+    <AppBottomNav activeTab={activeTab} onTabChange={handleTabChange} ink={ink} />
     </Box>
   );
 }
