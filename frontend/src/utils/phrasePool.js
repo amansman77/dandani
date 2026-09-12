@@ -91,6 +91,11 @@ export const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '나는 아침마다 삶의 감각을 깨운다',
   },
+  {
+    phrase: '분노의 감정을 애써 해석하려 하지 말고 그냥 그대로 내버려 둔다.',
+    isRecommended: true,
+    source: '나는 아침마다 삶의 감각을 깨운다',
+  },
 ];
 
 // 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
