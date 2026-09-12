@@ -13,7 +13,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 // B/C는 frontend/src/components/phraseVariants/ 에 완성된 상태로 대기.
 const ActiveVariant = VariantA;
 
-const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhraseChange, backgrounds, ink }) => {
+const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhraseChange }) => {
   const [phrase, setPhrase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -221,8 +221,6 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
         onRetire={handleRetire}
         onViewHistory={onViewHistory}
         onUseCommunityPhrase={handleUseCommunityPhrase}
-        backgrounds={backgrounds}
-        ink={ink}
         cameFromPicker={pickedText !== null}
         onBackToPicker={() => { setPickedText(null); setInputValue(''); setEntryMode('browse'); }}
         hasActivePhrase={Boolean(phrase)}

@@ -12,16 +12,7 @@ const SANS = FONT.sans;
 const CARD_MS = 550; // 카드가 빠지고 들어오는 전환 속도 — 360ms는 너무 빨라 550ms로
 const DWELL_MS = 8000; // 다음 문구로 넘어가기 전 한 문구를 보여주는 시간 — 4.5s → 6.5s → 8s
 
-const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
-  // 어두운 배경을 고르면 이 카드만 환한 덩어리로 떠서 분위기를 깬다. 카드도 같이
-  // 어두워져야 한다 — 배경만 바꾸고 그 위 물건을 그대로 두면 안 된다.
-  // (시트는 모달이라 밝은 채로 둔다. 그건 화면 위에 새로 올라오는 면이다.)
-  const onDark = Boolean(ink && ink.navBg && ink.navBg.startsWith('rgba(31'));
-  const cardBg = onDark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.85)';
-  const cardLine = onDark ? 'rgba(255,255,255,0.13)' : COLOR.line.soft;
-  const quoteColor = onDark ? '#ece3d3' : COLOR.text.quote;
-  const metaColor = onDark ? 'rgba(236,227,211,0.62)' : COLOR.text.muted;
-  const trackColor = onDark ? 'rgba(255,255,255,0.14)' : COLOR.line.faint;
+const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase }) => {
   const [items, setItems] = useState([]);
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState('idle'); // idle | exit | enter
@@ -95,8 +86,8 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
           sx={{
             textAlign: 'left',
             borderRadius: '14px',
-            border: `1px solid ${cardLine}`,
-            background: cardBg,
+            border: `1px solid ${COLOR.line.soft}`,
+            background: 'rgba(255,255,255,0.85)',
             padding: '14px 16px 12px',
           }}
         >
@@ -116,7 +107,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
                 />
               ))}
             </Box>
-            <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: metaColor }}>
+            <Typography sx={{ fontFamily: SANS, fontSize: '0.66rem', color: COLOR.text.muted }}>
               다른 사람들의 아침
             </Typography>
           </Box>
@@ -147,9 +138,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
         // 뒤에 쌓인 카드 가장자리를 box-shadow 두 겹으로 흉내 낸다 — 문구 길이가
         // 바뀌어도 카드 높이에 자동으로 맞춰지고, 실제 DOM을 더 만들 필요가 없다.
         boxShadow: hasStack
-          ? (onDark
-            ? '7px 9px 0 0 rgba(255,255,255,0.05), 14px 18px 0 0 rgba(255,255,255,0.03), 0 10px 24px rgba(0,0,0,0.22)'
-            : `7px 9px 0 0 ${COLOR.line.stack}, 14px 18px 0 0 ${COLOR.line.faint}, 0 10px 24px rgba(60,40,10,0.06)`)
+          ? `7px 9px 0 0 ${COLOR.line.stack}, 14px 18px 0 0 ${COLOR.line.faint}, 0 10px 24px rgba(60,40,10,0.06)`
           : 'none',
       }}
     >
@@ -161,8 +150,8 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
         sx={{
           textAlign: 'left',
           borderRadius: '14px',
-          border: `1px solid ${cardLine}`,
-          background: cardBg,
+          border: `1px solid ${COLOR.line.soft}`,
+          background: 'rgba(255,255,255,0.85)',
           padding: '14px 16px 12px',
           cursor: 'pointer',
           transform: cardTransform,
@@ -207,7 +196,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
             fontFamily: SERIF,
             fontStyle: 'italic',
             fontSize: '0.82rem',
-            color: quoteColor,
+            color: COLOR.text.quote,
             lineHeight: 1.55,
             mb: 0.5,
           }}
@@ -220,7 +209,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
         {hasStack && (
           // 곧 다음 카드로 바뀐다는 걸 채워지는 진행바로 미리 알려준다 — 스택은 "더
           // 있다"를, 이 바는 "언제 바뀌는지"를 맡는다.
-          <Box sx={{ mt: 1.25, height: 2, borderRadius: 1, background: trackColor, overflow: 'hidden' }}>
+          <Box sx={{ mt: 1.25, height: 2, borderRadius: 1, background: COLOR.line.faint, overflow: 'hidden' }}>
             <Box
               key={index}
               sx={{
@@ -353,7 +342,7 @@ const CommunityTicker = ({ onUseCommunityPhrase, hasActivePhrase, ink }) => {
                   >
                     “{it.phrase}”
                   </Typography>
-                  <Typography sx={{ fontFamily: SANS, fontWeight: it.isRecommended ? 700 : 500, fontSize: '0.72rem', color: it.isRecommended ? (onDark ? '#e5c79d' : COLOR.accent.main) : metaColor }}>
+                  <Typography sx={{ fontFamily: SANS, fontWeight: it.isRecommended ? 700 : 500, fontSize: '0.72rem', color: it.isRecommended ? COLOR.accent.main : COLOR.text.muted }}>
                     {metaLabel(it)}
                   </Typography>
                 </Box>

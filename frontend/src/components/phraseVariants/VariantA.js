@@ -119,7 +119,6 @@ const seenKey = (phraseId, key) => `dandani_milestone_${phraseId}_${key}`;
 const VariantA = ({
   phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onViewHistory,
   onUseCommunityPhrase, hasActivePhrase, isEditing, cameFromPicker, onBackToPicker,
-  backgrounds, ink,
 }) => {
   // 마디(7일 연속 / 누적 7번)에 닿은 날 한 번만 스쳐가는 인사.
   // 훅이라 조건부 return보다 반드시 위에 있어야 한다.
@@ -257,48 +256,45 @@ const VariantA = ({
   const morningNumber = phrase.visit_days;
 
   return (
-    // 참고한 앱(성경의 "오늘의 말씀")처럼 문장에 화면을 다 준다. 가운데 정렬로
-    // 옹기종기 모아두는 대신, 왼쪽으로 붙이고 아래로 내려앉힌다 — 위가 비어야
-    // 문장이 무겁게 놓인다.
-    <Scene sx={{ alignItems: 'stretch', textAlign: 'left', minHeight: '62vh', justifyContent: 'flex-end' }}>
-      <Eyebrow sx={{ mb: 0.5, textAlign: 'left', color: ink.accent }}>
+    <Scene>
+      <Eyebrow sx={{ mb: 2.5 }}>
         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}, 아침
       </Eyebrow>
       <Typography
         variant="body2"
-        sx={{ fontFamily: SANS, fontSize: '0.75rem', color: ink.muted, mb: 2, position: 'relative' }}
+        sx={{ fontFamily: SANS, fontSize: '0.75rem', color: COLOR.text.muted, mb: 2.5, position: 'relative' }}
       >
         {morningNumber}번째 아침이에요
       </Typography>
-      <Phrase sx={{ mb: 3, maxWidth: 'none', textAlign: 'left', fontSize: '1.6rem', color: ink.primary }}>
-        {phrase.phrase}
-      </Phrase>
+      <Phrase sx={{ mb: 3.5 }}>{phrase.phrase}</Phrase>
 
       {/* 마디에 닿은 날에만, 한 번. 스플래시의 빛 문법을 아주 옅게 빌려 쓴다. */}
       {milestone && (
         <Box
           sx={{
             position: 'relative',
-            alignSelf: 'flex-start',
             mb: 2,
-            px: 2.5,
-            py: 1.25,
-            ml: -1,
+            px: 3,
+            py: 1.5,
             borderRadius: '14px',
             background: 'radial-gradient(ellipse at center,'
-              + ` ${ink.primary === '#f6efe2' ? 'rgba(255,226,170,0.22)' : 'rgba(255,240,208,0.95)'} 0%,`
-              + ' rgba(255,235,196,0.28) 55%, rgba(255,235,196,0) 78%)',
+              + ' rgba(255,240,208,0.95) 0%, rgba(255,235,196,0.35) 55%, rgba(255,235,196,0) 78%)',
           }}
         >
-          <Typography sx={{ fontFamily: SANS, fontSize: '0.82rem', fontWeight: 700, color: ink.accent }}>
+          <Typography
+            sx={{
+              fontFamily: SANS, fontSize: '0.82rem', fontWeight: 700,
+              color: COLOR.accent.main,
+            }}
+          >
             {milestone.text}
           </Typography>
         </Box>
       )}
 
-      <Box sx={{ display: 'flex', gap: 0.75, mb: 1, position: 'relative', justifyContent: 'flex-start' }}>
+      <Box sx={{ display: 'flex', gap: 0.75, mb: 1, position: 'relative' }}>
         {ticks.map((filled, i) => (
-          <Tick key={i} filled={filled} sx={{ animationDelay: `${i * 220}ms`, background: filled ? ink.accentLine : ink.tick }} />
+          <Tick key={i} filled={filled} sx={{ animationDelay: `${i * 220}ms` }} />
         ))}
       </Box>
 
@@ -307,12 +303,12 @@ const VariantA = ({
       {totalDays > 0 && (
         <Typography
           sx={{
-            fontFamily: SANS, fontSize: '0.68rem', color: ink.muted,
-            mb: 3, position: 'relative',
+            fontFamily: SANS, fontSize: '0.68rem', color: COLOR.text.muted,
+            mb: 4, position: 'relative',
           }}
         >
           {streak > 0 && (
-            <Box component="span" sx={{ color: ink.accent, fontWeight: 700 }}>
+            <Box component="span" sx={{ color: COLOR.accent.main, fontWeight: 700 }}>
               {streak}일 연속
             </Box>
           )}
@@ -320,7 +316,7 @@ const VariantA = ({
           모두 {totalDays}번
         </Typography>
       )}
-      {totalDays === 0 && <Box sx={{ mb: 3 }} />}
+      {totalDays === 0 && <Box sx={{ mb: 4 }} />}
       <Button
         disabled={!phrase.logged_today && logging}
         onClick={phrase.logged_today ? onViewHistory : onLogToday}
@@ -330,49 +326,20 @@ const VariantA = ({
           fontSize: '0.92rem',
           fontWeight: 400,
           textTransform: 'none',
-          color: phrase.logged_today ? ink.muted : ink.accent,
-          border: `1.4px solid ${phrase.logged_today ? ink.tick : ink.accentLine}`,
+          color: phrase.logged_today ? COLOR.text.muted : COLOR.accent.main,
+          border: phrase.logged_today ? `1.4px solid ${COLOR.line.disabled}` : `1.4px solid ${COLOR.accent.line}`,
           borderRadius: '999px',
           padding: '9px 24px',
           minWidth: 'auto',
           minHeight: 'auto',
           lineHeight: 'normal',
-          '&:hover': { background: 'rgba(201,131,84,0.08)', border: `1.4px solid ${phrase.logged_today ? ink.tick : ink.accentLine}` },
+          '&:hover': { background: 'rgba(201,131,84,0.08)', border: phrase.logged_today ? `1.4px solid ${COLOR.line.disabled}` : `1.4px solid ${COLOR.accent.line}` },
           '&.Mui-disabled': { color: COLOR.text.muted, border: `1.4px solid ${COLOR.line.disabled}` },
         }}
       >
         {logging ? <Loader small /> : (phrase.logged_today ? '오늘도 되새겼어요' : '오늘의 문장 되새기기')}
       </Button>
-      {/* 배경 고르기. 매일 아침 보는 화면의 인상이라 설정 화면 깊숙이 두지 않고
-          그 화면에 바로 둔다. 여기서 고른 배경이 공유할 때 나가는 그림과 같다. */}
-      {backgrounds && (
-        <Box sx={{ display: 'flex', gap: 1, mt: 3, position: 'relative', alignSelf: 'flex-start' }}>
-          {backgrounds.list.map((b) => (
-            <Box
-              key={b.id}
-              component="button"
-              type="button"
-              aria-label={`${b.label} 배경`}
-              onClick={() => backgrounds.onChoose(b.id)}
-              sx={{
-                width: 26,
-                height: 26,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                padding: 0,
-                backgroundColor: b.backgroundColor,
-                backgroundImage: b.backgroundImage,
-                border: `1px solid ${ink.hairline}`,
-                outline: backgrounds.current === b.id ? `1.5px solid ${ink.accentLine}` : 'none',
-                outlineOffset: '2px',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            />
-          ))}
-        </Box>
-      )}
-
-      <CommunityTicker onUseCommunityPhrase={onUseCommunityPhrase} hasActivePhrase={hasActivePhrase} ink={ink} />
+      <CommunityTicker onUseCommunityPhrase={onUseCommunityPhrase} hasActivePhrase={hasActivePhrase} />
     </Scene>
   );
 };

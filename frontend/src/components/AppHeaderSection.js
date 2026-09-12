@@ -9,7 +9,7 @@ import { COLOR, FONT } from '../theme/tokens';
 const HIT_X = 10;
 const HIT_Y = 15;
 
-const makeLinkSx = (ink) => ({
+const linkButtonSx = {
   border: 'none',
   background: 'none',
   padding: `${HIT_Y}px ${HIT_X}px`,
@@ -18,14 +18,14 @@ const makeLinkSx = (ink) => ({
   fontFamily: FONT.sans,
   fontSize: '0.72rem',
   lineHeight: 1.2,
-  color: ink.faint,
+  color: COLOR.text.faint,
   WebkitTapHighlightColor: 'transparent',
   '&:hover': { opacity: 0.75 },
-});
+};
 
-// 안내와 톤이 같으면 눈에 안 띄어서, 앱 전반의 액션 색과 굵기로 "이건 액션이다"를
-// 분명히 함. 어두운 배경에서는 같은 역할의 밝은 색으로 뒤집힌다.
-const makeActionSx = (ink) => ({ ...makeLinkSx(ink), color: ink.accent, fontWeight: 600 });
+// 안내와 톤이 같으면 눈에 안 띄어서, 앱 전반의 액션 색(#a9603a — 되새기기
+// 버튼·"모두 보기" 등과 동일)과 굵기로 "이건 액션이다"를 분명히 함.
+const actionButtonSx = { ...linkButtonSx, color: COLOR.accent.main, fontWeight: 600 };
 
 const AppHeaderSection = ({
   isNonKoreanUser,
@@ -36,10 +36,7 @@ const AppHeaderSection = ({
   onShare,
   isEditing,
   onCancelEdit,
-  ink,
 }) => {
-  const linkButtonSx = makeLinkSx(ink);
-  const actionButtonSx = makeActionSx(ink);
   return (
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
