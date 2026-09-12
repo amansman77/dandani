@@ -96,6 +96,11 @@ export const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '나는 아침마다 삶의 감각을 깨운다',
   },
+  {
+    phrase: '매일 아침 열 개의 목표를 소리 내어 읽어보자.',
+    isRecommended: true,
+    source: '나는 아침마다 삶의 감각을 깨운다',
+  },
 ];
 
 // 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
