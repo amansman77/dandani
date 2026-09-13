@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
+import { logSplashShown, logSplashDone } from '../utils/analytics';
 
 // 앱을 열 때마다 뜨는 스플래시("발화" 안).
 //
@@ -156,11 +157,22 @@ const SplashScreen = ({ onDone }) => {
   // 두 번 실행되지 않도록 ref로 막는다.
   const exitStartedRef = useRef(false);
   const exitTimerRef = useRef(null);
-  const beginExit = useCallback(() => {
+  // 언제 시작했는지 — 끝까지 본 사람이 실제로 몇 초를 머물렀는지 같이 남긴다.
+  const startedAtRef = useRef(Date.now());
+
+  const beginExit = useCallback((method = 'watched') => {
     if (exitStartedRef.current) return;
     exitStartedRef.current = true;
+    logSplashDone(method, Date.now() - startedAtRef.current);
     setLeaving(true);
     exitTimerRef.current = setTimeout(() => onDoneRef.current(), FADE_MS);
+  }, []);
+
+  // 마운트 한 번만. 이 화면이 떴다는 사실 자체를 남긴다 — 이게 있어야
+  // "떴는데 끝났다는 기록이 없다 = 도중에 나갔다"를 셀 수 있다.
+  useEffect(() => {
+    startedAtRef.current = Date.now();
+    logSplashShown();
   }, []);
 
   useEffect(() => {
@@ -270,7 +282,7 @@ const SplashScreen = ({ onDone }) => {
     const floor = new Promise((res) => setTimeout(res, reduced ? 1400 : ANIM_MS + HOLD_MS));
     const ceiling = new Promise((res) => setTimeout(res, MAX_WAIT_MS));
 
-    Promise.race([Promise.all([fontsReady, floor]), ceiling]).then(beginExit);
+    Promise.race([Promise.all([fontsReady, floor]), ceiling]).then(() => beginExit('watched'));
 
     return () => {
       if (raf) cancelAnimationFrame(raf);
@@ -338,7 +350,7 @@ const SplashScreen = ({ onDone }) => {
       <Box
         component="button"
         type="button"
-        onClick={beginExit}
+        onClick={() => beginExit('skipped')}
         aria-label="시작 화면 건너뛰기"
         sx={{
           position: 'absolute',

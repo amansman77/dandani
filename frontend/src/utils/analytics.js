@@ -126,6 +126,8 @@ const BACKEND_ALLOWED_EVENT_TYPES = new Set([
   'phrase_day_logged',
   'phrase_retired',
   'phrase_shared',
+  'splash_shown',
+  'splash_done',
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
@@ -272,6 +274,17 @@ export const logPhraseOnboardingShown = () => {
 
 export const logPhraseExampleUsed = (example) => {
   logEvent('phrase_example_used', { example });
+};
+
+// 스플래시는 지금까지 아무 기록도 안 남겼다. page_visit도 그 뒤에서 찍혀서,
+// 광고로 들어온 사람이 6.5초를 기다렸는지 중간에 나갔는지 구분할 수가 없었다.
+// shown만 있고 done이 없으면 = 스플래시 도중에 떠난 것. 그 부재가 신호다.
+export const logSplashShown = () => {
+  logEvent('splash_shown', { ...getCurrentUTM() });
+};
+
+export const logSplashDone = (method, ms) => {
+  logEvent('splash_done', { method, ms, ...getCurrentUTM() });
 };
 
 export const logPhraseShared = (method) => {
