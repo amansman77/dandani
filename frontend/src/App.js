@@ -9,7 +9,8 @@ import DailyPhrase from './components/DailyPhrase';
 import PhraseHistory from './components/PhraseHistory';
 import { pushNavState, replaceNavState } from './utils/navHistory';
 import { getUserIdInfo, markUserInitialized } from './utils/userId';
-import { logOnboardingComplete } from './utils/analytics';
+import { logOnboardingComplete, logSplashBypassed } from './utils/analytics';
+import { isCampaignEntry } from './utils/attribution';
 import { COLOR } from './theme/tokens';
 
 function App() {
@@ -22,16 +23,28 @@ function App() {
   // 공유는 문장과 기록 값이 둘 다 필요해서 불리언이 아니라 문구 객체를 들고 있는다.
   const [activePhrase, setActivePhrase] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  // 진입할 때마다 — 매일 아침 여는 앱이라 "열면 해가 뜬다"를 의식의 일부로 둔다
-  const [splashOpen, setSplashOpen] = useState(true);
+  // 진입할 때마다 — 매일 아침 여는 앱이라 "열면 해가 뜬다"를 의식의 일부로 둔다.
+  // 다만 광고를 타고 처음 들어온 사람에게는 그 의식이 아직 아무 의미가 없다.
+  // 그 사람에겐 들어가기 전 절차를 전부 걷어내고 바로 문장 고르는 화면을 보여준다.
+  const campaignEntry = useRef(isCampaignEntry()).current;
+  const [splashOpen, setSplashOpen] = useState(!campaignEntry);
 
   const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
-    if (isNew) {
+    // 광고 유입에겐 온보딩 모달도 띄우지 않는다. 스플래시만 걷어내면 그 자리를
+    // 온보딩이 대신 막아서, "바로 문장 고르기 화면"이라는 목적이 반만 이뤄진다.
+    if (isNew && !campaignEntry) {
       setShowOnboarding(true);
     }
+    if (campaignEntry) {
+      // 스플래시를 안 띄웠다는 사실 자체를 남긴다. 이게 없으면 나중에
+      // "splash_shown이 없는 것"이 이탈인지 우리가 건너뛴 것인지 구분이 안 된다.
+      logSplashBypassed();
+      markUserInitialized();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

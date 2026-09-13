@@ -287,6 +287,16 @@ export const logSplashDone = (method, ms) => {
   logEvent('splash_done', { method, ms, ...getCurrentUTM() });
 };
 
+// 스플래시를 아예 안 띄운 경우. 새 이벤트 타입을 만들지 않고 splash_done의
+// method로 구분한다 — 집계 규칙이 한 군데(splash_done)로 모인다.
+//   shown + done(watched)  = 끝까지 봤다
+//   shown + done(skipped)  = 건너뛰기를 눌렀다
+//   shown + done 없음       = 보다가 나갔다
+//   done(bypassed)만        = 광고 유입이라 아예 안 보여줬다
+export const logSplashBypassed = () => {
+  logEvent('splash_done', { method: 'bypassed', ms: 0, ...getCurrentUTM() });
+};
+
 export const logPhraseShared = (method) => {
   logEvent('phrase_shared', { method });
 };

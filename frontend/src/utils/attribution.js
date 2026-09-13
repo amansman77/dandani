@@ -26,3 +26,17 @@ export function getCurrentUTM() {
 
   return {};
 }
+
+// 광고·링크를 타고 들어온 첫 진입인지. 스플래시·온보딩 같은 "들어가기 전 절차"를
+// 건너뛸지 판단하는 데 쓴다.
+//
+// 매일 여는 사람에게 스플래시는 의식이지만, 광고를 누르고 온 사람에게는 아직
+// 아무 애착이 없는 상태에서 6.5초를 기다리라는 요구다. 실제로 광고로 들어온
+// 18명 중 문장을 쓴 사람이 0명이었고, 전부 스플래시 뒤에서 찍히는 두 이벤트만
+// 남기고 사라졌다.
+//
+// URL의 UTM만 본다. Capacitor 대체값(ios_app 등)은 설치한 사람이라 해당 없다.
+export function isCampaignEntry() {
+  if (typeof window === 'undefined') return false;
+  return hasAnyUTM(getUTMFromURL(window.location.href));
+}
