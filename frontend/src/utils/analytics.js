@@ -128,6 +128,8 @@ const BACKEND_ALLOWED_EVENT_TYPES = new Set([
   'phrase_shared',
   'splash_shown',
   'splash_done',
+  'phrase_list_seen',
+  'phrase_list_engaged',
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
@@ -295,6 +297,21 @@ export const logSplashDone = (method, ms) => {
 //   done(bypassed)만        = 광고 유입이라 아예 안 보여줬다
 export const logSplashBypassed = () => {
   logEvent('splash_done', { method: 'bypassed', ms: 0, ...getCurrentUTM() });
+};
+
+// phrase_onboarding_shown은 목록이 "렌더됐다"는 뜻일 뿐, 사람이 "봤다"는 뜻이
+// 아니다. 광고를 누르고 로딩 2~3초 사이에 나가도 그 이벤트는 찍힌다. 그래서
+// 광고 유입 3명이 목록에서 나간 건지, 목록을 보기도 전에 나간 건지 못 갈랐다.
+//
+//   seen 없음                  = 뜨기도 전에 나갔다 (로딩·인내심 문제)
+//   seen 있고 engaged 없음      = 봤는데 아무것도 안 건드렸다 (문구·매력 문제)
+//   engaged 있고 phrase_start 없음 = 만지다 말았다 (고르는 과정 문제)
+export const logPhraseListSeen = (ms) => {
+  logEvent('phrase_list_seen', { ms, ...getCurrentUTM() });
+};
+
+export const logPhraseListEngaged = (kind) => {
+  logEvent('phrase_list_engaged', { kind, ...getCurrentUTM() });
 };
 
 export const logPhraseShared = (method) => {

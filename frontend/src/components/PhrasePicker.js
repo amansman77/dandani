@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
 import { fetchPhrasePool, metaLabel } from '../utils/phrasePool';
+import { logPhraseListSeen, logPhraseListEngaged } from '../utils/analytics';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;
@@ -31,14 +32,67 @@ const cardSx = {
   '&:hover': { borderColor: COLOR.accent.line, background: 'rgba(255,255,255,0.95)' },
 };
 
+// 목록이 화면에 떠 있었다고 인정하는 최소 시간. 광고를 누르고 로딩 중에
+// 나가버린 사람과, 실제로 목록을 마주한 사람을 가르는 선이다.
+const SEEN_MS = 1500;
+
 const PhrasePicker = ({ onPick, onWriteOwn }) => {
   const [items, setItems] = useState(null);
+  const seenRef = useRef(false);
+  const engagedRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
     fetchPhrasePool().then((pool) => { if (alive) setItems(pool); });
     return () => { alive = false; };
   }, []);
+
+  // "떴다"가 아니라 "봤다". 목록이 그려진 뒤 탭이 실제로 앞에 있는 채로
+  // SEEN_MS를 버텨야 인정한다. 중간에 나가거나 탭을 가리면 안 찍힌다 —
+  // 그 부재가 "보기도 전에 떠났다"는 신호다.
+  const shownAtRef = useRef(null);
+  const markSeen = () => {
+    if (seenRef.current) return;
+    seenRef.current = true;
+    logPhraseListSeen(shownAtRef.current ? Date.now() - shownAtRef.current : 0);
+  };
+
+  useEffect(() => {
+    if (!items || seenRef.current) return undefined;
+    shownAtRef.current = Date.now();
+    const timer = setTimeout(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      markSeen();
+    }, SEEN_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
+  // 스크롤은 "훑어봤다"는 가장 싼 증거다. 한 번만 남긴다.
+  useEffect(() => {
+    if (!items) return undefined;
+    const onScroll = () => {
+      if (engagedRef.current || window.scrollY < 40) return;
+      engagedRef.current = true;
+      // 스크롤했다는 건 당연히 본 것이다. SEEN_MS를 못 채웠어도 인정한다.
+      markSeen();
+      logPhraseListEngaged('scroll');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [items]);
+
+  const handlePick = (text) => {
+    if (!engagedRef.current) {
+      engagedRef.current = true;
+      // 빨리 고른 사람은 SEEN_MS를 채우기 전에 화면을 떠난다. 그때 seen을
+      // 안 남기면, 가장 잘 반응한 사람이 "보지도 않고 나갔다"로 집계된다.
+      // 골랐다는 건 본 것이다.
+      markSeen();
+      logPhraseListEngaged('tap');
+    }
+    onPick(text);
+  };
 
   return (
     <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -69,7 +123,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
               key={`${it.phrase}-${i}`}
               component="button"
               type="button"
-              onClick={() => onPick(it.phrase)}
+              onClick={() => handlePick(it.phrase)}
               sx={cardSx}
             >
               <Typography

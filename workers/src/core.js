@@ -24,6 +24,8 @@ const ALLOWED_EVENT_TYPES = [
   'phrase_shared',
   'splash_shown',
   'splash_done',
+  'phrase_list_seen',
+  'phrase_list_engaged',
   'ai_chat_start',
   'ai_chat_message',
   'timefold_envelope_create',
