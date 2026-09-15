@@ -104,14 +104,26 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
       >
         오늘부터, 나에게
       </Typography>
+      {/* 예전엔 "다른 사람들은 이런 문장으로 아침을 열고 있어요"였는데, 그건
+          상황 설명이지 할 일이 아니다. 처음 온 사람이 이 화면에서 무엇을 해야
+          하는지가 제목에 있어야 한다. */}
       <Typography
         sx={{
           fontFamily: SERIF, fontWeight: 700, fontSize: '1.15rem', lineHeight: 1.55,
-          color: COLOR.text.primary, textAlign: 'center', mb: 3,
+          color: COLOR.text.primary, textAlign: 'center', mb: 1.25,
         }}
       >
-        다른 사람들은 이런 문장으로
-        <br />아침을 열고 있어요
+        오늘 나에게 필요한
+        <br />문장 하나를 골라보세요
+      </Typography>
+      <Typography
+        sx={{
+          fontFamily: SANS, fontSize: '0.74rem', lineHeight: 1.65,
+          color: COLOR.text.muted, textAlign: 'center', mb: 3,
+        }}
+      >
+        다른 사람들이 되새기고 있는 문장이에요.
+        <br />마음에 드는 하나로 바로 시작할 수 있어요.
       </Typography>
 
       {items === null ? (
@@ -134,15 +146,29 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
               >
                 “{it.phrase}”
               </Typography>
-              <Typography
-                sx={{
-                  fontFamily: SANS, fontSize: '0.66rem', mt: 0.5,
-                  fontWeight: it.isRecommended ? 700 : 400,
-                  color: it.isRecommended ? COLOR.accent.main : COLOR.text.muted,
-                }}
-              >
-                {metaLabel(it)}
-              </Typography>
+              {/* 카드가 눌린다는 단서가 cursor:pointer와 :hover뿐이었는데, 폰엔
+                  hover가 없다. 그래서 카드는 "읽는 것"으로만 보였다. 카드마다
+                  액션을 글자로 박아둔다 — 37개에 버튼을 다 넣으면 시끄러워서,
+                  같은 뜻을 가장 가벼운 형태로 둔다. */}
+              <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1, mt: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontFamily: SANS, fontSize: '0.66rem',
+                    fontWeight: it.isRecommended ? 700 : 400,
+                    color: it.isRecommended ? COLOR.accent.main : COLOR.text.muted,
+                  }}
+                >
+                  {metaLabel(it)}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontFamily: SANS, fontSize: '0.66rem', fontWeight: 700,
+                    color: COLOR.accent.main, whiteSpace: 'nowrap', flexShrink: 0,
+                  }}
+                >
+                  이 문장으로 시작 ›
+                </Typography>
+              </Box>
             </Box>
           ))}
         </Box>
@@ -174,24 +200,27 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
           onClick={onWriteOwn}
           sx={{
             pointerEvents: 'auto',
-            border: `1.4px solid ${COLOR.accent.line}`,
+            // 예전엔 액션색 테두리 + 그림자여서, 화면에서 가장 눈에 띄는 물건이
+            // 이것이었다. 정작 눌러야 할 카드는 밋밋했고. 위계가 뒤집혀 있었다.
+            // 여기선 "원하는 게 없을 때의 길"이므로 조용해야 한다.
+            border: `1px solid ${COLOR.line.main}`,
             borderRadius: 999,
             // 페이지 배경이 그라디언트라 스크롤 위치마다 뒤 색이 달라진다.
             // 폭 전체를 덮는 띠로 가리려 했더니 어느 지점에선 카드 글씨가 비쳐
             // 지저분했다. 알약 하나로 띄우면 뒤 색과 무관하게 늘 또렷하다.
             background: COLOR.surface.sheet,
-            boxShadow: '0 4px 16px rgba(80,64,46,0.14)',
+            boxShadow: '0 2px 10px rgba(80,64,46,0.10)',
             cursor: 'pointer',
             fontFamily: SANS,
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            color: COLOR.accent.main,
-            padding: '11px 22px',
+            fontSize: '0.78rem',
+            fontWeight: 500,
+            color: COLOR.text.muted,
+            padding: '10px 18px',
             WebkitTapHighlightColor: 'transparent',
-            '&:hover': { background: '#fff' },
+            '&:hover': { background: '#fff', color: COLOR.accent.main },
           }}
         >
-          내 문장을 직접 쓸래요
+          마음에 드는 게 없나요? 직접 쓸래요
         </Box>
       </Box>
     </Box>
