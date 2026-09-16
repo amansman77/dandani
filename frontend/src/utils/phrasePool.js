@@ -101,6 +101,11 @@ export const RECOMMENDED_ITEMS = [
     isRecommended: true,
     source: '나는 아침마다 삶의 감각을 깨운다',
   },
+  {
+    phrase: '들으면 기운이 나는 곡을 나만의 테마송으로 정하고 매일 아침 부르며 의욕을 끌어올리자.',
+    isRecommended: true,
+    source: '나는 아침마다 삶의 감각을 깨운다',
+  },
 ];
 
 // 추천 항목과 실제 유저 항목을 합친 배열 전체를 섞는다 — 추천이 항상
