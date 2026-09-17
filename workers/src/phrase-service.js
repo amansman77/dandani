@@ -1,5 +1,6 @@
 import { getRequiredUserId, getClientLocalDate, logUserEvent } from './service-utils.js';
 import { getNickname } from './nickname-service.js';
+import { awardNuvForReflection } from './nuv-service.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -127,7 +128,8 @@ export async function logPhraseDay(env, phraseId, request) {
     SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ?
   `).bind(phraseId).all();
 
-  return { logged_days: logs.length };
+  const reward = await awardNuvForReflection(env, userId, phraseId, today);
+  return { logged_days: logs.length, ...reward };
 }
 
 export async function retirePhrase(env, phraseId, request) {

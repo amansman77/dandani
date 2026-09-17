@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Alert } from '@mui/material';
+import { Box, Alert, Snackbar } from '@mui/material';
 import { getUserId } from '../utils/userId';
 import { getClientTimeHeaders } from '../utils/clientTime';
 import VariantA from './phraseVariants/VariantA';
@@ -13,13 +13,14 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 // B/C는 frontend/src/components/phraseVariants/ 에 완성된 상태로 대기.
 const ActiveVariant = VariantA;
 
-const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhraseChange }) => {
+const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhraseChange, onNuvBalanceChange }) => {
   const [phrase, setPhrase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [inputValue, setInputValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [logging, setLogging] = useState(false);
+  const [notice, setNotice] = useState('');
 
   const fetchActivePhrase = async () => {
     try {
@@ -137,6 +138,8 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
       if (!response.ok) throw new Error(`Failed to log phrase day: ${response.status}`);
       const data = await response.json();
       logPhraseDayLogged(phrase.id, data.logged_days);
+      if (onNuvBalanceChange) onNuvBalanceChange(data.balance);
+      if (data.awarded_nuv > 0) setNotice('되새기고 1 누브를 받았어요');
       await fetchActivePhrase();
     } catch (err) {
       setError(err.message);
@@ -225,6 +228,14 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
         onBackToPicker={() => { setPickedText(null); setInputValue(''); setEntryMode('browse'); }}
         hasActivePhrase={Boolean(phrase)}
         isEditing={isEditing}
+      />
+      <Snackbar
+        open={Boolean(notice)}
+        autoHideDuration={2400}
+        onClose={() => setNotice('')}
+        message={notice}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 88 } }}
       />
     </Box>
   );

@@ -13,6 +13,8 @@ import { logOnboardingComplete, logSplashBypassed } from './utils/analytics';
 import { isCampaignEntry } from './utils/attribution';
 import { COLOR } from './theme/tokens';
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
+
 function App() {
   const [activeTab, setActiveTab] = useState(0);
   const isPoppingNavRef = useRef(false);
@@ -30,6 +32,23 @@ function App() {
   const [splashOpen, setSplashOpen] = useState(!campaignEntry);
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [nuvBalance, setNuvBalance] = useState(null);
+
+  useEffect(() => {
+    const fetchNuvBalance = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/nuv`, {
+          headers: { 'X-User-ID': getUserIdInfo().userId },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setNuvBalance(data.balance);
+      } catch (error) {
+        // 재화 조회 실패가 오늘의 문구 사용까지 막아서는 안 된다.
+      }
+    };
+    fetchNuvBalance();
+  }, []);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
@@ -155,6 +174,7 @@ function App() {
           onShare={() => setShareOpen(true)}
           isEditing={activeTab === 0 && phraseEditing}
           onCancelEdit={() => setPhraseEditing(false)}
+          nuvBalance={nuvBalance}
         />
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
@@ -164,6 +184,7 @@ function App() {
               isEditing={phraseEditing}
               onEditingChange={setPhraseEditing}
               onActivePhraseChange={setActivePhrase}
+              onNuvBalanceChange={setNuvBalance}
             />
           )}
 
@@ -180,6 +201,7 @@ function App() {
           open={shareOpen}
           onClose={() => setShareOpen(false)}
           phrase={activePhrase}
+          onNuvBalanceChange={setNuvBalance}
         />
 
       </Box>
