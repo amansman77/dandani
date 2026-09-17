@@ -22,14 +22,15 @@ export async function getNuvWallet(env, request) {
 
 export async function claimWelcomeNuv(env, request) {
   const userId = getRequiredUserId(request);
-  const result = await env.DB.prepare(`
+  const granted = await env.DB.prepare(`
     INSERT OR IGNORE INTO nuv_transactions
       (id, user_id, amount, reason, reference_id)
     VALUES (?, ?, ?, 'welcome_grant', 'welcome')
-  `).bind(generateId('nuv'), userId, WELCOME_GRANT).run();
+    RETURNING amount
+  `).bind(generateId('nuv'), userId, WELCOME_GRANT).first();
 
   return {
-    awarded_nuv: result.meta.changes === 1 ? WELCOME_GRANT : 0,
+    awarded_nuv: granted?.amount || 0,
     balance: await getBalance(env, userId),
     postcard_cost: POSTCARD_COST,
   };
@@ -37,7 +38,7 @@ export async function claimWelcomeNuv(env, request) {
 
 export async function awardNuvForReflection(env, userId, phraseId, logDate) {
   const referenceId = `${phraseId}:${logDate}`;
-  const result = await env.DB.prepare(`
+  const granted = await env.DB.prepare(`
     INSERT OR IGNORE INTO nuv_transactions
       (id, user_id, amount, reason, reference_id)
     SELECT ?, ?, ?, 'daily_reflection', ?
@@ -45,13 +46,14 @@ export async function awardNuvForReflection(env, userId, phraseId, logDate) {
       SELECT 1 FROM daily_phrase_logs
       WHERE phrase_id = ? AND user_id = ? AND log_date = ?
     )
+    RETURNING amount
   `).bind(
     generateId('nuv'), userId, REFLECTION_REWARD, referenceId,
     phraseId, userId, logDate
-  ).run();
+  ).first();
 
   return {
-    awarded_nuv: result.meta.changes === 1 ? REFLECTION_REWARD : 0,
+    awarded_nuv: granted?.amount || 0,
     balance: await getBalance(env, userId),
   };
 }
@@ -71,19 +73,20 @@ export async function createPostcardWithNuv(env, request) {
     throw new Error(`Active phrase not found: ${phraseId}`);
   }
 
-  const result = await env.DB.prepare(`
+  const created = await env.DB.prepare(`
     INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id)
     SELECT ?, ?, ?, 'postcard_creation', ?
     FROM nuv_wallets
     WHERE user_id = ? AND balance >= ?
+    RETURNING amount
   `).bind(
     generateId('nuv'), userId, -POSTCARD_COST, generateId('postcard'),
     userId, POSTCARD_COST
-  ).run();
+  ).first();
   const balance = await getBalance(env, userId);
 
   return {
-    created: result.meta.changes === 1,
+    created: Boolean(created),
     balance,
     cost: POSTCARD_COST,
   };
