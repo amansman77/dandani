@@ -102,7 +102,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
           color: COLOR.accent.eyebrow, mb: 1.5,
         }}
       >
-        오늘부터, 나에게
+        첫 엽서, 나에게
       </Typography>
       {/* 예전엔 "다른 사람들은 이런 문장으로 아침을 열고 있어요"였는데, 그건
           상황 설명이지 할 일이 아니다. 처음 온 사람이 이 화면에서 무엇을 해야
@@ -113,7 +113,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
           color: COLOR.text.primary, textAlign: 'center', mb: 1.25,
         }}
       >
-        오늘 나에게 필요한
+        첫 엽서에 담을
         <br />문장 하나를 골라보세요
       </Typography>
       <Typography
@@ -122,8 +122,8 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
           color: COLOR.text.muted, textAlign: 'center', mb: 3,
         }}
       >
-        다른 사람들이 되새기고 있는 문장이에요.
-        <br />마음에 드는 하나로 바로 시작할 수 있어요.
+        처음 받은 10 누브로 엽서를 만들 수 있어요.
+        <br />마음에 드는 문장을 고르거나 직접 써보세요.
       </Typography>
 
       {items === null ? (
@@ -166,7 +166,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
                     color: COLOR.accent.main, whiteSpace: 'nowrap', flexShrink: 0,
                   }}
                 >
-                  이 문장으로 시작 ›
+                  엽서에 담기 ›
                 </Typography>
               </Box>
             </Box>
@@ -220,7 +220,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
             '&:hover': { background: '#fff', color: COLOR.accent.main },
           }}
         >
-          마음에 드는 게 없나요? 직접 쓸래요
+          내 엽서 문장은 직접 쓸래요
         </Box>
       </Box>
     </Box>

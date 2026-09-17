@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
+  claimWelcomeNuv,
   createPostcardWithNuv,
   getNuvWallet,
 } from '../src/nuv-service.js';
@@ -66,6 +67,49 @@ test('a daily reflection awards one Nuv only once', async () => {
 
   assert.deepEqual(first, { awarded_nuv: 1, balance: 1 });
   assert.deepEqual(duplicate, { awarded_nuv: 0, balance: 1 });
+});
+
+test('the welcome grant awards ten Nuv only once', async () => {
+  const { env } = createEnvironment();
+
+  const first = await claimWelcomeNuv(env, request('user-1', {}));
+  const duplicate = await claimWelcomeNuv(env, request('user-1', {}));
+
+  assert.deepEqual(first, { awarded_nuv: 10, balance: 10, postcard_cost: 10 });
+  assert.deepEqual(duplicate, { awarded_nuv: 0, balance: 10, postcard_cost: 10 });
+});
+
+test('the deployed-schema migration preserves transactions and enables welcome grants', async () => {
+  const database = new DatabaseSync(':memory:');
+  database.exec(`
+    CREATE TABLE nuv_wallets (
+      user_id TEXT PRIMARY KEY,
+      balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE nuv_transactions (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+      amount INTEGER NOT NULL CHECK (amount != 0),
+      reason TEXT NOT NULL CHECK (reason IN ('daily_reflection', 'postcard_creation')),
+      reference_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, reason, reference_id)
+    );
+    CREATE INDEX idx_nuv_transactions_user_created
+      ON nuv_transactions(user_id, created_at DESC);
+    INSERT INTO nuv_wallets (user_id, balance) VALUES ('user-1', 1);
+    INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id)
+      VALUES ('reward-1', 'user-1', 1, 'daily_reflection', 'day-1');
+  `);
+  database.exec(readFileSync(
+    new URL('../schemas/schema_v260917_nuv_welcome_grant.sql', import.meta.url), 'utf8'
+  ));
+  const env = { DB: { prepare: (sql) => new D1Statement(database.prepare(sql)) } };
+
+  const granted = await claimWelcomeNuv(env, request('user-1', {}));
+  const preserved = database.prepare('SELECT COUNT(*) AS count FROM nuv_transactions').get();
+
+  assert.deepEqual(granted, { awarded_nuv: 10, balance: 11, postcard_cost: 10 });
+  assert.equal(preserved.count, 2);
 });
 
 test('a postcard costs ten Nuv and insufficient balance is not changed', async () => {

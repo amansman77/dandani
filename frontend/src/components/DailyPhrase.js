@@ -13,7 +13,10 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 // B/C는 frontend/src/components/phraseVariants/ 에 완성된 상태로 대기.
 const ActiveVariant = VariantA;
 
-const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhraseChange, onNuvBalanceChange }) => {
+const DailyPhrase = ({
+  onViewHistory, isEditing, onEditingChange, onActivePhraseChange,
+  onNuvBalanceChange, onFirstPhraseCreated,
+}) => {
   const [phrase, setPhrase] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -92,6 +95,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
   };
 
   const commitNewPhrase = async (text) => {
+    const isFirstPhrase = !phrase;
     if (phrase) {
       const retireResponse = await fetch(`${API_URL}/api/phrases/${phrase.id}/retire`, {
         method: 'POST',
@@ -108,6 +112,7 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || '문구 등록에 실패했습니다.');
     await fetchActivePhrase();
+    if (isFirstPhrase && onFirstPhraseCreated) onFirstPhraseCreated();
   };
 
   const handleSubmit = async () => {

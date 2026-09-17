@@ -18,6 +18,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 function App() {
   const [activeTab, setActiveTab] = useState(0);
   const isPoppingNavRef = useRef(false);
+  const isFirstVisit = useRef(getUserIdInfo().isNew).current;
   const [isNonKoreanUser, setIsNonKoreanUser] = useState(false);
   // 오늘의 문구 편집 트리거를 헤더(안내 버튼 옆)로 옮기면서, 편집 중인지/편집
   // 가능한 문구가 있는지를 App이 들고 DailyPhrase와 주고받는다.
@@ -35,10 +36,12 @@ function App() {
   const [nuvBalance, setNuvBalance] = useState(null);
 
   useEffect(() => {
-    const fetchNuvBalance = async () => {
+    const initializeNuvWallet = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/nuv`, {
-          headers: { 'X-User-ID': getUserIdInfo().userId },
+        const response = await fetch(`${API_URL}/api/nuv/welcome`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserIdInfo().userId },
+          body: JSON.stringify({}),
         });
         if (!response.ok) return;
         const data = await response.json();
@@ -47,7 +50,7 @@ function App() {
         // 재화 조회 실패가 오늘의 문구 사용까지 막아서는 안 된다.
       }
     };
-    fetchNuvBalance();
+    initializeNuvWallet();
   }, []);
 
   useEffect(() => {
@@ -185,6 +188,7 @@ function App() {
               onEditingChange={setPhraseEditing}
               onActivePhraseChange={setActivePhrase}
               onNuvBalanceChange={setNuvBalance}
+              onFirstPhraseCreated={isFirstVisit ? () => setShareOpen(true) : undefined}
             />
           )}
 

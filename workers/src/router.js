@@ -7,7 +7,7 @@ import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
-import { createPostcardWithNuv, getNuvWallet } from './nuv-service.js';
+import { claimWelcomeNuv, createPostcardWithNuv, getNuvWallet } from './nuv-service.js';
 
 // 2026-08-28 피벗 이후 Story Feed/Challenge/Timefold 라우트는 부르는 화면이
 // 없어졌고, 2026-09-06 프론트에서 그 화면들을 삭제하면서 완전히 도달 불가가
@@ -85,6 +85,9 @@ async function handlePost(url, request, env) {
   if (url.pathname === '/api/nuv/postcards') {
     const result = await createPostcardWithNuv(env, request);
     return jsonResponse(result, result.created ? 201 : 409);
+  }
+  if (url.pathname === '/api/nuv/welcome') {
+    return jsonResponse(await claimWelcomeNuv(env, request));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }

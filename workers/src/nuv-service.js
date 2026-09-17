@@ -2,6 +2,7 @@ import { getRequiredUserId } from './service-utils.js';
 
 export const REFLECTION_REWARD = 1;
 export const POSTCARD_COST = 10;
+export const WELCOME_GRANT = 10;
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -17,6 +18,21 @@ async function getBalance(env, userId) {
 export async function getNuvWallet(env, request) {
   const userId = getRequiredUserId(request);
   return { balance: await getBalance(env, userId), postcard_cost: POSTCARD_COST };
+}
+
+export async function claimWelcomeNuv(env, request) {
+  const userId = getRequiredUserId(request);
+  const result = await env.DB.prepare(`
+    INSERT OR IGNORE INTO nuv_transactions
+      (id, user_id, amount, reason, reference_id)
+    VALUES (?, ?, ?, 'welcome_grant', 'welcome')
+  `).bind(generateId('nuv'), userId, WELCOME_GRANT).run();
+
+  return {
+    awarded_nuv: result.meta.changes === 1 ? WELCOME_GRANT : 0,
+    balance: await getBalance(env, userId),
+    postcard_cost: POSTCARD_COST,
+  };
 }
 
 export async function awardNuvForReflection(env, userId, phraseId, logDate) {

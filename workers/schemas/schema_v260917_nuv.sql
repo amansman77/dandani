@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS nuv_transactions (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   amount INTEGER NOT NULL CHECK (amount != 0),
-  reason TEXT NOT NULL CHECK (reason IN ('daily_reflection', 'postcard_creation')),
+  reason TEXT NOT NULL CHECK (reason IN ('welcome_grant', 'daily_reflection', 'postcard_creation')),
   reference_id TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(user_id, reason, reference_id)
