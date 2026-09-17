@@ -48,6 +48,7 @@ const AppBottomNav = ({ activeTab, onTabChange }) => {
       >
         <BottomNavigationAction label="오늘" icon={<NavDot />} />
         <BottomNavigationAction label="기록" icon={<NavDot />} />
+        <BottomNavigationAction label="엽서" icon={<NavDot />} />
       </BottomNavigation>
     </Paper>
   );

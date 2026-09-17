@@ -3,6 +3,7 @@ import { getRequiredUserId } from './service-utils.js';
 export const REFLECTION_REWARD = 1;
 export const POSTCARD_COST = 10;
 export const WELCOME_GRANT = 10;
+const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light']);
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -60,10 +61,11 @@ export async function awardNuvForReflection(env, userId, phraseId, logDate) {
 
 export async function createPostcardWithNuv(env, request) {
   const userId = getRequiredUserId(request);
-  const { phrase_id: phraseId } = await request.json();
+  const { phrase_id: phraseId, visit_days: visitDaysValue } = await request.json();
   if (!phraseId || typeof phraseId !== 'string') {
     throw new Error('phrase_id is required');
   }
+  const visitDays = Number.isInteger(visitDaysValue) && visitDaysValue > 0 ? visitDaysValue : 1;
 
   const phrase = await env.DB.prepare(`
     SELECT id FROM daily_phrases
@@ -73,21 +75,70 @@ export async function createPostcardWithNuv(env, request) {
     throw new Error(`Active phrase not found: ${phraseId}`);
   }
 
-  const created = await env.DB.prepare(`
+  const postcardId = generateId('postcard');
+  const debit = env.DB.prepare(`
     INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id)
     SELECT ?, ?, ?, 'postcard_creation', ?
     FROM nuv_wallets
     WHERE user_id = ? AND balance >= ?
     RETURNING amount
   `).bind(
-    generateId('nuv'), userId, -POSTCARD_COST, generateId('postcard'),
+    generateId('nuv'), userId, -POSTCARD_COST, postcardId,
     userId, POSTCARD_COST
-  ).first();
+  );
+  const createDraft = env.DB.prepare(`
+    INSERT INTO digital_postcards
+      (id, user_id, phrase_id, phrase, visit_days, preset, status)
+    SELECT ?, ?, id, phrase, ?, 'morning', 'draft'
+    FROM daily_phrases
+    WHERE id = ? AND user_id = ? AND status = 'active'
+      AND EXISTS (
+        SELECT 1 FROM nuv_transactions
+        WHERE user_id = ? AND reason = 'postcard_creation' AND reference_id = ?
+      )
+    RETURNING id
+  `).bind(postcardId, userId, visitDays, phraseId, userId, userId, postcardId);
+
+  await env.DB.batch([debit, createDraft]);
+  const postcard = await env.DB.prepare(`
+    SELECT id FROM digital_postcards WHERE id = ? AND user_id = ?
+  `).bind(postcardId, userId).first();
   const balance = await getBalance(env, userId);
 
   return {
-    created: Boolean(created),
+    created: Boolean(postcard),
+    postcard_id: postcard?.id || null,
     balance,
     cost: POSTCARD_COST,
   };
+}
+
+export async function savePostcard(env, postcardId, request) {
+  const userId = getRequiredUserId(request);
+  const { preset } = await request.json();
+  if (!POSTCARD_PRESETS.has(preset)) {
+    throw new Error('invalid postcard preset');
+  }
+
+  const postcard = await env.DB.prepare(`
+    UPDATE digital_postcards
+    SET preset = ?, status = 'saved', saved_at = COALESCE(saved_at, datetime('now'))
+    WHERE id = ? AND user_id = ?
+    RETURNING id, phrase, visit_days, preset, created_at, saved_at
+  `).bind(preset, postcardId, userId).first();
+  if (!postcard) {
+    throw new Error(`Postcard not found: ${postcardId}`);
+  }
+  return { postcard };
+}
+
+export async function getSavedPostcards(env, request) {
+  const userId = getRequiredUserId(request);
+  const { results } = await env.DB.prepare(`
+    SELECT id, phrase, visit_days, preset, created_at, saved_at
+    FROM digital_postcards
+    WHERE user_id = ? AND status = 'saved'
+    ORDER BY saved_at DESC, created_at DESC
+  `).bind(userId).all();
+  return { postcards: results };
 }

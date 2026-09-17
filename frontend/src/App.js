@@ -7,6 +7,7 @@ import AppHeaderSection from './components/AppHeaderSection';
 import AppBottomNav from './components/AppBottomNav';
 import DailyPhrase from './components/DailyPhrase';
 import PhraseHistory from './components/PhraseHistory';
+import PostcardHistory from './components/PostcardHistory';
 import { pushNavState, replaceNavState } from './utils/navHistory';
 import { getUserIdInfo, markUserInitialized } from './utils/userId';
 import { logOnboardingComplete, logSplashBypassed } from './utils/analytics';
@@ -193,6 +194,7 @@ function App() {
           )}
 
           {activeTab === 1 && <PhraseHistory />}
+          {activeTab === 2 && <PostcardHistory />}
         </Box>
 
         <OnboardingModal

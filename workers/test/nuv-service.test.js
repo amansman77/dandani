@@ -6,7 +6,9 @@ import {
   awardNuvForReflection,
   claimWelcomeNuv,
   createPostcardWithNuv,
+  getSavedPostcards,
   getNuvWallet,
+  savePostcard,
 } from '../src/nuv-service.js';
 
 class D1Statement {
@@ -28,13 +30,43 @@ class D1Statement {
     const result = this.statement.run(...this.values);
     return { meta: { changes: Number(result.changes) } };
   }
+
+  async all() {
+    return { results: this.statement.all(...this.values) };
+  }
+
+  executeBatch() {
+    return { results: this.statement.all(...this.values) };
+  }
+}
+
+class D1Database {
+  constructor(database) {
+    this.database = database;
+  }
+
+  prepare(sql) {
+    return new D1Statement(this.database.prepare(sql));
+  }
+
+  async batch(statements) {
+    this.database.exec('BEGIN');
+    try {
+      const results = statements.map((statement) => statement.executeBatch());
+      this.database.exec('COMMIT');
+      return results;
+    } catch (error) {
+      this.database.exec('ROLLBACK');
+      throw error;
+    }
+  }
 }
 
 function createEnvironment() {
   const database = new DatabaseSync(':memory:');
   database.exec(`
     CREATE TABLE daily_phrases (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, status TEXT NOT NULL
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, phrase TEXT NOT NULL, status TEXT NOT NULL
     );
     CREATE TABLE daily_phrase_logs (
       id TEXT PRIMARY KEY, phrase_id TEXT NOT NULL, user_id TEXT NOT NULL,
@@ -42,10 +74,11 @@ function createEnvironment() {
     );
   `);
   database.exec(readFileSync(new URL('../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260917_postcards.sql', import.meta.url), 'utf8'));
 
   return {
     database,
-    env: { DB: { prepare: (sql) => new D1Statement(database.prepare(sql)) } },
+    env: { DB: new D1Database(database) },
   };
 }
 
@@ -114,8 +147,8 @@ test('the deployed-schema migration preserves transactions and enables welcome g
 
 test('a postcard costs ten Nuv and insufficient balance is not changed', async () => {
   const { database, env } = createEnvironment();
-  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?)')
-    .run('phrase-1', 'user-1', 'active');
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
+    .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
   const addNuv = database.prepare(`
     INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
   `);
@@ -123,11 +156,22 @@ test('a postcard costs ten Nuv and insufficient balance is not changed', async (
     addNuv.run(`reward-${day}`, 'user-1', `day-${day}`);
   }
 
-  const created = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
+  const created = await createPostcardWithNuv(env, request('user-1', {
+    phrase_id: 'phrase-1', visit_days: 3,
+  }));
   const rejected = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
   const wallet = await getNuvWallet(env, request('user-1'));
 
-  assert.deepEqual(created, { created: true, balance: 0, cost: 10 });
-  assert.deepEqual(rejected, { created: false, balance: 0, cost: 10 });
+  assert.equal(created.created, true);
+  assert.equal(created.balance, 0);
+  assert.ok(created.postcard_id);
+  assert.deepEqual(rejected, { created: false, postcard_id: null, balance: 0, cost: 10 });
   assert.deepEqual(wallet, { balance: 0, postcard_cost: 10 });
+
+  await savePostcard(env, created.postcard_id, request('user-1', { preset: 'dawn' }));
+  const saved = await getSavedPostcards(env, request('user-1'));
+  assert.equal(saved.postcards.length, 1);
+  assert.equal(saved.postcards[0].phrase, '오늘을 믿자');
+  assert.equal(saved.postcards[0].visit_days, 3);
+  assert.equal(saved.postcards[0].preset, 'dawn');
 });

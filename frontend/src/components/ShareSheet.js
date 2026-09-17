@@ -93,6 +93,7 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
   const [notice, setNotice] = useState('');
   const [cardOpen, setCardOpen] = useState(false);
   const [creatingCard, setCreatingCard] = useState(false);
+  const [postcardId, setPostcardId] = useState(null);
 
   // 카카오 키가 없으면(앱 미등록) 카카오 심볼은 아예 안 뜨고 트위터만 남는다.
   const hasKakao = isKakaoConfigured();
@@ -177,7 +178,7 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
       const response = await fetch(`${API_URL}/api/nuv/postcards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-        body: JSON.stringify({ phrase_id: phrase.id }),
+        body: JSON.stringify({ phrase_id: phrase.id, visit_days: phrase.visit_days || 1 }),
       });
       const data = await response.json();
       if (onNuvBalanceChange && Number.isInteger(data.balance)) {
@@ -191,6 +192,7 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
         setNotice(data.error || '디지털 엽서를 만들지 못했어요');
         return;
       }
+      setPostcardId(data.postcard_id);
       onClose();
       setCardOpen(true);
     } catch (error) {
@@ -274,7 +276,12 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
         </Box>
       </Drawer>
 
-      <PhraseCardSheet open={cardOpen} onClose={() => setCardOpen(false)} phrase={phrase} />
+      <PhraseCardSheet
+        open={cardOpen}
+        onClose={() => setCardOpen(false)}
+        phrase={phrase}
+        postcardId={postcardId}
+      />
 
       <Snackbar
         open={Boolean(notice)}

@@ -7,7 +7,9 @@ import { getUserActivityStats } from './activity-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
-import { claimWelcomeNuv, createPostcardWithNuv, getNuvWallet } from './nuv-service.js';
+import {
+  claimWelcomeNuv, createPostcardWithNuv, getNuvWallet, getSavedPostcards, savePostcard
+} from './nuv-service.js';
 
 // 2026-08-28 피벗 이후 Story Feed/Challenge/Timefold 라우트는 부르는 화면이
 // 없어졌고, 2026-09-06 프론트에서 그 화면들을 삭제하면서 완전히 도달 불가가
@@ -32,6 +34,9 @@ async function handleGet(url, request, env) {
   }
   if (url.pathname === '/api/nuv') {
     return jsonResponse(await getNuvWallet(env, request));
+  }
+  if (url.pathname === '/api/nuv/postcards') {
+    return jsonResponse(await getSavedPostcards(env, request));
   }
   if (url.pathname === '/api/analytics/retention') {
     return jsonResponse(await calculateRetentionMetrics(env));
@@ -88,6 +93,10 @@ async function handlePost(url, request, env) {
   }
   if (url.pathname === '/api/nuv/welcome') {
     return jsonResponse(await claimWelcomeNuv(env, request));
+  }
+  if (url.pathname.match(/^\/api\/nuv\/postcards\/[^/]+\/save$/)) {
+    const postcardId = url.pathname.split('/')[4];
+    return jsonResponse(await savePostcard(env, postcardId, request));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }
