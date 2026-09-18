@@ -10,7 +10,9 @@ const presetLabels = Object.fromEntries(PRESETS.map((preset) => [preset.id, pres
 
 const PostcardCard = ({ postcard }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewBlob, setPreviewBlob] = useState(null);
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -23,6 +25,7 @@ const PostcardCard = ({ postcard }) => {
     }).then((blob) => {
       if (!alive) return;
       objectUrl = URL.createObjectURL(blob);
+      setPreviewBlob(blob);
       setPreviewUrl(objectUrl);
     }).catch(() => {
       if (alive) setPreviewFailed(true);
@@ -32,6 +35,22 @@ const PostcardCard = ({ postcard }) => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [postcard]);
+
+  const saveOnMobile = async (event) => {
+    const isMobileBrowser = navigator.maxTouchPoints > 0
+      || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobileBrowser || !previewBlob || !navigator.share || !navigator.canShare) return;
+    const file = new File([previewBlob], `단단이-엽서-${postcard.id}.png`, { type: 'image/png' });
+    if (!navigator.canShare({ files: [file] })) return;
+
+    event.preventDefault();
+    setSaveFailed(false);
+    try {
+      await navigator.share({ files: [file] });
+    } catch (error) {
+      if (!error || error.name !== 'AbortError') setSaveFailed(true);
+    }
+  };
 
   return (
     <Box sx={{ maxWidth: 360, mx: 'auto', mb: 3 }}>
@@ -59,6 +78,7 @@ const PostcardCard = ({ postcard }) => {
           component="a"
           href={previewUrl || undefined}
           download={`단단이-엽서-${postcard.id}.png`}
+          onClick={saveOnMobile}
           aria-disabled={!previewUrl}
           sx={{
             color: COLOR.accent.main, fontFamily: FONT.sans, fontWeight: 600,
@@ -69,6 +89,11 @@ const PostcardCard = ({ postcard }) => {
           다운로드
         </Box>
       </Box>
+      {saveFailed && (
+        <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.7rem', color: COLOR.error, textAlign: 'right', mt: 0.5 }}>
+          기기 저장 화면을 열지 못했어요
+        </Typography>
+      )}
     </Box>
   );
 };
