@@ -8,6 +8,51 @@ import Loader from './Loader';
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const presetLabels = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset.label]));
 
+const PostcardPreview = ({ postcard }) => {
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    let objectUrl = null;
+    setPreviewFailed(false);
+    renderPhraseCard({
+      phrase: postcard.phrase,
+      visitDays: postcard.visit_days,
+      preset: postcard.preset,
+    }).then((blob) => {
+      if (!alive) return;
+      objectUrl = URL.createObjectURL(blob);
+      setPreviewUrl(objectUrl);
+    }).catch(() => {
+      if (alive) setPreviewFailed(true);
+    });
+    return () => {
+      alive = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [postcard]);
+
+  return (
+    <Box
+      sx={{
+        width: '100%', aspectRatio: '1 / 1', borderRadius: 2, overflow: 'hidden',
+        background: COLOR.surface.ring, border: `1px solid ${COLOR.line.soft}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      {previewUrl ? (
+        <Box component="img" src={previewUrl} alt={`“${postcard.phrase}” 엽서`}
+          sx={{ width: '100%', height: '100%', display: 'block' }} />
+      ) : previewFailed ? (
+        <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.76rem', color: COLOR.text.muted }}>
+          미리보기를 만들지 못했어요
+        </Typography>
+      ) : <Loader />}
+    </Box>
+  );
+};
+
 const PostcardHistory = () => {
   const [postcards, setPostcards] = useState(null);
   const [error, setError] = useState('');
@@ -69,10 +114,8 @@ const PostcardHistory = () => {
           아직 저장한 엽서가 없어요.
         </Typography>
       ) : postcards.map((postcard) => (
-        <Box key={postcard.id} sx={{ border: `1px solid ${COLOR.line.soft}`, borderRadius: 3, p: 2, mb: 1.5, background: 'rgba(255,255,255,0.72)' }}>
-          <Typography sx={{ fontFamily: FONT.serif, fontWeight: 700, color: COLOR.text.primary, lineHeight: 1.55 }}>
-            “{postcard.phrase}”
-          </Typography>
+        <Box key={postcard.id} sx={{ maxWidth: 360, mx: 'auto', mb: 3 }}>
+          <PostcardPreview postcard={postcard} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.25 }}>
             <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.7rem', color: COLOR.text.muted }}>
               {presetLabels[postcard.preset] || postcard.preset} · {postcard.visit_days}번째 아침
