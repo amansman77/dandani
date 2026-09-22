@@ -12,6 +12,17 @@ import {
   uploadPostcardImage,
 } from '../src/nuv-service.js';
 
+// node:sqlite는 BLOB을 Uint8Array로 주는데 진짜 D1은 숫자 배열로 준다.
+// 가짜가 더 친절하면 테스트가 통과해도 프로덕션에서 깨진다 — 실제로
+// 다운로드한 PNG가 "137,80,78,..." 텍스트로 내려간 적이 있다. 진짜 D1이
+// 하는 대로 맞춰둔다.
+function asD1Row(row) {
+  if (!row) return row;
+  return Object.fromEntries(Object.entries(row).map(([key, value]) => (
+    [key, value instanceof Uint8Array ? [...value] : value]
+  )));
+}
+
 class D1Statement {
   constructor(statement) {
     this.statement = statement;
@@ -26,7 +37,7 @@ class D1Statement {
   }
 
   async first() {
-    return this.statement.get(...this.values);
+    return asD1Row(this.statement.get(...this.values));
   }
 
   async run() {

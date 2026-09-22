@@ -168,6 +168,19 @@ export async function uploadPostcardImage(env, postcardId, request) {
   return { download_url: `${origin}/api/nuv/postcard-files/${postcard.download_token}` };
 }
 
+// D1은 BLOB을 숫자 배열([137,80,78,...])로 돌려준다. 그대로 Response에 넣으면
+// 배열이 문자열로 바뀌어서 "137,80,78,..."이라는 텍스트가 내려간다 — 파일은
+// 받아지는데 어떤 뷰어에서도 안 열린다(75바이트 PNG가 217바이트 ASCII가 됐다).
+//
+// 테스트는 이걸 못 잡았다. node:sqlite는 BLOB을 Uint8Array로 주기 때문에
+// 가짜 D1이 진짜 D1보다 친절했던 것이다. 지금은 테스트 쪽 가짜가 숫자 배열을
+// 돌려주도록 맞춰뒀다.
+function toBytes(value) {
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (ArrayBuffer.isView(value)) return value;
+  return new Uint8Array(value);
+}
+
 export async function downloadPostcardImage(env, token) {
   if (!/^[a-f0-9]{32}$/.test(token)) {
     return new Response('Not Found', { status: 404 });
@@ -180,7 +193,7 @@ export async function downloadPostcardImage(env, token) {
     return new Response('Not Found', { status: 404 });
   }
 
-  return new Response(postcard.image_data, {
+  return new Response(toBytes(postcard.image_data), {
     headers: {
       'Content-Type': postcard.image_mime || 'image/png',
       'Content-Disposition': 'attachment; filename="dandani-postcard.png"',
