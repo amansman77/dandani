@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   createPracticeRecord, getPracticeRecords, issueAwaitingPostcards,
 } from '../src/practice-service.js';
+import { getSavedPostcards, savePostcard } from '../src/nuv-service.js';
 
 class D1Statement {
   constructor(statement) {
@@ -43,6 +44,7 @@ function createEnvironment() {
     '../schemas/schema_v260917_postcards.sql',
     '../schemas/schema_v260918_postcard_images.sql',
     '../schemas/schema_v260923_practice_records.sql',
+    '../schemas/schema_v260923_postcard_proof.sql',
   ]) {
     database.exec(readFileSync(new URL(file, import.meta.url), 'utf8'));
   }
@@ -125,6 +127,44 @@ test('a record above the threshold issues its postcard immediately', async () =>
   assert.equal(postcard.phrase, '화를 내기 전에 한 번 더 묻자');
 });
 
+test('an issued postcard carries the proof and a per-user issue number', async () => {
+  const { database, env } = createEnvironment();
+  addNuv(database, 'user-1', 12);
+
+  const first = await createPracticeRecord(env, request({
+    phrase_id: 'phrase-1', body: '먼저 물었다', practiced_on: '2026-09-20',
+  }));
+  const second = await createPracticeRecord(env, request({
+    phrase_id: 'phrase-1', body: '또 그렇게 했다',
+  }));
+
+  const rows = database.prepare('SELECT * FROM digital_postcards ORDER BY issue_no').all();
+  assert.deepEqual(rows.map((row) => row.issue_no), [1, 2]);
+  assert.equal(rows[0].practice_body, '먼저 물었다');
+  assert.equal(rows[0].practiced_on, '2026-09-20');
+  assert.equal(rows[0].nuv_at_issue, 12);
+  assert.equal(rows[0].practice_record_id, first.record.id);
+  assert.equal(rows[1].practice_record_id, second.record.id);
+  // 발행되면 바로 엽서함에 남는다 — 고쳐 쓸 수 있는 중간 상태를 두지 않는다.
+  assert.deepEqual(rows.map((row) => row.status), ['saved', 'saved']);
+});
+
+test('changing the background does not touch the proof', async () => {
+  const { database, env } = createEnvironment();
+  addNuv(database, 'user-1', 12);
+  const created = await createPracticeRecord(env, request({
+    phrase_id: 'phrase-1', body: '그날 그렇게 했다',
+  }));
+
+  await savePostcard(env, created.postcard_id, request({ preset: 'dawn' }));
+
+  const row = database.prepare('SELECT * FROM digital_postcards').get();
+  assert.equal(row.preset, 'dawn');
+  assert.equal(row.practice_body, '그날 그렇게 했다');
+  assert.equal(row.nuv_at_issue, 12);
+  assert.equal(row.issue_no, 1);
+});
+
 test('the phrase is frozen into the record, so replacing it later changes nothing', async () => {
   const { database, env } = createEnvironment();
   addNuv(database, 'user-1', 12);
@@ -153,6 +193,28 @@ test('a past date is accepted and a future date falls back to today', async () =
   assert.equal(past.record.practiced_on, '2026-09-01');
   assert.notEqual(future.record.practiced_on, '2099-01-01');
   assert.match(future.record.practiced_on, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('the postcard list separates the old bought cards from real proofs', async () => {
+  const { database, env } = createEnvironment();
+  addNuv(database, 'user-1', 12);
+  // 실천 없이 누브를 주고 샀던 옛 엽서 — practice_record_id가 없다.
+  database.prepare(`
+    INSERT INTO digital_postcards (id, user_id, phrase_id, phrase, visit_days, preset, status, saved_at)
+    VALUES ('old-1', 'user-1', 'phrase-1', '옛 문장', 3, 'morning', 'saved', datetime('now'))
+  `).run();
+  await createPracticeRecord(env, request({ phrase_id: 'phrase-1', body: '오늘 그렇게 했다' }));
+
+  const { postcards } = await getSavedPostcards(env, request());
+  assert.equal(postcards.length, 2);
+  const proof = postcards.find((postcard) => !postcard.is_legacy);
+  const legacy = postcards.find((postcard) => postcard.is_legacy);
+  assert.equal(proof.issue_no, 1);
+  assert.equal(proof.practice_body, '오늘 그렇게 했다');
+  assert.equal(legacy.issue_no, null);
+  assert.equal(legacy.practice_body, null);
+  // 발행된 것이 위로 온다.
+  assert.equal(postcards[0].is_legacy, false);
 });
 
 test('an empty record is refused', async () => {

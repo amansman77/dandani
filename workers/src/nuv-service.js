@@ -37,15 +37,27 @@ export async function issuePostcardForRecord(env, userId, record, balance) {
   `).bind(record.id, userId).first();
   if (existing) return existing.id;
 
+  // 발행번호는 사람마다 1번부터. 남과 견주는 숫자가 아니라 "내 몇 번째
+  // 증명인가"라서 전역 번호일 이유가 없다.
+  const last = await env.DB.prepare(`
+    SELECT MAX(issue_no) AS issue_no FROM digital_postcards WHERE user_id = ?
+  `).bind(userId).first();
+
+  // 여기 들어가는 값은 전부 지금 한 번 쓰고 다시 쓰지 않는다. 나중에 문장을
+  // 바꾸거나 되새김이 더 쌓여도 안 변한다 — 내용이 바뀌는 기록은 증명이
+  // 아니다. draft를 거치지 않고 바로 saved로 굳히는 것도 같은 이유다.
   const postcardId = generateId('postcard');
   const created = await env.DB.prepare(`
     INSERT INTO digital_postcards
-      (id, user_id, phrase_id, phrase, visit_days, preset, status, practice_record_id)
-    VALUES (?, ?, ?, ?, ?, 'morning', 'draft', ?)
+      (id, user_id, phrase_id, phrase, visit_days, preset, status, practice_record_id,
+       practice_body, practiced_on, nuv_at_issue, issue_no, issued_at, saved_at)
+    VALUES (?, ?, ?, ?, ?, 'morning', 'saved', ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     RETURNING id
   `).bind(
     postcardId, userId, record.phrase_id, record.phrase,
-    Math.max(1, record.nuv_at_record), record.id
+    Math.max(1, record.nuv_at_record), record.id,
+    record.body ?? null, record.practiced_on ?? null, record.nuv_at_record,
+    (last?.issue_no || 0) + 1
   ).first();
   return created?.id || null;
 }
@@ -127,11 +139,14 @@ export async function savePostcard(env, postcardId, request) {
     throw new Error('invalid postcard preset');
   }
 
+  // 바꿀 수 있는 건 배경뿐이다. 문장·실천 기록·실천일·누브·발행번호는
+  // 발행할 때 한 번 쓰고 여기서 건드리지 않는다 — 그게 증명이고, 배경은
+  // 표현이다.
   const postcard = await env.DB.prepare(`
     UPDATE digital_postcards
     SET preset = ?, status = 'saved', saved_at = COALESCE(saved_at, datetime('now'))
     WHERE id = ? AND user_id = ?
-    RETURNING id, phrase, visit_days, preset, created_at, saved_at
+    RETURNING id, phrase, visit_days, preset, created_at, saved_at, issue_no
   `).bind(preset, postcardId, userId).first();
   if (!postcard) {
     throw new Error(`Postcard not found: ${postcardId}`);
@@ -142,15 +157,21 @@ export async function savePostcard(env, postcardId, request) {
 export async function getSavedPostcards(env, request) {
   const userId = getRequiredUserId(request);
   const { results } = await env.DB.prepare(`
-    SELECT id, phrase, visit_days, preset, created_at, saved_at, download_token
+    SELECT id, phrase, visit_days, preset, created_at, saved_at, download_token,
+           practice_record_id, practice_body, practiced_on, nuv_at_issue, issue_no, issued_at
     FROM digital_postcards
     WHERE user_id = ? AND status = 'saved'
-    ORDER BY saved_at DESC, created_at DESC
+    ORDER BY issue_no DESC, saved_at DESC, created_at DESC
   `).bind(userId).all();
   const origin = new URL(request.url).origin;
   return {
-    postcards: results.map(({ download_token: downloadToken, ...postcard }) => ({
+    postcards: results.map(({
+      download_token: downloadToken, practice_record_id: practiceRecordId, ...postcard
+    }) => ({
       ...postcard,
+      // 실천 없이 누브를 주고 샀던 옛 엽서. 지우지도 번호를 주지도 않고,
+      // 화면에서만 갈라 보여준다.
+      is_legacy: !practiceRecordId,
       download_url: downloadToken
         ? `${origin}/api/nuv/postcard-files/${downloadToken}`
         : null,

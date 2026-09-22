@@ -53,6 +53,7 @@ export async function createPracticeRecord(env, request) {
     phrase_id: phrase.id,
     phrase: phrase.phrase,
     practiced_on: practicedOn,
+    body: text,
     nuv_at_record: balance,
   };
   await env.DB.prepare(`
@@ -61,14 +62,14 @@ export async function createPracticeRecord(env, request) {
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).bind(
     record.id, userId, record.phrase_id, record.phrase,
-    record.practiced_on, text, record.nuv_at_record
+    record.practiced_on, record.body, record.nuv_at_record
   ).run();
 
   // 문턱을 못 넘었어도 기록은 이미 저장됐다. 엽서만 기다린다.
   const postcardId = await issuePostcardForRecord(env, userId, record, balance);
 
   return {
-    record: { ...record, body: text },
+    record,
     postcard_id: postcardId,
     issued: Boolean(postcardId),
     balance,
@@ -118,7 +119,7 @@ export async function issueAwaitingPostcards(env, userId) {
   if (balance < POSTCARD_THRESHOLD) return { issued: 0 };
 
   const { results } = await env.DB.prepare(`
-    SELECT r.id, r.phrase_id, r.phrase, r.nuv_at_record
+    SELECT r.id, r.phrase_id, r.phrase, r.body, r.practiced_on, r.nuv_at_record
     FROM practice_records r
     LEFT JOIN digital_postcards p ON p.practice_record_id = r.id
     WHERE r.user_id = ? AND p.id IS NULL
