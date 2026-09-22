@@ -18,7 +18,8 @@ test('promises accrual rather than a gift, and completes onboarding', async () =
   expect(document.body.textContent).not.toContain('선물');
   expect(document.body.textContent).not.toContain('드려요');
   expect(document.body.textContent).toContain('1 누브');
-  expect(document.body.textContent).toContain('10 누브');
+  // 누브는 무언가를 여는 열쇠가 아니다 — 문턱을 없앤 뒤로 조건을 말하면 안 된다.
+  expect(document.body.textContent).not.toContain('10 누브');
   await clickButton('첫 문장 고르기');
   expect(onComplete).toHaveBeenCalledTimes(1);
 

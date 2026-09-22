@@ -2,9 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import {
-  createPracticeRecord, getPracticeRecords, issueAwaitingPostcards,
-} from '../src/practice-service.js';
+import { createPracticeRecord, getPracticeRecords } from '../src/practice-service.js';
 import { getSavedPostcards, savePostcard } from '../src/nuv-service.js';
 
 class D1Statement {
@@ -71,60 +69,39 @@ function request(body, { search = '', timezone = 'Asia/Seoul' } = {}) {
   });
 }
 
-test('a record below the threshold is still kept, and waits for a postcard', async () => {
+test('the very first record issues a postcard, with no Nuv at all', async () => {
   const { database, env } = createEnvironment();
-  addNuv(database, 'user-1', 3);
 
+  // 되새김이 한 번도 없는 사람. 살아낸 일 자체가 증명이라 누브를 묻지 않는다.
   const result = await createPracticeRecord(env, request({
     phrase_id: 'phrase-1', body: '바로 받아치지 않고 무슨 뜻이냐고 먼저 물었다.',
   }));
 
-  // 문턱을 못 넘어도 사라지면 안 된다 — 딱 한 번뿐인 사건이라 다시 오지 않는다.
-  assert.equal(result.issued, false);
-  assert.equal(result.postcard_id, null);
-  assert.equal(result.nuv_needed, 7);
-  assert.equal(result.record.nuv_at_record, 3);
+  assert.equal(result.issued, true);
+  assert.ok(result.postcard_id);
+  assert.equal(result.record.nuv_at_record, 0);
 
-  const listed = await getPracticeRecords(env, request());
-  assert.equal(listed.records.length, 1);
-  assert.equal(listed.records[0].awaiting_issue, true);
+  const postcard = database.prepare('SELECT * FROM digital_postcards').get();
+  assert.equal(postcard.issue_no, 1);
+  assert.equal(postcard.nuv_at_issue, 0);
+  assert.equal(postcard.practice_record_id, result.record.id);
 });
 
-test('crossing the threshold issues every waiting record exactly once', async () => {
+test('every record gets exactly one postcard, in order', async () => {
   const { database, env } = createEnvironment();
   addNuv(database, 'user-1', 3);
   await createPracticeRecord(env, request({ phrase_id: 'phrase-1', body: '첫 번째' }));
   await createPracticeRecord(env, request({ phrase_id: 'phrase-1', body: '두 번째' }));
 
-  assert.deepEqual(await issueAwaitingPostcards(env, 'user-1'), { issued: 0 });
-
-  database.exec("DELETE FROM nuv_transactions WHERE user_id = 'user-1'");
-  database.exec("UPDATE nuv_wallets SET balance = 0 WHERE user_id = 'user-1'");
-  addNuv(database, 'user-1', 10);
-
-  assert.deepEqual(await issueAwaitingPostcards(env, 'user-1'), { issued: 2 });
-  // 두 번 불러도 두 장이 더 생기면 안 된다.
-  assert.deepEqual(await issueAwaitingPostcards(env, 'user-1'), { issued: 0 });
-
   const listed = await getPracticeRecords(env, request());
-  assert.deepEqual(listed.records.map((record) => record.awaiting_issue), [false, false]);
+  assert.equal(listed.records.length, 2);
+  assert.ok(listed.records.every((record) => record.postcard_id));
   assert.equal(database.prepare('SELECT COUNT(*) AS n FROM digital_postcards').get().n, 2);
-});
-
-test('a record above the threshold issues its postcard immediately', async () => {
-  const { database, env } = createEnvironment();
-  addNuv(database, 'user-1', 12);
-
-  const result = await createPracticeRecord(env, request({
-    phrase_id: 'phrase-1', body: '오늘 그렇게 했다',
-  }));
-
-  assert.equal(result.issued, true);
-  assert.ok(result.postcard_id);
-  assert.equal(result.nuv_needed, 0);
-  const postcard = database.prepare('SELECT * FROM digital_postcards').get();
-  assert.equal(postcard.practice_record_id, result.record.id);
-  assert.equal(postcard.phrase, '화를 내기 전에 한 번 더 묻자');
+  assert.deepEqual(
+    database.prepare('SELECT issue_no FROM digital_postcards ORDER BY issue_no').all()
+      .map((row) => row.issue_no),
+    [1, 2]
+  );
 });
 
 test('an issued postcard carries the proof and a per-user issue number', async () => {

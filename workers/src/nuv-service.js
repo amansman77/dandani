@@ -1,8 +1,12 @@
 import { getRequiredUserId } from './service-utils.js';
 
-// 누브는 되새김이 쌓여 만들어지는 기록이지 재화가 아니다. 그래서 줄어들지 않는다.
-// 엽서 발행에 10누브가 필요하지만 그건 값이 아니라 문턱이다 — 넘었는지만 보고
-// 차감하지 않는다. 보유량이 인증할 때마다 없어지지 않는 것과 같은 성질이다.
+// 누브는 되새김이 쌓여 만들어지는 기록이지 재화가 아니다. 그래서 줄어들지도
+// 않고, 무언가를 여는 열쇠도 아니다.
+//
+// 한때 엽서 발행에 10누브 문턱을 뒀다가 없앴다. 차감이 아니라 자격이었지만,
+// 자격이든 값이든 누브가 무언가를 막는 순간 다시 "얼마가 있어야 하는가"를
+// 묻게 된다. 이제 누브는 막지 않고 세기만 한다 — 엽서에 찍히는 숫자로만 쓰인다.
+// 엽서를 여는 건 누브가 아니라 실천이다.
 //
 // 예전엔 가입하면 10누브를 그냥 줬다(WELCOME_GRANT). 1누브가 "하루를 되새겼다"는
 // 뜻인 이상 그건 살지 않은 열흘을 준 것이어서, 단위의 뜻이 첫 화면에서부터
@@ -10,7 +14,6 @@ import { getRequiredUserId } from './service-utils.js';
 // 4누브, 발행된 엽서 전부가 선물로 산 것이었다. 그래서 선물을 없앴고,
 // 이미 나간 210누브도 원장에서 되돌렸다(schema_v260922_nuv_accrual.sql).
 export const REFLECTION_REWARD = 1;
-export const POSTCARD_THRESHOLD = 10;
 const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light']);
 const MAX_POSTCARD_IMAGE_BYTES = 1800000;
 
@@ -27,11 +30,10 @@ export async function getNuvBalance(env, userId) {
 
 const getBalance = getNuvBalance;
 
-// 실천 기록에서 엽서를 발행한다. 문턱을 못 넘었으면 아무것도 만들지 않고
-// 돌아간다 — 기록은 이미 저장돼 있고, 문턱을 넘는 날 그때 발행된다.
-// 기록 하나에 엽서는 하나뿐이라 두 번 불러도 두 장이 되지 않는다.
-export async function issuePostcardForRecord(env, userId, record, balance) {
-  if (balance < POSTCARD_THRESHOLD) return null;
+// 실천 기록에서 엽서를 발행한다. 살아낸 순간은 그 자체로 증명이 되므로
+// 따로 자격을 묻지 않는다. 기록 하나에 엽서는 하나뿐이라 두 번 불러도
+// 두 장이 되지 않는다.
+export async function issuePostcardForRecord(env, userId, record) {
   const existing = await env.DB.prepare(`
     SELECT id FROM digital_postcards WHERE practice_record_id = ? AND user_id = ?
   `).bind(record.id, userId).first();
@@ -66,7 +68,7 @@ export async function issuePostcardForRecord(env, userId, record, balance) {
 // 따로 합계를 낼 필요가 없다.
 export async function getNuvWallet(env, request) {
   const userId = getRequiredUserId(request);
-  return { balance: await getBalance(env, userId), postcard_threshold: POSTCARD_THRESHOLD };
+  return { balance: await getBalance(env, userId) };
 }
 
 export async function awardNuvForReflection(env, userId, phraseId, logDate) {
@@ -107,9 +109,9 @@ export async function createPostcardWithNuv(env, request) {
     throw new Error(`Active phrase not found: ${phraseId}`);
   }
 
-  // 문턱은 한 문장 안에서 검사한다. 지갑 행이 아직 없으면 하위 질의가 NULL을
-  // 돌려주고 NULL >= 10은 참이 아니라서, 0누브인 사람은 자연히 걸러진다.
-  // 차감이 사라진 덕에 원장을 건드리지 않으니 batch도 필요 없어졌다.
+  // 공유 시트에서 만드는 엽서. 실천 기록이 붙지 않아서 발행번호도 없고,
+  // 엽서함에서 "초기 엽서"로 보인다 — 증명이 아니라 지금 문장을 담은
+  // 그림이기 때문이다.
   const postcardId = generateId('postcard');
   const postcard = await env.DB.prepare(`
     INSERT INTO digital_postcards
@@ -117,18 +119,13 @@ export async function createPostcardWithNuv(env, request) {
     SELECT ?, ?, id, phrase, ?, 'morning', 'draft'
     FROM daily_phrases
     WHERE id = ? AND user_id = ? AND status = 'active'
-      AND (SELECT balance FROM nuv_wallets WHERE user_id = ?) >= ?
     RETURNING id
-  `).bind(
-    postcardId, userId, visitDays,
-    phraseId, userId, userId, POSTCARD_THRESHOLD
-  ).first();
+  `).bind(postcardId, userId, visitDays, phraseId, userId).first();
 
   return {
     created: Boolean(postcard),
     postcard_id: postcard?.id || null,
     balance: await getBalance(env, userId),
-    threshold: POSTCARD_THRESHOLD,
   };
 }
 

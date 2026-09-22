@@ -1,7 +1,7 @@
 import { getRequiredUserId } from './service-utils.js';
 import { phraseDateContext } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
-import { getNuvBalance, issuePostcardForRecord, POSTCARD_THRESHOLD } from './nuv-service.js';
+import { getNuvBalance, issuePostcardForRecord } from './nuv-service.js';
 
 // 실천은 되새김과 다른 일이다. 되새김은 매일 두드리는 것이라 내용이 없고,
 // 실천은 가끔 쓰는 것이라 본문이 있다. 그래서 여기서 하는 일은 하나뿐 —
@@ -65,16 +65,14 @@ export async function createPracticeRecord(env, request) {
     record.practiced_on, record.body, record.nuv_at_record
   ).run();
 
-  // 문턱을 못 넘었어도 기록은 이미 저장됐다. 엽서만 기다린다.
-  const postcardId = await issuePostcardForRecord(env, userId, record, balance);
+  // 적은 순간 바로 엽서가 된다. 살아낸 일이 증명이지, 누브가 증명이 아니다.
+  const postcardId = await issuePostcardForRecord(env, userId, record);
 
   return {
     record,
     postcard_id: postcardId,
     issued: Boolean(postcardId),
     balance,
-    threshold: POSTCARD_THRESHOLD,
-    nuv_needed: Math.max(0, POSTCARD_THRESHOLD - balance),
   };
 }
 
@@ -105,30 +103,6 @@ export async function getPracticeRecords(env, request) {
     records: results.map(({ postcard_id: postcardId, ...record }) => ({
       ...record,
       postcard_id: postcardId,
-      // 문턱을 못 넘어 아직 봉해지지 않은 기록. 넘는 날 발행된다.
-      awaiting_issue: !postcardId,
     })),
-    threshold: POSTCARD_THRESHOLD,
   };
-}
-
-// 문턱을 넘은 뒤, 그동안 기다리던 기록들을 한꺼번에 엽서로 발행한다.
-// 되새김을 기록할 때마다 불러서 "넘는 날 기다리던 것이 엽서가 된다"를 만든다.
-export async function issueAwaitingPostcards(env, userId) {
-  const balance = await getNuvBalance(env, userId);
-  if (balance < POSTCARD_THRESHOLD) return { issued: 0 };
-
-  const { results } = await env.DB.prepare(`
-    SELECT r.id, r.phrase_id, r.phrase, r.body, r.practiced_on, r.nuv_at_record
-    FROM practice_records r
-    LEFT JOIN digital_postcards p ON p.practice_record_id = r.id
-    WHERE r.user_id = ? AND p.id IS NULL
-    ORDER BY r.practiced_on ASC, r.created_at ASC
-  `).bind(userId).all();
-
-  let issued = 0;
-  for (const record of results) {
-    if (await issuePostcardForRecord(env, userId, record, balance)) issued += 1;
-  }
-  return { issued };
 }

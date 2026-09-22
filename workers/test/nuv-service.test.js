@@ -146,38 +146,34 @@ test('the accrual migration erases granted and spent Nuv and rebuilds balances',
   );
 });
 
-test('nine Nuv cannot issue a postcard and the tenth opens it', async () => {
+test('zero Nuv no longer blocks a postcard', async () => {
   const { database, env } = createEnvironment();
   database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
     .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
-  const addNuv = database.prepare(`
-    INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
-  `);
-  for (let day = 1; day <= 9; day += 1) addNuv.run(`reward-${day}`, 'user-1', `day-${day}`);
 
-  const belowThreshold = await createPostcardWithNuv(env, request('user-1', {
-    phrase_id: 'phrase-1',
-  }));
-  assert.deepEqual(belowThreshold, {
-    created: false, postcard_id: null, balance: 9, threshold: 10,
-  });
-
-  addNuv.run('reward-10', 'user-1', 'day-10');
-  const atThreshold = await createPostcardWithNuv(env, request('user-1', {
-    phrase_id: 'phrase-1',
-  }));
-  assert.equal(atThreshold.created, true);
+  // 되새김이 한 번도 없어 지갑 행조차 없는 사람. 예전엔 여기서 막혔다 —
+  // 이제 누브는 막지 않고 세기만 한다.
+  const result = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
+  assert.equal(result.created, true);
+  assert.equal(result.balance, 0);
+  assert.ok(result.postcard_id);
 });
 
-test('a user with no wallet row cannot issue a postcard', async () => {
+test('a postcard still needs an active phrase of your own', async () => {
   const { database, env } = createEnvironment();
   database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
-    .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
+    .run('phrase-1', 'user-2', '남의 문장', 'active');
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
+    .run('phrase-2', 'user-1', '끝난 문장', 'retired');
 
-  // 되새김이 한 번도 없으면 지갑 행 자체가 없다. 문턱 검사의 하위 질의가
-  // NULL을 돌려주는 경로라, 0누브와 같이 막히는지 따로 확인한다.
-  const result = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
-  assert.deepEqual(result, { created: false, postcard_id: null, balance: 0, threshold: 10 });
+  await assert.rejects(
+    () => createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' })),
+    /Active phrase not found/
+  );
+  await assert.rejects(
+    () => createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-2' })),
+    /Active phrase not found/
+  );
 });
 
 test('issuing a postcard leaves the Nuv untouched', async () => {
@@ -192,7 +188,7 @@ test('issuing a postcard leaves the Nuv untouched', async () => {
   const created = await createPostcardWithNuv(env, request('user-1', {
     phrase_id: 'phrase-1', visit_days: 3,
   }));
-  // 소모가 아니라 문턱이라, 두 번째 엽서도 같은 10누브로 계속 발행된다.
+  // 소모가 아니라서 두 번째 엽서를 만들어도 10누브 그대로다.
   const second = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
   const wallet = await getNuvWallet(env, request('user-1'));
 
@@ -200,7 +196,7 @@ test('issuing a postcard leaves the Nuv untouched', async () => {
   assert.equal(created.balance, 10);
   assert.ok(created.postcard_id);
   assert.equal(second.created, true);
-  assert.deepEqual(wallet, { balance: 10, postcard_threshold: 10 });
+  assert.deepEqual(wallet, { balance: 10 });
 
   await savePostcard(env, created.postcard_id, request('user-1', { preset: 'dawn' }));
   const saved = await getSavedPostcards(env, request('user-1'));
