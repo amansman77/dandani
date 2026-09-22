@@ -27,7 +27,7 @@
 
 ```bash
 # Node.js 버전 확인
-nvm use 20
+nvm use 22
 
 # 프론트엔드 디렉토리로 이동
 cd frontend
@@ -52,7 +52,7 @@ npx wrangler@latest pages deploy build --project-name dandani --commit-dirty=tru
 cd workers
 
 # Node.js 버전 확인
-nvm use 20
+nvm use 22
 
 # 의존성 설치 (필요시)
 npm install
@@ -175,7 +175,7 @@ npx wrangler rollback <version-id>
 ## 🐛 문제 해결
 
 ### 빌드 실패
-- Node.js 버전 확인 (v20.x 권장)
+- Node.js 버전 확인 (v22.x 권장)
 - `node_modules` 삭제 후 재설치
 - 캐시 삭제: `npm cache clean --force`
 
