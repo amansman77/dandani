@@ -1,207 +1,7 @@
-// 클라이언트 사이드 이벤트 로깅 유틸리티
-// PostHog는 PostHogProvider를 통해 초기화되며 window.posthog로 접근 가능
-
 import { writeFirstUTMOnce } from './posthog-first-utm';
-import { getUserId } from './userId';
 import { getCurrentUTM } from './attribution';
-
-// Production API URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
-
-// 세션 ID 생성 및 관리
-const getSessionId = () => {
-  let sessionId = sessionStorage.getItem('dandani_session_id');
-  if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessionStorage.setItem('dandani_session_id', sessionId);
-  }
-  return sessionId;
-};
-
-// 사용자 ID는 userId.js 것을 그대로 쓴다(없으면 만들어서 돌려준다).
-//
-// 예전엔 여기서 localStorage를 직접 읽고 없으면 'anonymous'로 떨어뜨렸다.
-// initAnalytics가 PostHog 로딩을 기다리던 동안엔 그 사이에 App이 떠서 ID를
-// 만들어놨기 때문에 대부분 문제가 안 됐는데, 방문 기록을 PostHog에서 떼어내며
-// 시작 직후로 앞당기자 React가 뜨기도 전에 실행돼서 첫 방문이 전부 'anonymous'로
-// 남았다. 그러면 UTM이 붙은 방문과 그 사람이 이후에 한 행동을 이을 수가 없다 —
-// 광고 성과 측정이 통째로 끊긴다.
-
-// 환경 변수 가져오기
-const getEnvironment = () => {
-  // REACT_APP_ENVIRONMENT가 명시적으로 설정되어 있으면 사용
-  if (process.env.REACT_APP_ENVIRONMENT) {
-    return process.env.REACT_APP_ENVIRONMENT;
-  }
-  // NODE_ENV 기반으로 환경 결정
-  if (process.env.NODE_ENV === 'production') {
-    return 'prod';
-  }
-  return 'dev';
-};
-
-// PostHog 공통 속성 생성
-const getPostHogCommonProperties = () => {
-  return {
-    service_id: 'dandani',
-    environment: getEnvironment(),
-  };
-};
-
-// PostHog 이벤트 로깅 헬퍼 함수
-// PostHogProvider를 통해 초기화되므로 직접 init할 필요 없음
-const logPostHogEvent = (eventName, properties = {}) => {
-  try {
-    if (typeof window !== 'undefined') {
-      // PostHog가 초기화될 때까지 대기 (최대 3초)
-      const maxWaitTime = 3000;
-      const checkInterval = 100;
-      let elapsed = 0;
-      
-      const tryCapture = () => {
-        if (window.posthog) {
-          const userId = getUserId();
-          
-          // 사용자 ID 설정 (익명 사용자도 추적)
-          if (userId && userId !== 'anonymous') {
-            window.posthog.identify(userId);
-          }
-          
-          // 공통 속성과 이벤트별 속성 병합
-          const commonProperties = getPostHogCommonProperties();
-          
-          // 이벤트 전송
-          window.posthog.capture(eventName, {
-            ...commonProperties,
-            ...properties,
-            timestamp: new Date().toISOString(),
-          });
-          
-          // 프로덕션에서도 주요 이벤트는 로그로 확인
-          console.log(`[PostHog] Event captured: ${eventName}`, {
-            ...commonProperties,
-            ...properties,
-          });
-          return true;
-        }
-        return false;
-      };
-      
-      // 즉시 시도
-      if (tryCapture()) {
-        return;
-      }
-      
-      // PostHog가 아직 초기화되지 않았다면 대기
-      const intervalId = setInterval(() => {
-        elapsed += checkInterval;
-        if (tryCapture() || elapsed >= maxWaitTime) {
-          clearInterval(intervalId);
-          if (elapsed >= maxWaitTime) {
-            console.warn('[PostHog] Event not captured - PostHog initialization timeout:', eventName);
-          }
-        }
-      }, checkInterval);
-    }
-  } catch (error) {
-    // PostHog 이벤트 로깅 실패는 조용히 처리
-    console.debug('[PostHog] Event logging error:', error);
-  }
-};
-
-const BACKEND_ALLOWED_EVENT_TYPES = new Set([
-  'page_visit',
-  'practice_view',
-  'practice_complete',
-  'feedback_submit',
-  'challenge_start',
-  'challenge_complete',
-  'challenge_selected',
-  'challenge_upsell_shown',
-  'challenge_upsell_declined',
-  'challenge_day_logged',
-  'phrase_onboarding_shown',
-  'phrase_example_used',
-  'phrase_start',
-  'phrase_day_logged',
-  'phrase_retired',
-  'phrase_shared',
-  'splash_shown',
-  'splash_done',
-  'phrase_list_seen',
-  'phrase_list_engaged',
-  'ai_chat_start',
-  'ai_chat_message',
-  'timefold_envelope_create',
-  'onboarding_complete'
-]);
-
-const BACKEND_EVENT_TYPE_ALIAS = {
-  challenge_completed: 'challenge_complete',
-  record_created: 'feedback_submit'
-};
-
-// 이벤트 로깅 함수
-export const logEvent = async (eventType, eventData = {}) => {
-  try {
-    const userId = getUserId();
-    const sessionId = getSessionId();
-    
-    // 디버깅: page_visit 이벤트 로깅 추적
-    if (eventType === 'page_visit') {
-      console.log(`[Analytics] Logging page_visit event:`, { eventType, eventData, userId, sessionId });
-    }
-    
-    // PostHog 이벤트 로깅 (주요 이벤트만)
-    const posthogEventMap = {
-      'page_visit': '$pageview', // PostHog 표준 페이지뷰 이벤트
-      'challenge_selected': 'challenge_selected',
-      'practice_complete': 'practice_complete',
-      'feedback_submit': 'practice_recorded',
-      'assistant_opened': 'assistant_opened',
-      'assistant_skipped': 'assistant_skipped',
-      'assistant_completed': 'assistant_completed',
-      'record_created': 'record_created',
-      'challenge_completed': 'challenge_completed',
-    };
-    
-    const posthogEventName = posthogEventMap[eventType];
-    if (posthogEventName) {
-      logPostHogEvent(posthogEventName, {
-        ...eventData,
-        event_type: eventType, // 원본 이벤트 타입 유지
-      });
-    }
-    
-    const backendEventType = BACKEND_EVENT_TYPE_ALIAS[eventType] || eventType;
-    if (!BACKEND_ALLOWED_EVENT_TYPES.has(backendEventType)) {
-      return;
-    }
-
-    // 백엔드로 이벤트 전송 (비동기, 실패해도 서비스에 영향 없음)
-    fetch(`${API_BASE_URL}/api/analytics/event`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-ID': userId,
-        'X-Session-ID': sessionId,
-        'X-Client-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-        'X-Client-Time': new Date().toISOString()
-      },
-      body: JSON.stringify({
-        event_type: backendEventType,
-        event_data: eventData,
-        timestamp: new Date().toISOString()
-      })
-    }).catch(error => {
-      // 이벤트 로깅 실패는 조용히 처리
-      console.debug('Analytics event logging failed:', error);
-    });
-  } catch (error) {
-    // 이벤트 로깅 실패는 조용히 처리
-    console.debug('Analytics event logging error:', error);
-  }
-};
+import { logEvent, logPostHogEvent } from './analytics-transport';
+export { logEvent } from './analytics-transport';
 
 // 페이지 방문 이벤트 — utm_source/medium/campaign을 같이 남겨서, D1만 보고도
 // 캠페인별 방문→작성→지속 퍼널을 집계할 수 있게 한다 (전엔 UTM이 PostHog
@@ -278,9 +78,6 @@ export const logPhraseExampleUsed = (example) => {
   logEvent('phrase_example_used', { example });
 };
 
-// 스플래시는 지금까지 아무 기록도 안 남겼다. page_visit도 그 뒤에서 찍혀서,
-// 광고로 들어온 사람이 6.5초를 기다렸는지 중간에 나갔는지 구분할 수가 없었다.
-// shown만 있고 done이 없으면 = 스플래시 도중에 떠난 것. 그 부재가 신호다.
 export const logSplashShown = () => {
   logEvent('splash_shown', { ...getCurrentUTM() });
 };
@@ -289,23 +86,10 @@ export const logSplashDone = (method, ms) => {
   logEvent('splash_done', { method, ms, ...getCurrentUTM() });
 };
 
-// 스플래시를 아예 안 띄운 경우. 새 이벤트 타입을 만들지 않고 splash_done의
-// method로 구분한다 — 집계 규칙이 한 군데(splash_done)로 모인다.
-//   shown + done(watched)  = 끝까지 봤다
-//   shown + done(skipped)  = 건너뛰기를 눌렀다
-//   shown + done 없음       = 보다가 나갔다
-//   done(bypassed)만        = 광고 유입이라 아예 안 보여줬다
 export const logSplashBypassed = () => {
   logEvent('splash_done', { method: 'bypassed', ms: 0, ...getCurrentUTM() });
 };
 
-// phrase_onboarding_shown은 목록이 "렌더됐다"는 뜻일 뿐, 사람이 "봤다"는 뜻이
-// 아니다. 광고를 누르고 로딩 2~3초 사이에 나가도 그 이벤트는 찍힌다. 그래서
-// 광고 유입 3명이 목록에서 나간 건지, 목록을 보기도 전에 나간 건지 못 갈랐다.
-//
-//   seen 없음                  = 뜨기도 전에 나갔다 (로딩·인내심 문제)
-//   seen 있고 engaged 없음      = 봤는데 아무것도 안 건드렸다 (문구·매력 문제)
-//   engaged 있고 phrase_start 없음 = 만지다 말았다 (고르는 과정 문제)
 export const logPhraseListSeen = (ms) => {
   logEvent('phrase_list_seen', { ms, ...getCurrentUTM() });
 };
@@ -421,20 +205,6 @@ export const initAnalytics = () => {
   };
 
   waitForPostHog();
-  
-  // 페이지 언로드 시는 별도 이벤트 로깅하지 않음 (허용되지 않는 event_type)
-  // window.addEventListener('beforeunload', () => {
-  //   logEvent('session_end', {});
-  // });
-  
-  // 페이지 가시성 변경 시도 별도 이벤트 로깅하지 않음 (허용되지 않는 event_type)
-  // document.addEventListener('visibilitychange', () => {
-  //   if (document.hidden) {
-  //     logEvent('page_hidden', {});
-  //   } else {
-  //     logEvent('page_visible', {});
-  //   }
-  // });
 };
 
 // 챌린지 선택 이벤트 (PostHog 전용)

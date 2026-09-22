@@ -1,7 +1,9 @@
+import { HttpError } from './http-errors.js';
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID, X-Session-ID, X-Started-At, User-Agent, CF-Connecting-IP',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Client-Timezone, X-Client-Time, X-User-ID, X-Session-ID, X-Started-At, User-Agent, CF-Connecting-IP',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -47,7 +49,7 @@ export function jsonResponse(data, status = 200) {
 export function getRequiredUserId(request) {
   const userId = request.headers.get('X-User-ID');
   if (!userId || !userId.trim()) {
-    throw new Error('X-User-ID header is required');
+    throw new HttpError(400, 'X-User-ID header is required');
   }
   return userId.trim();
 }
@@ -55,7 +57,7 @@ export function getRequiredUserId(request) {
 export async function logUserEvent(env, request, eventType, eventData = {}) {
   try {
     if (!ALLOWED_EVENT_TYPES.includes(eventType)) {
-      console.warn(`Invalid event type: ${eventType}. Skipping event logging.`);
+      console.warn({ event: 'analytics_event_rejected' });
       return;
     }
 
@@ -81,7 +83,7 @@ export async function logUserEvent(env, request, eventType, eventData = {}) {
       maskedIp
     ).run();
   } catch (error) {
-    console.error('Event logging error:', error);
+    console.error({ event: 'analytics_write_failed', error_type: error.name });
   }
 }
 
