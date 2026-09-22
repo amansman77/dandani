@@ -68,19 +68,19 @@
 
 | 라우트 | 서비스 | 시절 |
 |---|---|---|
-| `GET /api/practice/today` | `practice-service.js` | 피벗 이전 |
-| `GET /api/challenges`, `/api/challenges/:id` | `practice-service.js` | 피벗 이전 |
-| `GET /api/feedback/record`, `/api/feedback/history` | `practice-service.js` | 피벗 이전 |
-| `POST /api/feedback/submit`, `/api/feedback/update`, `/api/records` | `practice-service.js` | 피벗 이전 |
-| `GET /api/stories`, `/api/stories/:id`, `/api/my-feed` | `story-service.js` | Story Feed |
-| `POST /api/stories/:id/try`, `/api/story-tries/:id/emotion`, `/api/stories/seed` | `story-service.js` | Story Feed |
-| `GET /api/stories/debug-ping` | `story-service.js` | Story Feed |
-| `GET /api/user-challenges/active`, `/api/user-challenges/catalog/:id` | `challenge-service.js` | Challenge |
-| `POST /api/user-challenges`, `/api/user-challenges/:id/log` | `challenge-service.js` | Challenge |
-| `GET/POST /api/timefold/envelope*` | `timefold-service.js` | **⚠️ 아래 참고** |
+| `GET /api/practice/today` | `legacy/practice-service.js` | 피벗 이전 |
+| `GET /api/challenges`, `/api/challenges/:id` | `legacy/practice-service.js` | 피벗 이전 |
+| `GET /api/feedback/record`, `/api/feedback/history` | `legacy/practice-service.js` | 피벗 이전 |
+| `POST /api/feedback/submit`, `/api/feedback/update`, `/api/records` | `legacy/practice-service.js` | 피벗 이전 |
+| `GET /api/stories`, `/api/stories/:id`, `/api/my-feed` | `legacy/story-service.js` | Story Feed |
+| `POST /api/stories/:id/try`, `/api/story-tries/:id/emotion`, `/api/stories/seed` | `legacy/story-service.js` | Story Feed |
+| `GET /api/stories/debug-ping` | `legacy/story-service.js` | Story Feed |
+| `GET /api/user-challenges/active`, `/api/user-challenges/catalog/:id` | `legacy/challenge-service.js` | Challenge |
+| `POST /api/user-challenges`, `/api/user-challenges/:id/log` | `legacy/challenge-service.js` | Challenge |
+| `GET/POST /api/timefold/envelope*` | `legacy/timefold-service.js` | **⚠️ 아래 참고** |
 
 > **⚠️ `/api/timefold/envelope`는 죽은 게 아니라 깨져 있습니다.**
-> `timefold-service.js`가 `INSERT INTO timefold_envelopes`를 하는데, **그 테이블은 D1에
+> `legacy/timefold-service.js`가 `INSERT INTO timefold_envelopes`를 하는데, **그 테이블은 D1에
 > 존재하지 않습니다.** 호출하면 런타임 에러가 납니다. 되살릴 생각이라면 스키마부터
 > 만들어야 합니다.
 
@@ -130,9 +130,8 @@
 - 죽은 라우트는 호출되지 않으므로 런타임 비용이 없습니다.
 
 **나쁜 점 / 감수하는 것**
-- `workers/src/`에 죽은 파일 4개(`practice-service.js`, `story-service.js`,
-  `challenge-service.js`, `timefold-service.js`)가 계속 보입니다. 다만 라우터에서 뗀
-  뒤로는 번들에 포함되지 않습니다.
+- `workers/src/legacy/`에 죽은 서비스 파일 4개가 남습니다. 라우터에서 뗀 뒤로는 번들에
+  포함되지 않습니다.
 - D1에 안 쓰는 테이블 12개가 남습니다.
 
 **진행 상황**

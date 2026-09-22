@@ -2,11 +2,15 @@
 
 단단이(Dandani) 프로젝트의 배포 방법과 배포 상태를 관리합니다.
 
+> 기능 브랜치의 Pages 배포와 공유 Worker 배포는 영향 범위가 다릅니다. 배포 전에
+> [알려진 작업 혼란과 대응 방법](docs/KNOWN_PITFALLS.md#7-pages와-worker는-브랜치-배포-의미가-다르다)을
+> 확인하세요.
+
 ## 🚀 배포 상태
 
 ### 프론트엔드 (Cloudflare Pages)
 - **프로젝트명**: `dandani`
-- **최신 배포 URL**: https://2aa41591.dandani.pages.dev
+- **최신 배포 URL**: 배포마다 바뀌므로 `pages deployment list` 명령으로 확인
 - **프로덕션 URL**: https://dandani.pages.dev
 - **커스텀 도메인**: https://dandani.yetimates.com
 - **빌드 디렉토리**: `frontend/build`
@@ -14,7 +18,7 @@
 ### 백엔드 (Cloudflare Workers)
 - **Worker 이름**: `dandani-api`
 - **배포 URL**: https://dandani-api.amansman77.workers.dev
-- **Cron Job**: 매일 오전 9시 (일일 보고서 전송)
+- **Cron Job**: UTC 09:00 일일 보고서, UTC 22:30 일일 인사이트
 - **데이터베이스**: D1 Database (`dandani-db`)
 
 ## 📋 배포 절차
@@ -88,11 +92,12 @@ npx wrangler deployments list
 
 ### API 테스트
 ```bash
-# 오늘의 실천 과제 조회
-curl https://dandani-api.amansman77.workers.dev/api/practice/today
-
-# 챌린지 목록 조회
-curl https://dandani-api.amansman77.workers.dev/api/challenges
+# 활성 문장 조회 (날짜는 실행 시점 값으로 변경)
+curl \
+  -H 'X-User-ID: deploy-smoke-check' \
+  -H 'X-Client-Time: 2026-09-12T00:00:00.000Z' \
+  -H 'X-Client-Timezone: Asia/Seoul' \
+  https://dandani-api.amansman77.workers.dev/api/phrases/active
 ```
 
 ## ⚙️ 환경 변수

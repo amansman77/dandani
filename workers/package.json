@@ -2,8 +2,10 @@
   "name": "dandani-workers",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "lint": "eslint \"src/*.js\"",
+    "test": "node --test --test-concurrency=1 \"test/*.test.*\" \"tests/*.test.mjs\"",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev"

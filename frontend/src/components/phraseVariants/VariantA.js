@@ -32,7 +32,7 @@ function PhraseEditor({
   return (
     <Scene>
       <Eyebrow sx={{ mb: 2.5 }}>
-        {isEditing ? '문구 수정' : (cameFromPicker ? '고른 문장' : '오늘부터, 나에게')}
+        {isEditing ? '문장 수정' : (cameFromPicker ? '고른 문장' : '오늘부터, 나에게')}
       </Eyebrow>
       <Phrase sx={{ fontSize: '1.25rem', mb: 3.5, fontWeight: 700, maxWidth: 'none' }}>
         {cameFromPicker ? <>{isEditing ? '이 문장으로 바꿀까요?' : '이 문장으로 시작할까요?'}<br />고쳐 써도 괜찮아요.</>

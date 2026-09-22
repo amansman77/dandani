@@ -10,9 +10,10 @@
 일정형 챌린지(`start_date`/`end_date`)를 제거하고 모든 챌린지를 선택형 모델(`startedAt` 기반)로 통일한 작업입니다.
 
 **관련 문서**:
-- [메인 계획](./0001-remove-schedule-based-challenges.md)
-- [사용처 인벤토리](./0001-remove-schedule-based-challenges-inventory.md)
-- [API 계약 정의](./0001-remove-schedule-based-challenges-api-contract.md)
+- [메인 계획](../0001-remove-schedule-based-challenges.md)
+- [초기 계획](./original-plan.md)
+- [사용처 인벤토리](./inventory.md)
+- [API 계약 정의](./api-contract.md)
 
 **주요 변경 사항**:
 - 모든 챌린지를 선택형 모델(`startedAt` 기반)로 통일

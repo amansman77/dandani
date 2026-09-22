@@ -2,6 +2,14 @@
 
 Problem definition → small, safe change → change review → refactor — repeat the loop.
 
+## Project Context First
+
+- Before exploring code, read `docs/PROJECT_CONTEXT.md` for the current product boundary and glossary.
+- Before running Git, build, or deploy commands, read `docs/KNOWN_PITFALLS.md`.
+- Treat `phrase` (문장) and its daily `log` (되새기기) as the current core domain.
+- Treat everything in `workers/src/legacy/` as unreachable historical code unless an ADR explicitly revives it.
+- Do not revive or remove legacy assets without reviewing `docs/adr/0005-legacy-backend-inventory.md`.
+
 ## Mandatory Rules
 
 - Before changing anything, read the relevant files end to end, including all call/reference paths.
@@ -37,6 +45,7 @@ Problem definition → small, safe change → change review → refactor — rep
 
 ## Testing Rules
 
+- Run `npm run check` before completing any code or documentation change.
 - New code requires new tests; bug fixes must include a regression test (write it to fail first).
 - Tests must be deterministic and independent; replace external systems with fakes/contract tests.
 - Include ≥1 happy path and ≥1 failure path in e2e tests.

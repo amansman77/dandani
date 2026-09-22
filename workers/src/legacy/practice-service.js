@@ -4,7 +4,7 @@ import {
   getClientLocalDate,
   getRequiredUserId,
   logUserEvent
-} from './service-utils.js';
+} from '../service-utils.js';
 
 export async function getTodayPractice(env, request) {
   const url = new URL(request.url);

@@ -22,7 +22,7 @@ async function phraseRequest(path, body) {
     if (!(error instanceof SyntaxError)) throw error;
     throw new Error('서버 응답을 읽지 못했어요. 다시 시도해 주세요.');
   }
-  if (!response.ok) throw new Error(data.error || '문구를 저장하지 못했어요. 다시 시도해 주세요.');
+  if (!response.ok) throw new Error(data.error || '문장을 저장하지 못했어요. 다시 시도해 주세요.');
   return data;
 }
 
