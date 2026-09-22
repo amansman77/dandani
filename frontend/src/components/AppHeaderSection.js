@@ -32,8 +32,6 @@ const AppHeaderSection = ({
   onRestartOnboarding,
   showEditPhrase,
   onEditPhrase,
-  showShare,
-  onShare,
   isEditing,
   onCancelEdit,
 }) => {
@@ -60,14 +58,9 @@ const AppHeaderSection = ({
             두 버튼의 영역이 서로 겹쳤다. 겹치면 어느 쪽이 눌렸는지 모호해진다.
             같은 색 글자 둘이 붙어 보이던 것도 이 간격에서 나아진다. */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          {showShare && (
-            <Box component="button" type="button" onClick={onShare} sx={actionButtonSx}>
-              공유
-            </Box>
-          )}
           {showEditPhrase && (
             <Box component="button" type="button" onClick={onEditPhrase} sx={actionButtonSx}>
-              편집
+              문장 바꾸기
             </Box>
           )}
         </Box>

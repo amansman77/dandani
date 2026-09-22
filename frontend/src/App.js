@@ -151,8 +151,6 @@ function App() {
           onRestartOnboarding={handleRestartOnboarding}
           showEditPhrase={activeTab === 0 && Boolean(activePhrase) && !phraseEditing}
           onEditPhrase={() => setPhraseEditing(true)}
-          showShare={activeTab === 0 && Boolean(activePhrase) && !phraseEditing}
-          onShare={() => setShareOpen(true)}
           isEditing={activeTab === 0 && phraseEditing}
           onCancelEdit={() => setPhraseEditing(false)}
         />
@@ -164,6 +162,7 @@ function App() {
               isEditing={phraseEditing}
               onEditingChange={setPhraseEditing}
               onActivePhraseChange={setActivePhrase}
+              onShare={() => setShareOpen(true)}
             />
           )}
 

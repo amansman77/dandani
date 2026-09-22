@@ -3,6 +3,7 @@ import { Box, Typography, TextField, Chip, Button } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import { EXAMPLE_PHRASES } from '../../utils/phraseExamples';
 import CommunityTicker from '../CommunityTicker';
+import FloatingActions from '../FloatingActions';
 import Loader from '../Loader';
 import { COLOR, FONT } from '../../theme/tokens';
 
@@ -118,7 +119,7 @@ const seenKey = (phraseId, key) => `dandani_milestone_${phraseId}_${key}`;
 
 const VariantA = ({
   phrase, inputValue, setInputValue, onExampleSelect, submitting, onSubmit, logging, onLogToday, onViewHistory,
-  onUseCommunityPhrase, hasActivePhrase, isEditing, cameFromPicker, onBackToPicker,
+  onUseCommunityPhrase, hasActivePhrase, isEditing, cameFromPicker, onBackToPicker, onShare,
 }) => {
   // 마디(7일 연속 / 누적 7번)에 닿은 날 한 번만 스쳐가는 인사.
   // 훅이라 조건부 return보다 반드시 위에 있어야 한다.
@@ -317,28 +318,15 @@ const VariantA = ({
         </Typography>
       )}
       {totalDays === 0 && <Box sx={{ mb: 4 }} />}
-      <Button
-        disabled={!phrase.logged_today && logging}
-        onClick={phrase.logged_today ? onViewHistory : onLogToday}
-        sx={{
-          position: 'relative',
-          fontFamily: SERIF,
-          fontSize: '0.92rem',
-          fontWeight: 400,
-          textTransform: 'none',
-          color: phrase.logged_today ? COLOR.text.muted : COLOR.accent.main,
-          border: phrase.logged_today ? `1.4px solid ${COLOR.line.disabled}` : `1.4px solid ${COLOR.accent.line}`,
-          borderRadius: '999px',
-          padding: '9px 24px',
-          minWidth: 'auto',
-          minHeight: 'auto',
-          lineHeight: 'normal',
-          '&:hover': { background: 'rgba(201,131,84,0.08)', border: phrase.logged_today ? `1.4px solid ${COLOR.line.disabled}` : `1.4px solid ${COLOR.accent.line}` },
-          '&.Mui-disabled': { color: COLOR.text.muted, border: `1.4px solid ${COLOR.line.disabled}` },
-        }}
-      >
-        {logging ? <Loader small /> : (phrase.logged_today ? '오늘도 되새겼어요' : '오늘의 문장 되새기기')}
-      </Button>
+      {/* 되새기기·공유는 우측 하단에 떠 있는 버튼으로 나갔다. 문장이 길면
+          이 자리가 화면 밖으로 밀려서, 매일 하는 행동이 스크롤에 좌우됐다. */}
+      <FloatingActions
+        done={phrase.logged_today}
+        logging={logging}
+        onLog={onLogToday}
+        onViewHistory={onViewHistory}
+        onShare={onShare}
+      />
       <CommunityTicker onUseCommunityPhrase={onUseCommunityPhrase} hasActivePhrase={hasActivePhrase} />
     </Scene>
   );
