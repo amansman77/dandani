@@ -1,8 +1,16 @@
 import { getRequiredUserId } from './service-utils.js';
 
+// 누브는 되새김이 쌓여 만들어지는 기록이지 재화가 아니다. 그래서 줄어들지 않는다.
+// 엽서 발행에 10누브가 필요하지만 그건 값이 아니라 문턱이다 — 넘었는지만 보고
+// 차감하지 않는다. 보유량이 인증할 때마다 없어지지 않는 것과 같은 성질이다.
+//
+// 예전엔 가입하면 10누브를 그냥 줬다(WELCOME_GRANT). 1누브가 "하루를 되새겼다"는
+// 뜻인 이상 그건 살지 않은 열흘을 준 것이어서, 단위의 뜻이 첫 화면에서부터
+// 무너졌다. 원장을 열어보니 실제로 그랬다 — 선물 210누브 대 되새김으로 번
+// 4누브, 발행된 엽서 전부가 선물로 산 것이었다. 그래서 선물을 없앴고,
+// 이미 나간 210누브도 원장에서 되돌렸다(schema_v260922_nuv_accrual.sql).
 export const REFLECTION_REWARD = 1;
-export const POSTCARD_COST = 10;
-export const WELCOME_GRANT = 10;
+export const POSTCARD_THRESHOLD = 10;
 const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light']);
 const MAX_POSTCARD_IMAGE_BYTES = 1800000;
 
@@ -17,25 +25,11 @@ async function getBalance(env, userId) {
   return wallet?.balance || 0;
 }
 
+// 차감이 없어진 뒤로 지갑 잔액은 곧 평생 누적이다 — 원장에 더하기만 들어오니
+// 따로 합계를 낼 필요가 없다.
 export async function getNuvWallet(env, request) {
   const userId = getRequiredUserId(request);
-  return { balance: await getBalance(env, userId), postcard_cost: POSTCARD_COST };
-}
-
-export async function claimWelcomeNuv(env, request) {
-  const userId = getRequiredUserId(request);
-  const granted = await env.DB.prepare(`
-    INSERT OR IGNORE INTO nuv_transactions
-      (id, user_id, amount, reason, reference_id)
-    VALUES (?, ?, ?, 'welcome_grant', 'welcome')
-    RETURNING amount
-  `).bind(generateId('nuv'), userId, WELCOME_GRANT).first();
-
-  return {
-    awarded_nuv: granted?.amount || 0,
-    balance: await getBalance(env, userId),
-    postcard_cost: POSTCARD_COST,
-  };
+  return { balance: await getBalance(env, userId), postcard_threshold: POSTCARD_THRESHOLD };
 }
 
 export async function awardNuvForReflection(env, userId, phraseId, logDate) {
@@ -76,41 +70,28 @@ export async function createPostcardWithNuv(env, request) {
     throw new Error(`Active phrase not found: ${phraseId}`);
   }
 
+  // 문턱은 한 문장 안에서 검사한다. 지갑 행이 아직 없으면 하위 질의가 NULL을
+  // 돌려주고 NULL >= 10은 참이 아니라서, 0누브인 사람은 자연히 걸러진다.
+  // 차감이 사라진 덕에 원장을 건드리지 않으니 batch도 필요 없어졌다.
   const postcardId = generateId('postcard');
-  const debit = env.DB.prepare(`
-    INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id)
-    SELECT ?, ?, ?, 'postcard_creation', ?
-    FROM nuv_wallets
-    WHERE user_id = ? AND balance >= ?
-    RETURNING amount
-  `).bind(
-    generateId('nuv'), userId, -POSTCARD_COST, postcardId,
-    userId, POSTCARD_COST
-  );
-  const createDraft = env.DB.prepare(`
+  const postcard = await env.DB.prepare(`
     INSERT INTO digital_postcards
       (id, user_id, phrase_id, phrase, visit_days, preset, status)
     SELECT ?, ?, id, phrase, ?, 'morning', 'draft'
     FROM daily_phrases
     WHERE id = ? AND user_id = ? AND status = 'active'
-      AND EXISTS (
-        SELECT 1 FROM nuv_transactions
-        WHERE user_id = ? AND reason = 'postcard_creation' AND reference_id = ?
-      )
+      AND (SELECT balance FROM nuv_wallets WHERE user_id = ?) >= ?
     RETURNING id
-  `).bind(postcardId, userId, visitDays, phraseId, userId, userId, postcardId);
-
-  await env.DB.batch([debit, createDraft]);
-  const postcard = await env.DB.prepare(`
-    SELECT id FROM digital_postcards WHERE id = ? AND user_id = ?
-  `).bind(postcardId, userId).first();
-  const balance = await getBalance(env, userId);
+  `).bind(
+    postcardId, userId, visitDays,
+    phraseId, userId, userId, POSTCARD_THRESHOLD
+  ).first();
 
   return {
     created: Boolean(postcard),
     postcard_id: postcard?.id || null,
-    balance,
-    cost: POSTCARD_COST,
+    balance: await getBalance(env, userId),
+    threshold: POSTCARD_THRESHOLD,
   };
 }
 

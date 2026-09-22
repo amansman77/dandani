@@ -37,12 +37,12 @@ function App() {
   const [nuvBalance, setNuvBalance] = useState(null);
 
   useEffect(() => {
+    // 예전엔 여기서 가입 선물 누브를 받아왔다. 누브가 "되새긴 날의 수"가 된
+    // 뒤로는 받을 게 없어서, 그냥 지금까지 쌓인 값을 읽어온다.
     const initializeNuvWallet = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/nuv/welcome`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserIdInfo().userId },
-          body: JSON.stringify({}),
+        const response = await fetch(`${API_URL}/api/nuv`, {
+          headers: { 'X-User-ID': getUserIdInfo().userId },
         });
         if (!response.ok) return;
         const data = await response.json();

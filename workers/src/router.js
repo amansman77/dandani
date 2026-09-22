@@ -5,7 +5,7 @@ import { handleAdminGet } from './admin-router.js';
 import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
 import {
-  claimWelcomeNuv, createPostcardWithNuv, downloadPostcardImage, getNuvWallet,
+  createPostcardWithNuv, downloadPostcardImage, getNuvWallet,
   getSavedPostcards, savePostcard, uploadPostcardImage,
 } from './nuv-service.js';
 
@@ -42,7 +42,9 @@ async function handlePost(url, request, env) {
     const result = await createPostcardWithNuv(env, request);
     return jsonResponse(result, result.created ? 201 : 409);
   }
-  if (url.pathname === '/api/nuv/welcome') return jsonResponse(await claimWelcomeNuv(env, request));
+  // 가입 선물이 사라져서 이 경로는 더 줄 게 없다. 이미 배포된 클라이언트가
+  // 아직 여기로 오기 때문에, 없애는 대신 잔액만 돌려준다(누브를 발행하지 않음).
+  if (url.pathname === '/api/nuv/welcome') return jsonResponse(await getNuvWallet(env, request));
   const postcardMatch = /^\/api\/nuv\/postcards\/([^/]+)\/(save|image)$/.exec(url.pathname);
   if (postcardMatch) {
     const handler = postcardMatch[2] === 'save' ? savePostcard : uploadPostcardImage;

@@ -12,7 +12,9 @@ const SERIF = FONT.serif;
 const BASE = 'https://dandani.yetimates.com/';
 const OG_IMAGE = 'https://dandani.yetimates.com/og-image.png';
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
-const POSTCARD_COST = 10;
+// 값이 아니라 문턱이다 — 엽서를 만들어도 누브는 줄지 않는다. 그래서 버튼에
+// 가격처럼 "10 누브"를 붙이지 않는다. 붙이면 다시 사는 물건이 된다.
+const POSTCARD_THRESHOLD = 10;
 
 // 채널마다 utm_source를 달리 달아서, 캠페인 리포트에서 "인스타 광고로 온
 // 사람"과 "지인이 카톡으로 보내줘서 온 사람"이 갈라져 보이게 한다.
@@ -185,7 +187,7 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
         onNuvBalanceChange(data.balance);
       }
       if (response.status === 409 && !data.created) {
-        setNotice(`누브가 부족해요. 엽서에는 ${POSTCARD_COST} 누브가 필요해요`);
+        setNotice(`${POSTCARD_THRESHOLD} 누브가 쌓이면 엽서를 만들 수 있어요`);
         return;
       }
       if (!response.ok || !data.created) {
@@ -261,9 +263,9 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
             <Box component="button" type="button"
               onClick={createPostcard} disabled={creatingCard}
               sx={{ ...brandBtnSx, '&:disabled': { opacity: 0.45, cursor: 'default' } }}
-              aria-label={`디지털 엽서 만들기, ${POSTCARD_COST} 누브`}>
+              aria-label="디지털 엽서 만들기">
               <Box sx={circleSx(COLOR.accent.main)}><CardMark /></Box>
-              엽서 · {POSTCARD_COST} 누브
+              엽서
             </Box>
             <Box component="button" type="button" onClick={copyLink}
               sx={brandBtnSx} aria-label="링크 복사">

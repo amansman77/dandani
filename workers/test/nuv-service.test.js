@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
-  claimWelcomeNuv,
   createPostcardWithNuv,
   downloadPostcardImage,
   getSavedPostcards,
@@ -115,71 +114,91 @@ test('a daily reflection awards one Nuv only once', async () => {
   assert.deepEqual(duplicate, { awarded_nuv: 0, balance: 1 });
 });
 
-test('the welcome grant awards ten Nuv only once', async () => {
-  const { env } = createEnvironment();
-
-  const first = await claimWelcomeNuv(env, request('user-1', {}));
-  const duplicate = await claimWelcomeNuv(env, request('user-1', {}));
-
-  assert.deepEqual(first, { awarded_nuv: 10, balance: 10, postcard_cost: 10 });
-  assert.deepEqual(duplicate, { awarded_nuv: 0, balance: 10, postcard_cost: 10 });
-});
-
-test('the deployed-schema migration preserves transactions and enables welcome grants', async () => {
-  const database = new DatabaseSync(':memory:');
-  database.exec(`
-    CREATE TABLE nuv_wallets (
-      user_id TEXT PRIMARY KEY,
-      balance INTEGER NOT NULL DEFAULT 0 CHECK (balance >= 0),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-    CREATE TABLE nuv_transactions (
-      id TEXT PRIMARY KEY, user_id TEXT NOT NULL,
-      amount INTEGER NOT NULL CHECK (amount != 0),
-      reason TEXT NOT NULL CHECK (reason IN ('daily_reflection', 'postcard_creation')),
-      reference_id TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      UNIQUE(user_id, reason, reference_id)
-    );
-    CREATE INDEX idx_nuv_transactions_user_created
-      ON nuv_transactions(user_id, created_at DESC);
-    INSERT INTO nuv_wallets (user_id, balance) VALUES ('user-1', 1);
-    INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id)
-      VALUES ('reward-1', 'user-1', 1, 'daily_reflection', 'day-1');
+test('the accrual migration erases granted and spent Nuv and rebuilds balances', async () => {
+  const { database } = createEnvironment();
+  const addTransaction = database.prepare(`
+    INSERT INTO nuv_transactions VALUES (?, ?, ?, ?, ?, datetime('now'))
   `);
+  // 선물만 받고 되새김은 없는 사람, 그리고 되새긴 뒤 엽서까지 만든 사람.
+  // 프로덕션 원장이 정확히 이 두 모양이었다.
+  addTransaction.run('grant-1', 'user-1', 10, 'welcome_grant', 'welcome');
+  addTransaction.run('grant-2', 'user-2', 10, 'welcome_grant', 'welcome');
+  addTransaction.run('reward-1', 'user-2', 1, 'daily_reflection', 'day-1');
+  addTransaction.run('reward-2', 'user-2', 1, 'daily_reflection', 'day-2');
+  addTransaction.run('spend-1', 'user-2', -10, 'postcard_creation', 'postcard-1');
+
+  assert.equal(database.prepare('SELECT balance FROM nuv_wallets WHERE user_id = ?').get('user-1').balance, 10);
+  assert.equal(database.prepare('SELECT balance FROM nuv_wallets WHERE user_id = ?').get('user-2').balance, 2);
+
   database.exec(readFileSync(
-    new URL('../schemas/schema_v260917_nuv_welcome_grant.sql', import.meta.url), 'utf8'
+    new URL('../schemas/schema_v260922_nuv_accrual.sql', import.meta.url), 'utf8'
   ));
-  const env = { DB: { prepare: (sql) => new D1Statement(database.prepare(sql)) } };
 
-  const granted = await claimWelcomeNuv(env, request('user-1', {}));
-  const preserved = database.prepare('SELECT COUNT(*) AS count FROM nuv_transactions').get();
-
-  assert.deepEqual(granted, { awarded_nuv: 10, balance: 11, postcard_cost: 10 });
-  assert.equal(preserved.count, 2);
+  // 선물만 받은 사람은 0으로, 되새긴 사람은 되새긴 날의 수 그대로 남는다.
+  assert.equal(database.prepare('SELECT balance FROM nuv_wallets WHERE user_id = ?').get('user-1').balance, 0);
+  assert.equal(database.prepare('SELECT balance FROM nuv_wallets WHERE user_id = ?').get('user-2').balance, 2);
+  const remaining = database.prepare('SELECT reason, COUNT(*) AS count FROM nuv_transactions GROUP BY reason').all();
+  assert.deepEqual(
+    remaining.map(({ reason, count }) => ({ reason, count })),
+    [{ reason: 'daily_reflection', count: 2 }]
+  );
 });
 
-test('a postcard costs ten Nuv and insufficient balance is not changed', async () => {
+test('nine Nuv cannot issue a postcard and the tenth opens it', async () => {
   const { database, env } = createEnvironment();
   database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
     .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
   const addNuv = database.prepare(`
     INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
   `);
-  for (let day = 1; day <= 10; day += 1) {
-    addNuv.run(`reward-${day}`, 'user-1', `day-${day}`);
-  }
+  for (let day = 1; day <= 9; day += 1) addNuv.run(`reward-${day}`, 'user-1', `day-${day}`);
+
+  const belowThreshold = await createPostcardWithNuv(env, request('user-1', {
+    phrase_id: 'phrase-1',
+  }));
+  assert.deepEqual(belowThreshold, {
+    created: false, postcard_id: null, balance: 9, threshold: 10,
+  });
+
+  addNuv.run('reward-10', 'user-1', 'day-10');
+  const atThreshold = await createPostcardWithNuv(env, request('user-1', {
+    phrase_id: 'phrase-1',
+  }));
+  assert.equal(atThreshold.created, true);
+});
+
+test('a user with no wallet row cannot issue a postcard', async () => {
+  const { database, env } = createEnvironment();
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
+    .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
+
+  // 되새김이 한 번도 없으면 지갑 행 자체가 없다. 문턱 검사의 하위 질의가
+  // NULL을 돌려주는 경로라, 0누브와 같이 막히는지 따로 확인한다.
+  const result = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
+  assert.deepEqual(result, { created: false, postcard_id: null, balance: 0, threshold: 10 });
+});
+
+test('issuing a postcard leaves the Nuv untouched', async () => {
+  const { database, env } = createEnvironment();
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
+    .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
+  const addNuv = database.prepare(`
+    INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
+  `);
+  for (let day = 1; day <= 10; day += 1) addNuv.run(`reward-${day}`, 'user-1', `day-${day}`);
 
   const created = await createPostcardWithNuv(env, request('user-1', {
     phrase_id: 'phrase-1', visit_days: 3,
   }));
-  const rejected = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
+  // 소모가 아니라 문턱이라, 두 번째 엽서도 같은 10누브로 계속 발행된다.
+  const second = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
   const wallet = await getNuvWallet(env, request('user-1'));
 
   assert.equal(created.created, true);
-  assert.equal(created.balance, 0);
+  assert.equal(created.balance, 10);
   assert.ok(created.postcard_id);
-  assert.deepEqual(rejected, { created: false, postcard_id: null, balance: 0, cost: 10 });
-  assert.deepEqual(wallet, { balance: 0, postcard_cost: 10 });
+  assert.equal(second.created, true);
+  assert.deepEqual(wallet, { balance: 10, postcard_threshold: 10 });
 
   await savePostcard(env, created.postcard_id, request('user-1', { preset: 'dawn' }));
   const saved = await getSavedPostcards(env, request('user-1'));
