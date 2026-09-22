@@ -3,6 +3,7 @@ import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { logPhraseShared } from '../utils/analytics';
 import { isKakaoConfigured, preloadKakao, shareToKakao } from '../utils/kakaoShare';
+import { getUserId } from '../utils/userId';
 import PhraseCardSheet from './PhraseCardSheet';
 
 const SANS = FONT.sans;
@@ -10,6 +11,8 @@ const SERIF = FONT.serif;
 
 const BASE = 'https://dandani.yetimates.com/';
 const OG_IMAGE = 'https://dandani.yetimates.com/og-image.png';
+const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
+const POSTCARD_COST = 10;
 
 // 채널마다 utm_source를 달리 달아서, 캠페인 리포트에서 "인스타 광고로 온
 // 사람"과 "지인이 카톡으로 보내줘서 온 사람"이 갈라져 보이게 한다.
@@ -86,9 +89,11 @@ const XMark = () => (
   </svg>
 );
 
-const ShareSheet = ({ open, onClose, phrase }) => {
+const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
   const [notice, setNotice] = useState('');
   const [cardOpen, setCardOpen] = useState(false);
+  const [creatingCard, setCreatingCard] = useState(false);
+  const [postcardId, setPostcardId] = useState(null);
 
   // 카카오 키가 없으면(앱 미등록) 카카오 심볼은 아예 안 뜨고 트위터만 남는다.
   const hasKakao = isKakaoConfigured();
@@ -166,6 +171,37 @@ const ShareSheet = ({ open, onClose, phrase }) => {
     }
   };
 
+  const createPostcard = async () => {
+    if (creatingCard) return;
+    setCreatingCard(true);
+    try {
+      const response = await fetch(`${API_URL}/api/nuv/postcards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+        body: JSON.stringify({ phrase_id: phrase.id, visit_days: phrase.visit_days || 1 }),
+      });
+      const data = await response.json();
+      if (onNuvBalanceChange && Number.isInteger(data.balance)) {
+        onNuvBalanceChange(data.balance);
+      }
+      if (response.status === 409 && !data.created) {
+        setNotice(`누브가 부족해요. 엽서에는 ${POSTCARD_COST} 누브가 필요해요`);
+        return;
+      }
+      if (!response.ok || !data.created) {
+        setNotice(data.error || '디지털 엽서를 만들지 못했어요');
+        return;
+      }
+      setPostcardId(data.postcard_id);
+      onClose();
+      setCardOpen(true);
+    } catch (error) {
+      setNotice('디지털 엽서를 만들지 못했어요');
+    } finally {
+      setCreatingCard(false);
+    }
+  };
+
   return (
     <>
       <Drawer
@@ -223,10 +259,11 @@ const ShareSheet = ({ open, onClose, phrase }) => {
               X
             </Box>
             <Box component="button" type="button"
-              onClick={() => { onClose(); setCardOpen(true); }}
-              sx={brandBtnSx} aria-label="이미지 카드로 공유">
+              onClick={createPostcard} disabled={creatingCard}
+              sx={{ ...brandBtnSx, '&:disabled': { opacity: 0.45, cursor: 'default' } }}
+              aria-label={`디지털 엽서 만들기, ${POSTCARD_COST} 누브`}>
               <Box sx={circleSx(COLOR.accent.main)}><CardMark /></Box>
-              이미지 카드
+              엽서 · {POSTCARD_COST} 누브
             </Box>
             <Box component="button" type="button" onClick={copyLink}
               sx={brandBtnSx} aria-label="링크 복사">
@@ -239,7 +276,12 @@ const ShareSheet = ({ open, onClose, phrase }) => {
         </Box>
       </Drawer>
 
-      <PhraseCardSheet open={cardOpen} onClose={() => setCardOpen(false)} phrase={phrase} />
+      <PhraseCardSheet
+        open={cardOpen}
+        onClose={() => setCardOpen(false)}
+        phrase={phrase}
+        postcardId={postcardId}
+      />
 
       <Snackbar
         open={Boolean(notice)}

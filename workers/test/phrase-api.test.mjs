@@ -40,8 +40,8 @@ test('phrase lifecycle creates, reads, logs once per day, and retires an active 
   const phrasePath = `/${created.body.id}`;
   const firstLog = await responseJson(await handleRequest(request(`${phrasePath}/log`, { method: 'POST' }), { DB }));
   const duplicateLog = await responseJson(await handleRequest(request(`${phrasePath}/log`, { method: 'POST' }), { DB }));
-  assert.deepEqual(firstLog.body, { logged_days: 1 });
-  assert.deepEqual(duplicateLog.body, { logged_days: 1 });
+  assert.deepEqual(firstLog.body, { logged_days: 1, awarded_nuv: 1, balance: 1 });
+  assert.deepEqual(duplicateLog.body, { logged_days: 1, awarded_nuv: 0, balance: 1 });
 
   const retired = await responseJson(await handleRequest(request(`${phrasePath}/retire`, { method: 'POST' }), { DB }));
   assert.deepEqual(retired.body, { success: true });

@@ -10,12 +10,40 @@ const baseSchemas = [
   'schema_v250923_1.sql', 'schema_v260901_fix_user_events_check.sql',
   'schema_v260828_daily_phrases.sql',
 ];
-const newSchemas = ['schema_v260910_active_phrase_unique.sql', 'schema_v260910_phrase_replacement.sql'];
+const newSchemas = [
+  'schema_v260910_active_phrase_unique.sql', 'schema_v260910_phrase_replacement.sql',
+  'schema_v260917_nuv.sql', 'schema_v260917_postcards.sql',
+  'schema_v260918_postcard_images.sql',
+];
+
+function splitSqlStatements(sql) {
+  const statements = [];
+  let currentStatement = '';
+  let isTrigger = false;
+
+  for (const rawLine of sql.split('\n')) {
+    const line = rawLine.replace(/--.*$/, '').trim();
+    if (!line) continue;
+
+    if (!currentStatement && /^CREATE\s+TRIGGER\b/i.test(line)) isTrigger = true;
+    currentStatement += `${line}\n`;
+
+    const isComplete = isTrigger ? /^END;$/i.test(line) : line.endsWith(';');
+    if (!isComplete) continue;
+
+    statements.push(currentStatement.trim());
+    currentStatement = '';
+    isTrigger = false;
+  }
+
+  if (currentStatement.trim()) statements.push(currentStatement.trim());
+  return statements;
+}
 
 export async function applySchema(db, name) {
   const sql = await readFile(new URL(`../schemas/${name}`, import.meta.url), 'utf8');
-  const statements = sql.replace(/--[^\n]*/g, '').split(';').map(s => s.trim()).filter(Boolean);
-  await db.batch(statements.map(s => db.prepare(s)));
+  const statements = splitSqlStatements(sql);
+  await db.batch(statements.map(statement => db.prepare(statement)));
 }
 
 export async function createApp(t, { migrate = true, token = 'local-test-token', now = '2026-09-10T15:30:00.000Z' } = {}) {

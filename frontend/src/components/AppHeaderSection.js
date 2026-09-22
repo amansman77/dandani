@@ -34,6 +34,7 @@ const AppHeaderSection = ({
   onEditPhrase,
   isEditing,
   onCancelEdit,
+  nuvBalance,
 }) => {
   return (
     <>
@@ -58,6 +59,12 @@ const AppHeaderSection = ({
             두 버튼의 영역이 서로 겹쳤다. 겹치면 어느 쪽이 눌렸는지 모호해진다.
             같은 색 글자 둘이 붙어 보이던 것도 이 간격에서 나아진다. */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          {nuvBalance !== null && (
+            <Box aria-label={`누브 잔액 ${nuvBalance}`}
+              sx={{ fontFamily: FONT.sans, fontSize: '0.72rem', color: COLOR.text.muted, whiteSpace: 'nowrap' }}>
+              누브 {nuvBalance}
+            </Box>
+          )}
           {showEditPhrase && (
             <Box component="button" type="button" onClick={onEditPhrase} sx={actionButtonSx}>
               문장 바꾸기

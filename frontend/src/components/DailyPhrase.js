@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Alert, Button } from '@mui/material';
+import { Box, Alert, Button, Snackbar } from '@mui/material';
 import VariantA from './phraseVariants/VariantA';
 import Loader from './Loader';
 import PhrasePicker from './PhrasePicker';
@@ -7,15 +7,24 @@ import { logPhraseOnboardingShown } from '../utils/analytics';
 import usePhraseResource from '../hooks/usePhraseResource';
 import { usePhraseEditor, usePhraseLogging } from '../hooks/usePhraseActions';
 
-const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhraseChange, onShare }) => {
+const DailyPhrase = ({
+  onViewHistory, isEditing, onEditingChange, onActivePhraseChange, onShare,
+  onNuvBalanceChange, onFirstPhraseCreated,
+}) => {
   const resource = usePhraseResource();
   const [entryMode, setEntryMode] = useState('browse');
   const [pickedText, setPickedText] = useState(null);
+  const [notice, setNotice] = useState('');
   const source = pickedText === null
     ? 'written'
     : (editorText => editorText.trim() === pickedText.trim() ? 'picked' : 'picked_edited');
-  const editor = usePhraseEditor(resource, { isEditing, onEditingChange, source });
-  const logging = usePhraseLogging(resource);
+  const editor = usePhraseEditor(resource, {
+    isEditing, onEditingChange, source, onFirstPhraseCreated,
+  });
+  const logging = usePhraseLogging(resource, {
+    onNuvBalanceChange,
+    onNuvAwarded: amount => setNotice(`되새기고 ${amount} 누브를 받았어요`),
+  });
   const { phrase, loading, error, refresh } = resource;
   useEffect(() => {
     if (!loading && !error && !phrase) logPhraseOnboardingShown();
@@ -67,6 +76,11 @@ const DailyPhrase = ({ onViewHistory, isEditing, onEditingChange, onActivePhrase
           editor.setInputValue('');
           setEntryMode('browse');
         }}
+      />
+      <Snackbar
+        open={Boolean(notice)} autoHideDuration={2400} onClose={() => setNotice('')}
+        message={notice} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 88 } }}
       />
     </Box>
   );

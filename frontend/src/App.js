@@ -7,15 +7,19 @@ import AppHeaderSection from './components/AppHeaderSection';
 import AppBottomNav from './components/AppBottomNav';
 import DailyPhrase from './components/DailyPhrase';
 import PhraseHistory from './components/PhraseHistory';
+import PostcardHistory from './components/PostcardHistory';
 import { pushNavState, replaceNavState } from './utils/navHistory';
 import { getUserIdInfo, markUserInitialized } from './utils/userId';
 import { logOnboardingComplete, logSplashBypassed } from './utils/analytics';
 import { isCampaignEntry } from './utils/attribution';
 import { COLOR } from './theme/tokens';
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
+
 function App() {
   const [activeTab, setActiveTab] = useState(0);
   const isPoppingNavRef = useRef(false);
+  const isFirstVisit = useRef(getUserIdInfo().isNew).current;
   const [isNonKoreanUser, setIsNonKoreanUser] = useState(false);
   // 오늘의 문장 편집 트리거를 헤더(안내 버튼 옆)로 옮기면서, 편집 중인지/편집
   // 가능한 문장이 있는지를 App이 들고 DailyPhrase와 주고받는다.
@@ -30,6 +34,25 @@ function App() {
   const [splashOpen, setSplashOpen] = useState(!campaignEntry);
 
   const [shareOpen, setShareOpen] = useState(false);
+  const [nuvBalance, setNuvBalance] = useState(null);
+
+  useEffect(() => {
+    const initializeNuvWallet = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/nuv/welcome`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserIdInfo().userId },
+          body: JSON.stringify({}),
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setNuvBalance(data.balance);
+      } catch (error) {
+        // Wallet availability must not block the daily phrase flow.
+      }
+    };
+    initializeNuvWallet();
+  }, []);
 
   useEffect(() => {
     const { isNew } = getUserIdInfo();
@@ -153,6 +176,7 @@ function App() {
           onEditPhrase={() => setPhraseEditing(true)}
           isEditing={activeTab === 0 && phraseEditing}
           onCancelEdit={() => setPhraseEditing(false)}
+          nuvBalance={nuvBalance}
         />
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
@@ -163,10 +187,13 @@ function App() {
               onEditingChange={setPhraseEditing}
               onActivePhraseChange={setActivePhrase}
               onShare={() => setShareOpen(true)}
+              onNuvBalanceChange={setNuvBalance}
+              onFirstPhraseCreated={isFirstVisit ? () => setShareOpen(true) : undefined}
             />
           )}
 
           {activeTab === 1 && <PhraseHistory />}
+          {activeTab === 2 && <PostcardHistory />}
         </Box>
 
         <OnboardingModal
@@ -179,6 +206,7 @@ function App() {
           open={shareOpen}
           onClose={() => setShareOpen(false)}
           phrase={activePhrase}
+          onNuvBalanceChange={setNuvBalance}
         />
 
       </Box>

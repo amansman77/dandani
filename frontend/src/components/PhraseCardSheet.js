@@ -4,9 +4,11 @@ import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
 import { logPhraseShared } from '../utils/analytics';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import { getUserId } from '../utils/userId';
 
 const SANS = FONT.sans;
 const LINK = 'https://dandani.yetimates.com/?utm_source=card&utm_medium=organic&utm_campaign=phrase_share';
+const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 const chipSx = (on) => ({
   border: `1px solid ${on ? COLOR.accent.line : COLOR.line.main}`,
@@ -35,12 +37,14 @@ const actionSx = (primary) => ({
   '&:disabled': { opacity: 0.45, cursor: 'default' },
 });
 
-const PhraseCardSheet = ({ open, onClose, phrase }) => {
+const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
   const [preset, setPreset] = useState('morning');
   const [url, setUrl] = useState(null);
   const [blob, setBlob] = useState(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [savedPreset, setSavedPreset] = useState(null);
   // 미리보기 URL은 다음 그림으로 바뀔 때 반드시 해제해야 한다 — 배경을 여러 번
   // 바꾸면 그때마다 blob이 쌓인다.
   const urlRef = useRef(null);
@@ -65,6 +69,8 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
 
   useEffect(() => { if (open) draw(); }, [open, draw]);
 
+  useEffect(() => { setSavedPreset(null); }, [postcardId]);
+
   useEffect(() => () => {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = null;
@@ -80,7 +86,7 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
     if (!blob) return;
     const file = fileOf();
     if (!navigator.canShare || !navigator.canShare({ files: [file] })) {
-      setNotice('이 브라우저는 이미지 공유를 지원하지 않아요. 저장 후 올려주세요');
+      setNotice('이 브라우저는 이미지 공유를 지원하지 않아요. 다운로드 후 올려주세요');
       return;
     }
     try {
@@ -96,7 +102,7 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
     }
   };
 
-  const saveImage = () => {
+  const downloadImage = () => {
     if (!url) return;
     const a = document.createElement('a');
     a.href = url;
@@ -104,8 +110,36 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    logPhraseShared('card_save');
-    setNotice('이미지를 저장했어요');
+    logPhraseShared('card_download');
+    setNotice('이미지를 다운로드했어요');
+  };
+
+  const savePostcard = async () => {
+    if (!postcardId || saving) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/api/nuv/postcards/${postcardId}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+        body: JSON.stringify({ preset }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '엽서를 저장하지 못했어요');
+      if (!blob) throw new Error('엽서 이미지가 아직 준비되지 않았어요');
+      const imageResponse = await fetch(`${API_URL}/api/nuv/postcards/${postcardId}/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'image/png', 'X-User-ID': getUserId() },
+        body: blob,
+      });
+      const imageData = await imageResponse.json();
+      if (!imageResponse.ok) throw new Error(imageData.error || '엽서 이미지를 저장하지 못했어요');
+      setSavedPreset(preset);
+      setNotice('내 엽서함에 저장했어요');
+    } catch (error) {
+      setNotice(error.message || '엽서를 저장하지 못했어요');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -128,7 +162,7 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
 
         <Box sx={{ padding: '8px 20px 24px' }}>
           <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: COLOR.text.muted, mb: 1.25 }}>
-            배경을 고르고 이미지로 내보내요
+            배경을 고르고 엽서함에 간직하거나 이미지로 내보내요
           </Typography>
 
           <Box
@@ -163,13 +197,19 @@ const PhraseCardSheet = ({ open, onClose, phrase }) => {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5 }}>
-            <Box component="button" type="button" onClick={shareImage}
-              disabled={!blob || busy} sx={actionSx(true)}>
-              이미지 공유
+            <Box component="button" type="button" onClick={savePostcard}
+              disabled={!postcardId || saving || savedPreset === preset} sx={actionSx(true)}>
+              {saving ? '저장 중…' : (savedPreset === preset ? '저장됨' : '엽서함에 저장')}
             </Box>
-            <Box component="button" type="button" onClick={saveImage}
+            <Box component="button" type="button" onClick={downloadImage}
               disabled={!url || busy} sx={actionSx(false)}>
-              저장
+              다운로드
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', mt: 1.25 }}>
+            <Box component="button" type="button" onClick={shareImage}
+              disabled={!blob || busy} sx={actionSx(false)}>
+              이미지 공유
             </Box>
           </Box>
         </Box>

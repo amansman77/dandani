@@ -2,6 +2,7 @@ import { phraseDateContext, countPhraseVisits } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
 import { getRequiredUserId, logUserEvent } from './service-utils.js';
 import { getNickname } from './nickname-service.js';
+import { awardNuvForReflection } from './nuv-service.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -72,7 +73,8 @@ export async function logPhraseDay(env, phraseId, request) {
   if (!logs.some(log => log.log_date === today)) {
     throw new HttpError(409, '문장이 이미 변경됐어요. 새로고침 후 다시 확인해 주세요.');
   }
-  return { logged_days: logs.length };
+  const reward = await awardNuvForReflection(env, userId, phraseId, today);
+  return { logged_days: logs.length, ...reward };
 }
 
 export async function retirePhrase(env, phraseId, request) {

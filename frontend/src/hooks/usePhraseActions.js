@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { savePhrase, logPhraseToday } from '../utils/phraseApi';
 import { logPhraseExampleUsed, logPhraseDayLogged } from '../utils/analytics';
 
-function useSavePhrase(resource) {
+function useSavePhrase(resource, onFirstPhraseCreated) {
   const [submitting, setSubmitting] = useState(false);
   const busy = useRef(false);
   const commit = async (text, source) => {
@@ -10,8 +10,11 @@ function useSavePhrase(resource) {
     busy.current = true;
     setSubmitting(true);
     try {
+      const isFirstPhrase = !resource.phrase;
       await savePhrase(text, resource.phrase?.id, source);
-      return await resource.refresh();
+      const refreshed = await resource.refresh();
+      if (refreshed && isFirstPhrase && onFirstPhraseCreated) onFirstPhraseCreated();
+      return refreshed;
     } finally {
       busy.current = false;
       setSubmitting(false);
@@ -20,9 +23,11 @@ function useSavePhrase(resource) {
   return { submitting, commit };
 }
 
-export function usePhraseEditor(resource, { isEditing, onEditingChange, source = 'written' }) {
+export function usePhraseEditor(resource, {
+  isEditing, onEditingChange, source = 'written', onFirstPhraseCreated,
+}) {
   const [inputValue, setInputValue] = useState('');
-  const { submitting, commit } = useSavePhrase(resource);
+  const { submitting, commit } = useSavePhrase(resource, onFirstPhraseCreated);
   useEffect(() => {
     if (isEditing && resource.phrase) setInputValue(resource.phrase.phrase);
   }, [isEditing, resource.phrase]);
@@ -52,7 +57,7 @@ export function usePhraseEditor(resource, { isEditing, onEditingChange, source =
   return { inputValue, setInputValue, submitting, onSubmit, onExampleSelect, onUseCommunityPhrase };
 }
 
-export function usePhraseLogging(resource) {
+export function usePhraseLogging(resource, { onNuvBalanceChange, onNuvAwarded } = {}) {
   const [logging, setLogging] = useState(false);
   const busy = useRef(false);
   const onLogToday = async () => {
@@ -63,6 +68,8 @@ export function usePhraseLogging(resource) {
     try {
       const data = await logPhraseToday(resource.phrase.id);
       logPhraseDayLogged(resource.phrase.id, data.logged_days);
+      if (onNuvBalanceChange && data.balance !== undefined) onNuvBalanceChange(data.balance);
+      if (onNuvAwarded && data.awarded_nuv > 0) onNuvAwarded(data.awarded_nuv);
       await resource.refresh();
     } catch (error) {
       resource.setError(error.message);

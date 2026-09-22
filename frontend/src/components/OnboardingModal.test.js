@@ -3,7 +3,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import OnboardingModal from './OnboardingModal';
 
-test('advances through onboarding and completes on the final action', async () => {
+test('introduces the welcome Nuv and completes onboarding', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   const onComplete = jest.fn();
   const container = document.createElement('div');
@@ -14,12 +14,10 @@ test('advances through onboarding and completes on the final action', async () =
     <OnboardingModal open onClose={jest.fn()} onComplete={onComplete} />,
   ));
 
-  expect(document.body.textContent).toContain('감정이 쉽게');
-  await clickButton('다음');
-  expect(document.body.textContent).toContain('아침마다');
-  await clickButton('다음');
-  expect(document.body.textContent).toContain('쌓인 아침들이');
-  await clickButton('지금 첫 문장 적으러 가기');
+  expect(document.body.textContent).toContain('처음 만난 선물');
+  expect(document.body.textContent).toContain('10 누브');
+  expect(document.body.textContent).toContain('나만의 디지털 엽서');
+  await clickButton('10 누브 받고 첫 엽서 만들기');
   expect(onComplete).toHaveBeenCalledTimes(1);
 
   await act(async () => root.unmount());
@@ -34,7 +32,7 @@ async function clickButton(label) {
 }
 
 
-test('supports going back and skipping onboarding', async () => {
+test('supports skipping onboarding', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   const onComplete = jest.fn();
   const container = document.createElement('div');
@@ -44,9 +42,6 @@ test('supports going back and skipping onboarding', async () => {
   await act(async () => root.render(
     <OnboardingModal open onClose={jest.fn()} onComplete={onComplete} />,
   ));
-  await clickButton('다음');
-  await clickButton('이전');
-  expect(document.body.textContent).toContain('감정이 쉽게');
   await clickButton('건너뛰기');
   expect(onComplete).toHaveBeenCalledTimes(1);
 

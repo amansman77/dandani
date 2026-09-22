@@ -5,6 +5,8 @@ export function createPhraseDbFake() {
     phrases: [],
     logs: [],
     events: [],
+    nuvTransactions: [],
+    nuvBalances: new Map(),
   };
 
   return {
@@ -39,6 +41,18 @@ function createStatement(state, sql) {
 }
 
 function executeFirst(state, sql, values) {
+  if (sql.includes('INSERT OR IGNORE INTO nuv_transactions')) {
+    const [, userId, amount, referenceId, phraseId, , logDate] = values;
+    const hasLog = state.logs.some(item => item.phrase_id === phraseId && item.user_id === userId && item.log_date === logDate);
+    const duplicate = state.nuvTransactions.some(item => item.userId === userId && item.referenceId === referenceId);
+    if (!hasLog || duplicate) return undefined;
+    state.nuvTransactions.push({ userId, referenceId, amount });
+    state.nuvBalances.set(userId, (state.nuvBalances.get(userId) || 0) + amount);
+    return { amount };
+  }
+  if (sql.includes('SELECT balance FROM nuv_wallets')) {
+    return state.nuvBalances.has(values[0]) ? { balance: state.nuvBalances.get(values[0]) } : null;
+  }
   if (sql.includes("SELECT id FROM daily_phrases WHERE user_id = ? AND status = 'active'")) {
     const phrase = state.phrases.find((item) => item.user_id === values[0] && item.status === 'active');
     return phrase ? { id: phrase.id } : null;

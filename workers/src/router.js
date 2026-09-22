@@ -4,14 +4,23 @@ import { ADMIN_PATHS, requireAdmin } from './admin-auth.js';
 import { handleAdminGet } from './admin-router.js';
 import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
+import {
+  claimWelcomeNuv, createPostcardWithNuv, downloadPostcardImage, getNuvWallet,
+  getSavedPostcards, savePostcard, uploadPostcardImage,
+} from './nuv-service.js';
 
 // Legacy services stay unregistered; see docs/adr/0005-legacy-backend-inventory.md.
 async function handleGet(url, request, env) {
+  if (/^\/api\/nuv\/postcard-files\/[a-f0-9]+$/.test(url.pathname)) {
+    return downloadPostcardImage(env, url.pathname.split('/')[4]);
+  }
   if (ADMIN_PATHS.has(url.pathname)) return handleAdminGet(url, env);
   switch (url.pathname) {
     case '/api/phrases/active': return jsonResponse(await getActivePhrase(env, request));
     case '/api/phrases/history': return jsonResponse(await getPhraseHistory(env, request));
     case '/api/phrases/community': return jsonResponse(await getCommunityPhrases(env, request));
+    case '/api/nuv': return jsonResponse(await getNuvWallet(env, request));
+    case '/api/nuv/postcards': return jsonResponse(await getSavedPostcards(env, request));
     case '/api/analytics/event': return jsonResponse({ error: 'Method Not Allowed. Use POST.' }, 405);
     default: return jsonResponse({ error: 'Not Found' }, 404);
   }
@@ -29,6 +38,16 @@ async function collectEvent(request, env) {
 
 async function handlePost(url, request, env) {
   if (url.pathname === '/api/analytics/event') return collectEvent(request, env);
+  if (url.pathname === '/api/nuv/postcards') {
+    const result = await createPostcardWithNuv(env, request);
+    return jsonResponse(result, result.created ? 201 : 409);
+  }
+  if (url.pathname === '/api/nuv/welcome') return jsonResponse(await claimWelcomeNuv(env, request));
+  const postcardMatch = /^\/api\/nuv\/postcards\/([^/]+)\/(save|image)$/.exec(url.pathname);
+  if (postcardMatch) {
+    const handler = postcardMatch[2] === 'save' ? savePostcard : uploadPostcardImage;
+    return jsonResponse(await handler(env, postcardMatch[1], request));
+  }
   if (url.pathname === '/api/phrases') return jsonResponse(await createPhrase(env, request));
   const match = /^\/api\/phrases\/([^/]+)\/(replace|log|retire)$/.exec(url.pathname);
   if (!match) return jsonResponse({ error: 'Not Found' }, 404);
