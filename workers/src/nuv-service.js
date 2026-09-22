@@ -93,42 +93,6 @@ export async function awardNuvForReflection(env, userId, phraseId, logDate) {
   };
 }
 
-export async function createPostcardWithNuv(env, request) {
-  const userId = getRequiredUserId(request);
-  const { phrase_id: phraseId, visit_days: visitDaysValue } = await request.json();
-  if (!phraseId || typeof phraseId !== 'string') {
-    throw new Error('phrase_id is required');
-  }
-  const visitDays = Number.isInteger(visitDaysValue) && visitDaysValue > 0 ? visitDaysValue : 1;
-
-  const phrase = await env.DB.prepare(`
-    SELECT id FROM daily_phrases
-    WHERE id = ? AND user_id = ? AND status = 'active'
-  `).bind(phraseId, userId).first();
-  if (!phrase) {
-    throw new Error(`Active phrase not found: ${phraseId}`);
-  }
-
-  // 공유 시트에서 만드는 엽서. 실천 기록이 붙지 않아서 발행번호도 없고,
-  // 엽서함에서 "초기 엽서"로 보인다 — 증명이 아니라 지금 문장을 담은
-  // 그림이기 때문이다.
-  const postcardId = generateId('postcard');
-  const postcard = await env.DB.prepare(`
-    INSERT INTO digital_postcards
-      (id, user_id, phrase_id, phrase, visit_days, preset, status)
-    SELECT ?, ?, id, phrase, ?, 'morning', 'draft'
-    FROM daily_phrases
-    WHERE id = ? AND user_id = ? AND status = 'active'
-    RETURNING id
-  `).bind(postcardId, userId, visitDays, phraseId, userId).first();
-
-  return {
-    created: Boolean(postcard),
-    postcard_id: postcard?.id || null,
-    balance: await getBalance(env, userId),
-  };
-}
-
 export async function savePostcard(env, postcardId, request) {
   const userId = getRequiredUserId(request);
   const { preset } = await request.json();

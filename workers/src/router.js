@@ -5,7 +5,7 @@ import { handleAdminGet } from './admin-router.js';
 import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
 import {
-  createPostcardWithNuv, downloadPostcardImage, getNuvWallet,
+  downloadPostcardImage, getNuvWallet,
   getSavedPostcards, savePostcard, uploadPostcardImage,
 } from './nuv-service.js';
 import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
@@ -44,10 +44,9 @@ async function handlePost(url, request, env) {
     const result = await createPracticeRecord(env, request);
     return jsonResponse(result, 201);
   }
-  if (url.pathname === '/api/nuv/postcards') {
-    const result = await createPostcardWithNuv(env, request);
-    return jsonResponse(result, result.created ? 201 : 409);
-  }
+  // POST /api/nuv/postcards(실천 없이 엽서 만들기)는 없앴다. 엽서는 실천의
+  // 증명이라, 실천 없이 만들 수 있으면 증명이 아니게 된다. 이제 엽서를
+  // 발행하는 길은 POST /api/practices 하나뿐이다.
   // 가입 선물이 사라져서 이 경로는 더 줄 게 없다. 이미 배포된 클라이언트가
   // 아직 여기로 오기 때문에, 없애는 대신 잔액만 돌려준다(누브를 발행하지 않음).
   if (url.pathname === '/api/nuv/welcome') return jsonResponse(await getNuvWallet(env, request));

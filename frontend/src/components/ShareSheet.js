@@ -3,15 +3,12 @@ import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { logPhraseShared } from '../utils/analytics';
 import { isKakaoConfigured, preloadKakao, shareToKakao } from '../utils/kakaoShare';
-import { getUserId } from '../utils/userId';
-import PhraseCardSheet from './PhraseCardSheet';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;
 
 const BASE = 'https://dandani.yetimates.com/';
 const OG_IMAGE = 'https://dandani.yetimates.com/og-image.png';
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 // 채널마다 utm_source를 달리 달아서, 캠페인 리포트에서 "인스타 광고로 온
 // 사람"과 "지인이 카톡으로 보내줘서 온 사람"이 갈라져 보이게 한다.
@@ -25,9 +22,9 @@ const captionOf = (phrase) =>
 
 // 브랜드 심볼은 각 서비스의 색을 그대로 쓴다. 앱의 차분한 톤과는 이질적이지만,
 // 사람들은 노란 말풍선과 검은 X를 '모양'이 아니라 '색'으로 먼저 알아본다.
-// 대신 크기를 44px로 묶고 아래에 이름을 붙여, 작게 두 개만 놓이도록 했다.
-// 네 개가 한 줄에 들어가야 한다. 고정 폭(68px)으로 두면 320px 화면에서
-// 넘쳐서, 폭을 균등하게 나눠 갖도록 flex: 1로 둔다.
+// 대신 크기를 44px로 묶고 아래에 이름을 붙여, 작게만 놓이도록 했다.
+// 고정 폭(68px)으로 두면 좁은 화면에서 넘쳐서, 폭을 균등하게 나눠 갖도록
+// flex: 1로 둔다.
 const brandBtnSx = {
   flex: 1,
   minWidth: 0,
@@ -57,16 +54,8 @@ const circleSx = (background) => ({
   justifyContent: 'center',
 });
 
-// 카톡·트위터는 그쪽 브랜드 색, 이미지 카드는 우리 색(앱의 액션 색), 링크 복사는
-// 브랜드가 없으니 테두리만. 색이 곧 "어디로 가는가"의 표시가 된다.
-const CardMark = () => (
-  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF"
-    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
-    <circle cx="8.7" cy="10" r="1.4" fill="#FFFFFF" stroke="none" />
-    <path d="M4.5 17l4.3-4.3 2.8 2.8L15.4 12l4.1 4.1" />
-  </svg>
-);
+// 카톡·트위터는 그쪽 브랜드 색, 링크 복사는 브랜드가 없으니 테두리만.
+// 색이 곧 "어디로 가는가"의 표시가 된다.
 
 const LinkMark = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={COLOR.text.muted}
@@ -88,11 +77,8 @@ const XMark = () => (
   </svg>
 );
 
-const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
+const ShareSheet = ({ open, onClose, phrase }) => {
   const [notice, setNotice] = useState('');
-  const [cardOpen, setCardOpen] = useState(false);
-  const [creatingCard, setCreatingCard] = useState(false);
-  const [postcardId, setPostcardId] = useState(null);
 
   // 카카오 키가 없으면(앱 미등록) 카카오 심볼은 아예 안 뜨고 트위터만 남는다.
   const hasKakao = isKakaoConfigured();
@@ -103,22 +89,17 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
   // 시트가 떠 있을 때 뒤로가기를 누르면 시트만 닫혀야 하는데, 아무 처리가 없어서
   // 앱 밖으로 나가버렸다(측정으로 확인). 시트가 떠 있는 동안 히스토리 항목을
   // 하나 얹어두고, 뒤로가기가 그걸 먹게 한다.
-  //
-  // 항목은 "공유 흐름" 전체에 하나만 얹는다. 시트마다 얹으면, 공유 시트를 닫고
-  // 카드 시트를 여는 순간(같은 틱에 일어난다) 되돌리기와 얹기가 엉켜서 카드
-  // 시트가 열리자마자 닫힌다.
-  const flowOpen = open || cardOpen;
   const closedByBackRef = useRef(false);
   // onClose는 부모가 인라인 화살표로 넘겨서 렌더마다 새 함수다. 의존성에 넣으면
   // 렌더할 때마다 히스토리 항목이 하나씩 쌓인다.
-  const closeFlowRef = useRef(null);
-  closeFlowRef.current = () => { setCardOpen(false); onClose(); };
+  const closeRef = useRef(null);
+  closeRef.current = onClose;
 
   useEffect(() => {
-    if (!flowOpen) return undefined;
+    if (!open) return undefined;
     closedByBackRef.current = false;
     window.history.pushState({ dandaniSheet: true }, '');
-    const onPop = () => { closedByBackRef.current = true; closeFlowRef.current(); };
+    const onPop = () => { closedByBackRef.current = true; closeRef.current(); };
     window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('popstate', onPop);
@@ -128,7 +109,7 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
         window.history.back();
       }
     };
-  }, [flowOpen]);
+  }, [open]);
 
   if (!phrase) return null;
   const caption = captionOf(phrase);
@@ -170,33 +151,6 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
     }
   };
 
-  const createPostcard = async () => {
-    if (creatingCard) return;
-    setCreatingCard(true);
-    try {
-      const response = await fetch(`${API_URL}/api/nuv/postcards`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-        body: JSON.stringify({ phrase_id: phrase.id, visit_days: phrase.visit_days || 1 }),
-      });
-      const data = await response.json();
-      if (onNuvBalanceChange && Number.isInteger(data.balance)) {
-        onNuvBalanceChange(data.balance);
-      }
-      if (!response.ok || !data.created) {
-        setNotice(data.error || '디지털 엽서를 만들지 못했어요');
-        return;
-      }
-      setPostcardId(data.postcard_id);
-      onClose();
-      setCardOpen(true);
-    } catch (error) {
-      setNotice('디지털 엽서를 만들지 못했어요');
-    } finally {
-      setCreatingCard(false);
-    }
-  };
-
   return (
     <>
       <Drawer
@@ -233,10 +187,10 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
             </Typography>
           )}
 
-          {/* 네 가지 모두 "이걸 어디로 가져갈까"의 답이라, 한 줄에 나란히 둔다.
+          {/* 셋 모두 "이걸 어디로 가져갈까"의 답이라, 한 줄에 나란히 둔다.
               순서는 실제로 많이 쓸 순서 — 한국에서 카톡이 압도적이라 맨 앞.
-              색으로 목적지를 구분한다: 카카오 노랑 / X 검정 / 우리 색(이미지
-              카드) / 브랜드 없는 링크는 테두리만. */}
+              색으로 목적지를 구분한다: 카카오 노랑 / X 검정 / 브랜드 없는
+              링크는 테두리만. */}
           <Box sx={{
             mt: 2.5, pt: 2.5, borderTop: `1px solid ${COLOR.line.faint}`,
             display: 'flex', justifyContent: 'space-between', gap: 0.5,
@@ -253,13 +207,9 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
               <Box sx={circleSx('#000000')}><XMark /></Box>
               X
             </Box>
-            <Box component="button" type="button"
-              onClick={createPostcard} disabled={creatingCard}
-              sx={{ ...brandBtnSx, '&:disabled': { opacity: 0.45, cursor: 'default' } }}
-              aria-label="디지털 엽서 만들기">
-              <Box sx={circleSx(COLOR.accent.main)}><CardMark /></Box>
-              엽서
-            </Box>
+            {/* 여기 "엽서" 버튼이 있었다. 엽서는 실천의 증명이라, 실천 없이
+                만들 수 있으면 증명이 아니게 된다. 이제 엽서는 실천을 적을 때만
+                발행되고, 배경 고르기도 그 직후로 옮겼다. */}
             <Box component="button" type="button" onClick={copyLink}
               sx={brandBtnSx} aria-label="링크 복사">
               <Box sx={{ ...circleSx('transparent'), border: `1.4px solid ${COLOR.line.main}` }}>
@@ -270,13 +220,6 @@ const ShareSheet = ({ open, onClose, phrase, onNuvBalanceChange }) => {
           </Box>
         </Box>
       </Drawer>
-
-      <PhraseCardSheet
-        open={cardOpen}
-        onClose={() => setCardOpen(false)}
-        phrase={phrase}
-        postcardId={postcardId}
-      />
 
       <Snackbar
         open={Boolean(notice)}

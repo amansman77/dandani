@@ -206,7 +206,6 @@ function App() {
           open={shareOpen}
           onClose={() => setShareOpen(false)}
           phrase={activePhrase}
-          onNuvBalanceChange={setNuvBalance}
         />
 
       </Box>

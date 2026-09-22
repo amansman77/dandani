@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
-  createPostcardWithNuv,
+  issuePostcardForRecord,
   downloadPostcardImage,
   getSavedPostcards,
   getNuvWallet,
@@ -146,68 +146,35 @@ test('the accrual migration erases granted and spent Nuv and rebuilds balances',
   );
 });
 
-test('zero Nuv no longer blocks a postcard', async () => {
+test('issuing a postcard leaves the Nuv untouched, and the image round-trips', async () => {
   const { database, env } = createEnvironment();
-  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
-    .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
-
-  // 되새김이 한 번도 없어 지갑 행조차 없는 사람. 예전엔 여기서 막혔다 —
-  // 이제 누브는 막지 않고 세기만 한다.
-  const result = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
-  assert.equal(result.created, true);
-  assert.equal(result.balance, 0);
-  assert.ok(result.postcard_id);
-});
-
-test('a postcard still needs an active phrase of your own', async () => {
-  const { database, env } = createEnvironment();
-  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
-    .run('phrase-1', 'user-2', '남의 문장', 'active');
-  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
-    .run('phrase-2', 'user-1', '끝난 문장', 'retired');
-
-  await assert.rejects(
-    () => createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' })),
-    /Active phrase not found/
-  );
-  await assert.rejects(
-    () => createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-2' })),
-    /Active phrase not found/
-  );
-});
-
-test('issuing a postcard leaves the Nuv untouched', async () => {
-  const { database, env } = createEnvironment();
-  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)')
-    .run('phrase-1', 'user-1', '오늘을 믿자', 'active');
   const addNuv = database.prepare(`
     INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
   `);
   for (let day = 1; day <= 10; day += 1) addNuv.run(`reward-${day}`, 'user-1', `day-${day}`);
 
-  const created = await createPostcardWithNuv(env, request('user-1', {
-    phrase_id: 'phrase-1', visit_days: 3,
-  }));
-  // 소모가 아니라서 두 번째 엽서를 만들어도 10누브 그대로다.
-  const second = await createPostcardWithNuv(env, request('user-1', { phrase_id: 'phrase-1' }));
+  // 엽서가 나오는 길은 이제 실천 기록 하나뿐이다.
+  const record = {
+    id: 'practice-1', phrase_id: 'phrase-1', phrase: '오늘을 믿자',
+    body: '오늘 그렇게 했다', practiced_on: '2026-09-23', nuv_at_record: 3,
+  };
+  const postcardId = await issuePostcardForRecord(env, 'user-1', record);
+  // 소모가 아니라서 발행해도 10누브 그대로다.
   const wallet = await getNuvWallet(env, request('user-1'));
 
-  assert.equal(created.created, true);
-  assert.equal(created.balance, 10);
-  assert.ok(created.postcard_id);
-  assert.equal(second.created, true);
+  assert.ok(postcardId);
   assert.deepEqual(wallet, { balance: 10 });
 
-  await savePostcard(env, created.postcard_id, request('user-1', { preset: 'dawn' }));
+  await savePostcard(env, postcardId, request('user-1', { preset: 'dawn' }));
   const saved = await getSavedPostcards(env, request('user-1'));
   assert.equal(saved.postcards.length, 1);
   assert.equal(saved.postcards[0].phrase, '오늘을 믿자');
-  assert.equal(saved.postcards[0].visit_days, 3);
   assert.equal(saved.postcards[0].preset, 'dawn');
+  assert.equal(saved.postcards[0].issue_no, 1);
 
   const imageBytes = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
   const uploaded = await uploadPostcardImage(
-    env, created.postcard_id, imageRequest('user-1', imageBytes)
+    env, postcardId, imageRequest('user-1', imageBytes)
   );
   const token = uploaded.download_url.split('/').pop();
   const download = await downloadPostcardImage(env, token);
