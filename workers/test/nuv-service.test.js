@@ -6,9 +6,11 @@ import {
   awardNuvForReflection,
   claimWelcomeNuv,
   createPostcardWithNuv,
+  downloadPostcardImage,
   getSavedPostcards,
   getNuvWallet,
   savePostcard,
+  uploadPostcardImage,
 } from '../src/nuv-service.js';
 
 class D1Statement {
@@ -18,7 +20,9 @@ class D1Statement {
   }
 
   bind(...values) {
-    this.values = values;
+    this.values = values.map((value) => (
+      value instanceof ArrayBuffer ? new Uint8Array(value) : value
+    ));
     return this;
   }
 
@@ -75,6 +79,7 @@ function createEnvironment() {
   `);
   database.exec(readFileSync(new URL('../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260917_postcards.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260918_postcard_images.sql', import.meta.url), 'utf8'));
 
   return {
     database,
@@ -87,6 +92,14 @@ function request(userId, body) {
     method: body ? 'POST' : 'GET',
     headers: { 'X-User-ID': userId, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+function imageRequest(userId, bytes) {
+  return new Request('https://dandani.test/api/nuv/postcards/postcard-1/image', {
+    method: 'POST',
+    headers: { 'X-User-ID': userId, 'Content-Type': 'image/png' },
+    body: bytes,
   });
 }
 
@@ -174,4 +187,16 @@ test('a postcard costs ten Nuv and insufficient balance is not changed', async (
   assert.equal(saved.postcards[0].phrase, '오늘을 믿자');
   assert.equal(saved.postcards[0].visit_days, 3);
   assert.equal(saved.postcards[0].preset, 'dawn');
+
+  const imageBytes = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
+  const uploaded = await uploadPostcardImage(
+    env, created.postcard_id, imageRequest('user-1', imageBytes)
+  );
+  const token = uploaded.download_url.split('/').pop();
+  const download = await downloadPostcardImage(env, token);
+
+  assert.equal(download.status, 200);
+  assert.equal(download.headers.get('Content-Type'), 'image/png');
+  assert.equal(download.headers.get('Content-Disposition'), 'attachment; filename="dandani-postcard.png"');
+  assert.deepEqual(new Uint8Array(await download.arrayBuffer()), imageBytes);
 });

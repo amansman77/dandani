@@ -8,7 +8,8 @@ import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { createPhrase, getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
 import {
-  claimWelcomeNuv, createPostcardWithNuv, getNuvWallet, getSavedPostcards, savePostcard
+  claimWelcomeNuv, createPostcardWithNuv, downloadPostcardImage, getNuvWallet,
+  getSavedPostcards, savePostcard, uploadPostcardImage
 } from './nuv-service.js';
 
 // 2026-08-28 피벗 이후 Story Feed/Challenge/Timefold 라우트는 부르는 화면이
@@ -19,6 +20,9 @@ import {
 // 전체 인벤토리와 삭제 순서는 docs/adr/0005-legacy-backend-inventory.md 참고.
 
 async function handleGet(url, request, env) {
+  if (url.pathname.match(/^\/api\/nuv\/postcard-files\/[a-f0-9]+$/)) {
+    return downloadPostcardImage(env, url.pathname.split('/')[4]);
+  }
   if (url.pathname === '/api/insight/debug') {
     const category = url.searchParams.get('category');
     return jsonResponse(await generateDailyInsight(env, new Date(), category));
@@ -97,6 +101,10 @@ async function handlePost(url, request, env) {
   if (url.pathname.match(/^\/api\/nuv\/postcards\/[^/]+\/save$/)) {
     const postcardId = url.pathname.split('/')[4];
     return jsonResponse(await savePostcard(env, postcardId, request));
+  }
+  if (url.pathname.match(/^\/api\/nuv\/postcards\/[^/]+\/image$/)) {
+    const postcardId = url.pathname.split('/')[4];
+    return jsonResponse(await uploadPostcardImage(env, postcardId, request));
   }
   return jsonResponse({ error: 'Not Found' }, 404);
 }

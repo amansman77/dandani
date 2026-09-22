@@ -4,6 +4,7 @@ export const REFLECTION_REWARD = 1;
 export const POSTCARD_COST = 10;
 export const WELCOME_GRANT = 10;
 const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light']);
+const MAX_POSTCARD_IMAGE_BYTES = 1800000;
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -135,10 +136,68 @@ export async function savePostcard(env, postcardId, request) {
 export async function getSavedPostcards(env, request) {
   const userId = getRequiredUserId(request);
   const { results } = await env.DB.prepare(`
-    SELECT id, phrase, visit_days, preset, created_at, saved_at
+    SELECT id, phrase, visit_days, preset, created_at, saved_at, download_token
     FROM digital_postcards
     WHERE user_id = ? AND status = 'saved'
     ORDER BY saved_at DESC, created_at DESC
   `).bind(userId).all();
-  return { postcards: results };
+  const origin = new URL(request.url).origin;
+  return {
+    postcards: results.map(({ download_token: downloadToken, ...postcard }) => ({
+      ...postcard,
+      download_url: downloadToken
+        ? `${origin}/api/nuv/postcard-files/${downloadToken}`
+        : null,
+    })),
+  };
+}
+
+export async function uploadPostcardImage(env, postcardId, request) {
+  const userId = getRequiredUserId(request);
+  const contentType = request.headers.get('Content-Type')?.split(';')[0];
+  if (contentType !== 'image/png') {
+    throw new Error('postcard image must be image/png');
+  }
+
+  const image = await request.arrayBuffer();
+  if (image.byteLength === 0 || image.byteLength > MAX_POSTCARD_IMAGE_BYTES) {
+    throw new Error(`postcard image must be between 1 and ${MAX_POSTCARD_IMAGE_BYTES} bytes`);
+  }
+
+  const token = crypto.randomUUID().replaceAll('-', '');
+  const postcard = await env.DB.prepare(`
+    UPDATE digital_postcards
+    SET image_data = ?, image_mime = 'image/png',
+        download_token = COALESCE(download_token, ?)
+    WHERE id = ? AND user_id = ? AND status = 'saved'
+    RETURNING download_token
+  `).bind(image, token, postcardId, userId).first();
+  if (!postcard) {
+    throw new Error(`Saved postcard not found: ${postcardId}`);
+  }
+
+  const origin = new URL(request.url).origin;
+  return { download_url: `${origin}/api/nuv/postcard-files/${postcard.download_token}` };
+}
+
+export async function downloadPostcardImage(env, token) {
+  if (!/^[a-f0-9]{32}$/.test(token)) {
+    return new Response('Not Found', { status: 404 });
+  }
+  const postcard = await env.DB.prepare(`
+    SELECT image_data, image_mime FROM digital_postcards
+    WHERE download_token = ? AND status = 'saved' AND image_data IS NOT NULL
+  `).bind(token).first();
+  if (!postcard) {
+    return new Response('Not Found', { status: 404 });
+  }
+
+  return new Response(postcard.image_data, {
+    headers: {
+      'Content-Type': postcard.image_mime || 'image/png',
+      'Content-Disposition': 'attachment; filename="dandani-postcard.png"',
+      'Cache-Control': 'private, max-age=31536000, immutable',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }
