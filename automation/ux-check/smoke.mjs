@@ -33,10 +33,14 @@ async function runSmokeTest() {
   page.on('pageerror', (error) => pageErrors.push(error.message));
   await page.route('**/api/phrases/**', (route) => respondToPhraseApi(route, state));
   await page.route('**/api/phrases', (route) => respondToPhraseApi(route, state));
+  await page.route('**/api/nuv/**', (route) => fulfill(route, { balance: 10, awarded_nuv: 10 }));
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
 
   await page.getByRole('button', { name: '건너뛰기' }).click({ timeout: 10000 });
   await submitPhrase(page, '천천히 해도 괜찮다');
+  await page.getByText('이렇게 공유돼요').waitFor();
+  await page.keyboard.press('Escape');
+  await page.getByText('이렇게 공유돼요').waitFor({ state: 'hidden' });
   await page.getByText('천천히 해도 괜찮다', { exact: true }).waitFor();
   await page.getByRole('button', { name: '오늘의 문장 되새기기' }).click();
   await page.getByRole('button', { name: '오늘도 되새겼어요' }).waitFor();
@@ -52,8 +56,9 @@ async function runSmokeTest() {
 }
 
 async function submitPhrase(page, text) {
-  await page.getByText('다른 사람들은 이런 문장으로').waitFor();
-  await page.getByRole('button', { name: '내 문장을 직접 쓸래요' }).click();
+  const writeOwnButton = page.getByRole('button', { name: '내 엽서 문장은 직접 쓸래요' });
+  await writeOwnButton.waitFor();
+  await writeOwnButton.click();
   await page.getByPlaceholder('예: 행복한 일은 매일 있다고 생각한다').fill(text);
   await page.getByRole('button', { name: '이 문장으로 시작할게요' }).click();
 }
