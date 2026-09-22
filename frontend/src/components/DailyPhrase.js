@@ -3,6 +3,7 @@ import { Box, Alert, Button, Snackbar } from '@mui/material';
 import VariantA from './phraseVariants/VariantA';
 import Loader from './Loader';
 import PhrasePicker from './PhrasePicker';
+import PracticeSheet from './PracticeSheet';
 import { logPhraseOnboardingShown } from '../utils/analytics';
 import usePhraseResource from '../hooks/usePhraseResource';
 import { usePhraseEditor, usePhraseLogging } from '../hooks/usePhraseActions';
@@ -15,6 +16,7 @@ const DailyPhrase = ({
   const [entryMode, setEntryMode] = useState('browse');
   const [pickedText, setPickedText] = useState(null);
   const [notice, setNotice] = useState('');
+  const [practiceOpen, setPracticeOpen] = useState(false);
   const source = pickedText === null
     ? 'written'
     : (editorText => editorText.trim() === pickedText.trim() ? 'picked' : 'picked_edited');
@@ -70,6 +72,7 @@ const DailyPhrase = ({
         phrase={phrase} {...editor} {...logging}
         onViewHistory={onViewHistory} hasActivePhrase={Boolean(phrase)} isEditing={isEditing}
         onShare={onShare}
+        onWritePractice={() => setPracticeOpen(true)}
         cameFromPicker={pickedText !== null}
         onBackToPicker={() => {
           setPickedText(null);
@@ -77,8 +80,16 @@ const DailyPhrase = ({
           setEntryMode('browse');
         }}
       />
+      <PracticeSheet
+        open={practiceOpen} onClose={() => setPracticeOpen(false)} phrase={phrase}
+        onSaved={result => setNotice(result.issued
+          ? '실천을 남겼어요 — 엽서가 되었어요'
+          // 문턱을 못 넘어도 기록은 남았다. 사라진 게 아니라 기다린다는
+          // 걸 분명히 말해줘야 다시 쓸 마음이 생긴다.
+          : `실천을 남겼어요 — ${result.nuv_needed} 누브가 더 쌓이면 엽서가 돼요`)}
+      />
       <Snackbar
-        open={Boolean(notice)} autoHideDuration={2400} onClose={() => setNotice('')}
+        open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')}
         message={notice} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={{ bottom: { xs: 88 } }}
       />

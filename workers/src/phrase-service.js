@@ -3,6 +3,7 @@ import { HttpError } from './http-errors.js';
 import { getRequiredUserId, logUserEvent } from './service-utils.js';
 import { getNickname } from './nickname-service.js';
 import { awardNuvForReflection } from './nuv-service.js';
+import { issueAwaitingPostcards } from './practice-service.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -74,7 +75,10 @@ export async function logPhraseDay(env, phraseId, request) {
     throw new HttpError(409, '문장이 이미 변경됐어요. 새로고침 후 다시 확인해 주세요.');
   }
   const reward = await awardNuvForReflection(env, userId, phraseId, today);
-  return { logged_days: logs.length, ...reward };
+  // 문턱을 넘는 날, 그동안 기다리던 실천 기록들이 엽서가 된다. 되새김이
+  // 발행을 여는 유일한 길이라 여기서 확인하는 게 맞다.
+  const { issued } = await issueAwaitingPostcards(env, userId);
+  return { logged_days: logs.length, ...reward, postcards_issued: issued };
 }
 
 export async function retirePhrase(env, phraseId, request) {

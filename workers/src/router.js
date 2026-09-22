@@ -8,6 +8,7 @@ import {
   createPostcardWithNuv, downloadPostcardImage, getNuvWallet,
   getSavedPostcards, savePostcard, uploadPostcardImage,
 } from './nuv-service.js';
+import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
 
 // Legacy services stay unregistered; see docs/adr/0005-legacy-backend-inventory.md.
 async function handleGet(url, request, env) {
@@ -20,6 +21,7 @@ async function handleGet(url, request, env) {
     case '/api/phrases/history': return jsonResponse(await getPhraseHistory(env, request));
     case '/api/phrases/community': return jsonResponse(await getCommunityPhrases(env, request));
     case '/api/nuv': return jsonResponse(await getNuvWallet(env, request));
+    case '/api/practices': return jsonResponse(await getPracticeRecords(env, request));
     case '/api/nuv/postcards': return jsonResponse(await getSavedPostcards(env, request));
     case '/api/analytics/event': return jsonResponse({ error: 'Method Not Allowed. Use POST.' }, 405);
     default: return jsonResponse({ error: 'Not Found' }, 404);
@@ -38,6 +40,10 @@ async function collectEvent(request, env) {
 
 async function handlePost(url, request, env) {
   if (url.pathname === '/api/analytics/event') return collectEvent(request, env);
+  if (url.pathname === '/api/practices') {
+    const result = await createPracticeRecord(env, request);
+    return jsonResponse(result, 201);
+  }
   if (url.pathname === '/api/nuv/postcards') {
     const result = await createPostcardWithNuv(env, request);
     return jsonResponse(result, result.created ? 201 : 409);

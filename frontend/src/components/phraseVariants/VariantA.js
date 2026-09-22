@@ -89,7 +89,10 @@ function useMilestone(phrase, streak) {
   return milestone;
 }
 
-function ActivePhrase({ phrase, logging, onLogToday, onViewHistory, onUseCommunityPhrase, hasActivePhrase, onShare }) {
+function ActivePhrase({
+  phrase, logging, onLogToday, onViewHistory, onUseCommunityPhrase, hasActivePhrase,
+  onShare, onWritePractice,
+}) {
   const ticks = getRollingWeekTicks(phrase.logged_dates, phrase.today);
   const streak = ticks.filter(Boolean).length;
   const milestone = useMilestone(phrase, streak);
@@ -121,7 +124,7 @@ function ActivePhrase({ phrase, logging, onLogToday, onViewHistory, onUseCommuni
         </Typography>
       ) : <Box sx={{ mb: 4 }} />}
       <FloatingActions done={phrase.logged_today} logging={logging} onLog={onLogToday}
-        onViewHistory={onViewHistory} onShare={onShare} />
+        onViewHistory={onViewHistory} onShare={onShare} onWritePractice={onWritePractice} />
       <CommunityTicker onUseCommunityPhrase={onUseCommunityPhrase} hasActivePhrase={hasActivePhrase} />
     </Scene>
   );

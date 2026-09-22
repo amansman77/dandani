@@ -18,11 +18,36 @@ function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
-async function getBalance(env, userId) {
+export async function getNuvBalance(env, userId) {
   const wallet = await env.DB.prepare(`
     SELECT balance FROM nuv_wallets WHERE user_id = ?
   `).bind(userId).first();
   return wallet?.balance || 0;
+}
+
+const getBalance = getNuvBalance;
+
+// 실천 기록에서 엽서를 발행한다. 문턱을 못 넘었으면 아무것도 만들지 않고
+// 돌아간다 — 기록은 이미 저장돼 있고, 문턱을 넘는 날 그때 발행된다.
+// 기록 하나에 엽서는 하나뿐이라 두 번 불러도 두 장이 되지 않는다.
+export async function issuePostcardForRecord(env, userId, record, balance) {
+  if (balance < POSTCARD_THRESHOLD) return null;
+  const existing = await env.DB.prepare(`
+    SELECT id FROM digital_postcards WHERE practice_record_id = ? AND user_id = ?
+  `).bind(record.id, userId).first();
+  if (existing) return existing.id;
+
+  const postcardId = generateId('postcard');
+  const created = await env.DB.prepare(`
+    INSERT INTO digital_postcards
+      (id, user_id, phrase_id, phrase, visit_days, preset, status, practice_record_id)
+    VALUES (?, ?, ?, ?, ?, 'morning', 'draft', ?)
+    RETURNING id
+  `).bind(
+    postcardId, userId, record.phrase_id, record.phrase,
+    Math.max(1, record.nuv_at_record), record.id
+  ).first();
+  return created?.id || null;
 }
 
 // 차감이 없어진 뒤로 지갑 잔액은 곧 평생 누적이다 — 원장에 더하기만 들어오니
