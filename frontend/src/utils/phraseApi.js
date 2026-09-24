@@ -27,8 +27,10 @@ async function phraseRequest(path, body) {
 }
 
 export const fetchActivePhrase = () => phraseRequest('/active');
-export const savePhrase = (text, currentId, source) => phraseRequest(
-  currentId ? `/${encodeURIComponent(currentId)}/replace` : '',
+// mode가 'rewrite'면 글자만 고친다 — 같은 문장이라 되새김 기록이 이어진다.
+// 'replace'는 다른 문장으로 바꾸는 것이라 기록이 새로 시작한다.
+export const savePhrase = (text, currentId, source, mode = 'replace') => phraseRequest(
+  currentId ? `/${encodeURIComponent(currentId)}/${mode}` : '',
   { phrase: text.trim(), ...(source ? { source } : {}) },
 );
 export const logPhraseToday = id => phraseRequest(`/${encodeURIComponent(id)}/log`, {});

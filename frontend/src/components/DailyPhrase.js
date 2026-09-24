@@ -5,6 +5,7 @@ import Loader from './Loader';
 import PhrasePicker from './PhrasePicker';
 import PracticeSheet from './PracticeSheet';
 import PhraseCardSheet from './PhraseCardSheet';
+import EditIntentSheet from './EditIntentSheet';
 import { logPhraseOnboardingShown } from '../utils/analytics';
 import usePhraseResource from '../hooks/usePhraseResource';
 import { usePhraseEditor, usePhraseLogging } from '../hooks/usePhraseActions';
@@ -84,6 +85,11 @@ const DailyPhrase = ({
           editor.setInputValue('');
           setEntryMode('browse');
         }}
+      />
+      <EditIntentSheet
+        open={Boolean(editor.pendingText)} onClose={editor.onCancelResolve}
+        phrase={phrase} nextText={editor.pendingText}
+        onResolve={editor.onResolveEdit} submitting={editor.submitting}
       />
       <PracticeSheet
         open={practiceOpen} onClose={() => setPracticeOpen(false)} phrase={phrase}
