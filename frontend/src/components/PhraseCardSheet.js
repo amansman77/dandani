@@ -86,7 +86,7 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
     if (!blob) return;
     const file = fileOf();
     if (!navigator.canShare || !navigator.canShare({ files: [file] })) {
-      setNotice('이 브라우저는 이미지 공유를 지원하지 않아요. 다운로드 후 올려주세요');
+      setNotice('이 브라우저에서는 이미지를 내보낼 수 없어요');
       return;
     }
     try {
@@ -100,18 +100,6 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
     } catch (err) {
       if (!err || err.name !== 'AbortError') setNotice('공유하지 못했어요');
     }
-  };
-
-  const downloadImage = () => {
-    if (!url) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `단단이-${phrase.visit_days || 1}번째아침.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    logPhraseShared('card_download');
-    setNotice('이미지를 다운로드했어요');
   };
 
   const savePostcard = async () => {
@@ -196,17 +184,16 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
             ))}
           </Box>
 
+          {/* 다운로드 버튼이 여기 있었다. 브라우저마다 blob 다운로드가
+              제각각이라(빈 파일이 받아지는 환경이 있었다) 걷어냈다.
+              이미지를 밖으로 내보내는 길은 OS 공유 시트 하나로 모은다 —
+              사진 앱에 저장하는 것도 거기서 되고, 인스타로 가는 유일한
+              길이기도 하다. */}
           <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5 }}>
             <Box component="button" type="button" onClick={savePostcard}
               disabled={!postcardId || saving || savedPreset === preset} sx={actionSx(true)}>
               {saving ? '저장 중…' : (savedPreset === preset ? '저장됨' : '엽서함에 저장')}
             </Box>
-            <Box component="button" type="button" onClick={downloadImage}
-              disabled={!url || busy} sx={actionSx(false)}>
-              다운로드
-            </Box>
-          </Box>
-          <Box sx={{ display: 'flex', mt: 1.25 }}>
             <Box component="button" type="button" onClick={shareImage}
               disabled={!blob || busy} sx={actionSx(false)}>
               이미지 공유
