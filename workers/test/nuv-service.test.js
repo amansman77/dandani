@@ -187,8 +187,21 @@ test('issuing a postcard leaves the Nuv untouched, and the image round-trips', a
   const uploaded = await uploadPostcardImage(
     env, postcardId, imageRequest('user-1', imageBytes)
   );
-  const token = uploaded.download_url.split('/').pop();
+  const token = uploaded.download_url.split('/').pop().split('?')[0];
   const download = await downloadPostcardImage(env, token);
+
+  // 같은 토큰 뒤의 바이트가 바뀔 수 있으니 immutable을 걸면 안 된다.
+  // 한 번 망가진 본문이 내려가면 브라우저가 1년 동안 그걸 붙들고 있었다.
+  const cache = download.headers.get('Cache-Control');
+  assert.ok(!/immutable/.test(cache), `immutable을 쓰면 안 된다: ${cache}`);
+  assert.match(cache, /must-revalidate/);
+  assert.ok(download.headers.get('ETag'));
+  // 주소에 길이가 붙어서, 그림이 바뀌면 주소도 바뀐다.
+  assert.match(uploaded.download_url, /\?v=\d+$/);
+
+  // 안 바뀐 그림은 304로 끝난다.
+  const revalidated = await downloadPostcardImage(env, token, download.headers.get('ETag'));
+  assert.equal(revalidated.status, 304);
 
   assert.equal(download.status, 200);
   assert.equal(download.headers.get('Content-Type'), 'image/png');

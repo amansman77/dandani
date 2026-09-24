@@ -13,7 +13,9 @@ import { createPracticeRecord, getPracticeRecords } from './practice-service.js'
 // Legacy services stay unregistered; see docs/adr/0005-legacy-backend-inventory.md.
 async function handleGet(url, request, env) {
   if (/^\/api\/nuv\/postcard-files\/[a-f0-9]+$/.test(url.pathname)) {
-    return downloadPostcardImage(env, url.pathname.split('/')[4]);
+    return downloadPostcardImage(
+      env, url.pathname.split('/')[4], request.headers.get('If-None-Match')
+    );
   }
   if (ADMIN_PATHS.has(url.pathname)) return handleAdminGet(url, env);
   switch (url.pathname) {
