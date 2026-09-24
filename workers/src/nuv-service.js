@@ -15,7 +15,6 @@ import { getRequiredUserId } from './service-utils.js';
 // 이미 나간 210누브도 원장에서 되돌렸다(schema_v260922_nuv_accrual.sql).
 export const REFLECTION_REWARD = 1;
 const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light']);
-const MAX_POSTCARD_IMAGE_BYTES = 1800000;
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -118,114 +117,20 @@ export async function savePostcard(env, postcardId, request) {
 export async function getSavedPostcards(env, request) {
   const userId = getRequiredUserId(request);
   const { results } = await env.DB.prepare(`
-    SELECT id, phrase, visit_days, preset, created_at, saved_at, download_token,
-           length(image_data) AS image_bytes,
+    SELECT id, phrase, visit_days, preset, created_at, saved_at,
            practice_record_id, practice_body, practiced_on, nuv_at_issue, issue_no, issued_at
     FROM digital_postcards
     WHERE user_id = ? AND status = 'saved'
     ORDER BY issue_no DESC, saved_at DESC, created_at DESC
   `).bind(userId).all();
-  const origin = new URL(request.url).origin;
   return {
-    postcards: results.map(({
-      download_token: downloadToken, image_bytes: imageBytes,
-      practice_record_id: practiceRecordId, ...postcard
-    }) => ({
+    postcards: results.map(({ practice_record_id: practiceRecordId, ...postcard }) => ({
       ...postcard,
       // 실천 없이 누브를 주고 샀던 옛 엽서. 지우지도 번호를 주지도 않고,
       // 화면에서만 갈라 보여준다.
       is_legacy: !practiceRecordId,
-      download_url: downloadToken ? postcardFileUrl(origin, downloadToken, imageBytes) : null,
     })),
   };
 }
 
-export async function uploadPostcardImage(env, postcardId, request) {
-  const userId = getRequiredUserId(request);
-  const contentType = request.headers.get('Content-Type')?.split(';')[0];
-  if (contentType !== 'image/png') {
-    throw new Error('postcard image must be image/png');
-  }
 
-  const image = await request.arrayBuffer();
-  if (image.byteLength === 0 || image.byteLength > MAX_POSTCARD_IMAGE_BYTES) {
-    throw new Error(`postcard image must be between 1 and ${MAX_POSTCARD_IMAGE_BYTES} bytes`);
-  }
-
-  const token = crypto.randomUUID().replaceAll('-', '');
-  const postcard = await env.DB.prepare(`
-    UPDATE digital_postcards
-    SET image_data = ?, image_mime = 'image/png',
-        download_token = COALESCE(download_token, ?)
-    WHERE id = ? AND user_id = ? AND status = 'saved'
-    RETURNING download_token
-  `).bind(image, token, postcardId, userId).first();
-  if (!postcard) {
-    throw new Error(`Saved postcard not found: ${postcardId}`);
-  }
-
-  const origin = new URL(request.url).origin;
-  return {
-    download_url: postcardFileUrl(origin, postcard.download_token, image.byteLength),
-  };
-}
-
-// 엽서 하나의 주소는 토큰으로 고정인데, 배경을 바꿔 다시 저장하면 같은 토큰
-// 뒤의 바이트가 바뀐다. 예전엔 여기에 immutable 캐시를 1년으로 걸어놨다 —
-// "이 주소의 내용은 절대 안 바뀐다"는 약속인데 실제로는 바뀌니까 거짓말이었다.
-//
-// 그 거짓말이 실제로 사람을 물었다. D1 BLOB 버그로 망가진 본문이 한 번
-// 내려간 뒤, 서버를 고쳐도 브라우저가 1년짜리 immutable 캐시를 붙들고 있어서
-// 계속 깨진 파일만 받았다(Arc에서 재현). immutable은 재검증조차 안 한다.
-//
-// 그래서 주소에 내용 길이를 붙인다. 바이트가 달라지면 주소가 달라져서
-// 낡은 캐시를 아예 못 집는다. 캐시 자체는 ETag로 다시 물어보게 둔다.
-const postcardFileUrl = (origin, token, bytes) =>
-  `${origin}/api/nuv/postcard-files/${token}${bytes ? `?v=${bytes}` : ''}`;
-
-// D1은 BLOB을 숫자 배열([137,80,78,...])로 돌려준다. 그대로 Response에 넣으면
-// 배열이 문자열로 바뀌어서 "137,80,78,..."이라는 텍스트가 내려간다 — 파일은
-// 받아지는데 어떤 뷰어에서도 안 열린다(75바이트 PNG가 217바이트 ASCII가 됐다).
-//
-// 테스트는 이걸 못 잡았다. node:sqlite는 BLOB을 Uint8Array로 주기 때문에
-// 가짜 D1이 진짜 D1보다 친절했던 것이다. 지금은 테스트 쪽 가짜가 숫자 배열을
-// 돌려주도록 맞춰뒀다.
-function toBytes(value) {
-  if (value instanceof ArrayBuffer) return new Uint8Array(value);
-  if (ArrayBuffer.isView(value)) return value;
-  return new Uint8Array(value);
-}
-
-const CACHE = 'private, max-age=0, must-revalidate';
-
-export async function downloadPostcardImage(env, token, ifNoneMatch) {
-  if (!/^[a-f0-9]{32}$/.test(token)) {
-    return new Response('Not Found', { status: 404 });
-  }
-  const postcard = await env.DB.prepare(`
-    SELECT image_data, image_mime FROM digital_postcards
-    WHERE download_token = ? AND status = 'saved' AND image_data IS NOT NULL
-  `).bind(token).first();
-  if (!postcard) {
-    return new Response('Not Found', { status: 404 });
-  }
-
-  const bytes = toBytes(postcard.image_data);
-  // 같은 주소 뒤의 바이트가 바뀔 수 있으니 immutable은 쓸 수 없다. 대신
-  // ETag로 매번 물어보게 하고, 안 바뀌었으면 304로 끝낸다 — 800KB짜리를
-  // 매번 다시 내려받지 않으면서도 낡은 그림을 붙들고 있지 않는다.
-  const etag = `"${bytes.length}"`;
-  if (ifNoneMatch === etag) {
-    return new Response(null, { status: 304, headers: { ETag: etag, 'Cache-Control': CACHE } });
-  }
-
-  return new Response(bytes, {
-    headers: {
-      'Content-Type': postcard.image_mime || 'image/png',
-      'Content-Disposition': 'attachment; filename="dandani-postcard.png"',
-      'Cache-Control': CACHE,
-      ETag: etag,
-      'X-Content-Type-Options': 'nosniff',
-    },
-  });
-}

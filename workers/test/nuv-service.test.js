@@ -5,23 +5,10 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
   issuePostcardForRecord,
-  downloadPostcardImage,
   getSavedPostcards,
   getNuvWallet,
   savePostcard,
-  uploadPostcardImage,
 } from '../src/nuv-service.js';
-
-// node:sqlite는 BLOB을 Uint8Array로 주는데 진짜 D1은 숫자 배열로 준다.
-// 가짜가 더 친절하면 테스트가 통과해도 프로덕션에서 깨진다 — 실제로
-// 다운로드한 PNG가 "137,80,78,..." 텍스트로 내려간 적이 있다. 진짜 D1이
-// 하는 대로 맞춰둔다.
-function asD1Row(row) {
-  if (!row) return row;
-  return Object.fromEntries(Object.entries(row).map(([key, value]) => (
-    [key, value instanceof Uint8Array ? [...value] : value]
-  )));
-}
 
 class D1Statement {
   constructor(statement) {
@@ -37,7 +24,7 @@ class D1Statement {
   }
 
   async first() {
-    return asD1Row(this.statement.get(...this.values));
+    return this.statement.get(...this.values);
   }
 
   async run() {
@@ -89,9 +76,11 @@ function createEnvironment() {
   `);
   database.exec(readFileSync(new URL('../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260917_postcards.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260918_postcard_images.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260923_practice_records.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260918_postcard_images.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260923_postcard_proof.sql', import.meta.url), 'utf8'));
+  // 이미지 칸은 만들었다가 걷어냈다 — 실제 순서대로 재현해야 DROP도 검증된다.
+  database.exec(readFileSync(new URL('../schemas/schema_v260924_drop_postcard_images.sql', import.meta.url), 'utf8'));
 
   return {
     database,
@@ -107,13 +96,6 @@ function request(userId, body) {
   });
 }
 
-function imageRequest(userId, bytes) {
-  return new Request('https://dandani.test/api/nuv/postcards/postcard-1/image', {
-    method: 'POST',
-    headers: { 'X-User-ID': userId, 'Content-Type': 'image/png' },
-    body: bytes,
-  });
-}
 
 test('a daily reflection awards one Nuv only once', async () => {
   const { database, env } = createEnvironment();
@@ -157,7 +139,7 @@ test('the accrual migration erases granted and spent Nuv and rebuilds balances',
   );
 });
 
-test('issuing a postcard leaves the Nuv untouched, and the image round-trips', async () => {
+test('issuing a postcard leaves the Nuv untouched', async () => {
   const { database, env } = createEnvironment();
   const addNuv = database.prepare(`
     INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
@@ -183,28 +165,4 @@ test('issuing a postcard leaves the Nuv untouched, and the image round-trips', a
   assert.equal(saved.postcards[0].preset, 'dawn');
   assert.equal(saved.postcards[0].issue_no, 1);
 
-  const imageBytes = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
-  const uploaded = await uploadPostcardImage(
-    env, postcardId, imageRequest('user-1', imageBytes)
-  );
-  const token = uploaded.download_url.split('/').pop().split('?')[0];
-  const download = await downloadPostcardImage(env, token);
-
-  // 같은 토큰 뒤의 바이트가 바뀔 수 있으니 immutable을 걸면 안 된다.
-  // 한 번 망가진 본문이 내려가면 브라우저가 1년 동안 그걸 붙들고 있었다.
-  const cache = download.headers.get('Cache-Control');
-  assert.ok(!/immutable/.test(cache), `immutable을 쓰면 안 된다: ${cache}`);
-  assert.match(cache, /must-revalidate/);
-  assert.ok(download.headers.get('ETag'));
-  // 주소에 길이가 붙어서, 그림이 바뀌면 주소도 바뀐다.
-  assert.match(uploaded.download_url, /\?v=\d+$/);
-
-  // 안 바뀐 그림은 304로 끝난다.
-  const revalidated = await downloadPostcardImage(env, token, download.headers.get('ETag'));
-  assert.equal(revalidated.status, 304);
-
-  assert.equal(download.status, 200);
-  assert.equal(download.headers.get('Content-Type'), 'image/png');
-  assert.equal(download.headers.get('Content-Disposition'), 'attachment; filename="dandani-postcard.png"');
-  assert.deepEqual(new Uint8Array(await download.arrayBuffer()), imageBytes);
 });

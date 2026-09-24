@@ -113,14 +113,8 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || '엽서를 저장하지 못했어요');
-      if (!blob) throw new Error('엽서 이미지가 아직 준비되지 않았어요');
-      const imageResponse = await fetch(`${API_URL}/api/nuv/postcards/${postcardId}/image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'image/png', 'X-User-ID': getUserId() },
-        body: blob,
-      });
-      const imageData = await imageResponse.json();
-      if (!imageResponse.ok) throw new Error(imageData.error || '엽서 이미지를 저장하지 못했어요');
+      // 그림은 서버로 보내지 않는다. 엽서함 미리보기는 문장·프리셋으로
+      // 그때그때 다시 그리는 것이라, 고른 배경만 남기면 충분하다.
       setSavedPreset(preset);
       setNotice('내 엽서함에 저장했어요');
     } catch (error) {

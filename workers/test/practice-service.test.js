@@ -40,9 +40,11 @@ function createEnvironment() {
   for (const file of [
     '../schemas/schema_v260917_nuv.sql',
     '../schemas/schema_v260917_postcards.sql',
+    // 실제 순서 그대로 — 이미지 칸을 만들었다가 나중에 걷어냈다.
     '../schemas/schema_v260918_postcard_images.sql',
     '../schemas/schema_v260923_practice_records.sql',
     '../schemas/schema_v260923_postcard_proof.sql',
+    '../schemas/schema_v260924_drop_postcard_images.sql',
   ]) {
     database.exec(readFileSync(new URL(file, import.meta.url), 'utf8'));
   }

@@ -4,19 +4,11 @@ import { ADMIN_PATHS, requireAdmin } from './admin-auth.js';
 import { handleAdminGet } from './admin-router.js';
 import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
-import {
-  downloadPostcardImage, getNuvWallet,
-  getSavedPostcards, savePostcard, uploadPostcardImage,
-} from './nuv-service.js';
+import { getNuvWallet, getSavedPostcards, savePostcard } from './nuv-service.js';
 import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
 
 // Legacy services stay unregistered; see docs/adr/0005-legacy-backend-inventory.md.
 async function handleGet(url, request, env) {
-  if (/^\/api\/nuv\/postcard-files\/[a-f0-9]+$/.test(url.pathname)) {
-    return downloadPostcardImage(
-      env, url.pathname.split('/')[4], request.headers.get('If-None-Match')
-    );
-  }
   if (ADMIN_PATHS.has(url.pathname)) return handleAdminGet(url, env);
   switch (url.pathname) {
     case '/api/phrases/active': return jsonResponse(await getActivePhrase(env, request));
@@ -46,16 +38,19 @@ async function handlePost(url, request, env) {
     const result = await createPracticeRecord(env, request);
     return jsonResponse(result, 201);
   }
-  // POST /api/nuv/postcards(실천 없이 엽서 만들기)는 없앴다. 엽서는 실천의
-  // 증명이라, 실천 없이 만들 수 있으면 증명이 아니게 된다. 이제 엽서를
-  // 발행하는 길은 POST /api/practices 하나뿐이다.
   // 가입 선물이 사라져서 이 경로는 더 줄 게 없다. 이미 배포된 클라이언트가
   // 아직 여기로 오기 때문에, 없애는 대신 잔액만 돌려준다(누브를 발행하지 않음).
   if (url.pathname === '/api/nuv/welcome') return jsonResponse(await getNuvWallet(env, request));
-  const postcardMatch = /^\/api\/nuv\/postcards\/([^/]+)\/(save|image)$/.exec(url.pathname);
+
+  // 엽서에 남은 POST는 배경 저장 하나다.
+  //   POST /api/nuv/postcards(실천 없이 엽서 만들기) — 없앴다. 엽서는 실천의
+  //     증명이라, 실천 없이 만들 수 있으면 증명이 아니게 된다.
+  //   POST .../image, GET /api/nuv/postcard-files/:token — 없앴다. 이미지는
+  //     서버에 보관하지 않는다. 미리보기는 브라우저가 문장·프리셋으로 그때그때
+  //     다시 그리고, 밖으로 내보내는 건 OS 공유 시트가 맡는다.
+  const postcardMatch = /^\/api\/nuv\/postcards\/([^/]+)\/save$/.exec(url.pathname);
   if (postcardMatch) {
-    const handler = postcardMatch[2] === 'save' ? savePostcard : uploadPostcardImage;
-    return jsonResponse(await handler(env, postcardMatch[1], request));
+    return jsonResponse(await savePostcard(env, postcardMatch[1], request));
   }
   if (url.pathname === '/api/phrases') return jsonResponse(await createPhrase(env, request));
   const match = /^\/api\/phrases\/([^/]+)\/(replace|log|retire)$/.exec(url.pathname);
