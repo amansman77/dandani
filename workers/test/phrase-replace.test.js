@@ -1,10 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { replacePhrase, rewritePhrase } from '../src/phrase-mutations.js';
+import { replacePhrase } from '../src/phrase-mutations.js';
 
-// 고쳐 쓰기와 바꾸기의 차이는 "되새김 기록이 이어지는가" 하나다.
-// 그 차이가 코드에서 사라지면 31일치가 말없이 0이 되므로 여기서 못 박는다.
+// 문장을 바꾸면 되새김은 처음부터 다시 센다. 다른 말을 살기로 한 것이니
+// 그 문장의 날수도 거기서 시작한다.
+//
+// 한때 글자만 고치는 길(rewrite)을 따로 뒀다가 걷어냈다. 잃는 것이 생각보다
+// 작았기 때문이다 — 누브는 사람에 붙어 있어 안 줄고, 엽서와 실천 기록은
+// 그때 문장을 복사해 굳혀둬서 안 사라진다. 바뀌는 건 그 문장의 날수뿐이고,
+// 문장이 바뀌었으면 그게 0인 게 맞다.
+//
+// 그러니 여기서 못 박는 건 하나다: 옛 문장의 기록은 남고(기록 탭에서 본다),
+// 새 문장은 0에서 시작한다.
 
 class D1Statement {
   constructor(statement) {
@@ -79,23 +87,6 @@ const logsFor = (database, phraseId) =>
   database.prepare('SELECT COUNT(*) AS n FROM daily_phrase_logs WHERE phrase_id = ?')
     .get(phraseId).n;
 
-test('rewriting keeps the same phrase and its whole reflection record', async () => {
-  const { database, env } = createEnvironment();
-
-  const result = await rewritePhrase(env, 'phrase-1', request('화를 내기 전에 한 번 더 묻자'));
-
-  // 같은 문장이라 id가 그대로다 — 기록이 id에 매여 있어서 이게 핵심이다.
-  assert.equal(result.id, 'phrase-1');
-  assert.equal(result.phrase, '화를 내기 전에 한 번 더 묻자');
-  assert.equal(logsFor(database, 'phrase-1'), 31);
-
-  const row = database.prepare('SELECT phrase, status FROM daily_phrases WHERE id = ?').get('phrase-1');
-  assert.equal(row.phrase, '화를 내기 전에 한 번 더 묻자');
-  assert.equal(row.status, 'active');
-  // 접힌 문장이 생기지 않는다.
-  assert.equal(database.prepare("SELECT COUNT(*) AS n FROM daily_phrases").get().n, 1);
-});
-
 test('replacing starts a new phrase whose record is empty', async () => {
   const { database, env } = createEnvironment();
 
@@ -109,19 +100,4 @@ test('replacing starts a new phrase whose record is empty', async () => {
     database.prepare('SELECT status FROM daily_phrases WHERE id = ?').get('phrase-1').status,
     'retired'
   );
-});
-
-test('rewriting refuses to touch a retired phrase', async () => {
-  const { database, env } = createEnvironment();
-  database.exec("UPDATE daily_phrases SET status = 'retired' WHERE id = 'phrase-1'");
-
-  await assert.rejects(
-    () => rewritePhrase(env, 'phrase-1', request('다른 글자')),
-    /사용 중인 문장을 찾을 수 없어요/
-  );
-});
-
-test('rewriting refuses an empty phrase', async () => {
-  const { env } = createEnvironment();
-  await assert.rejects(() => rewritePhrase(env, 'phrase-1', request('   ')), /문장을 입력해 주세요/);
 });

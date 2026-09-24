@@ -23,7 +23,6 @@ const ALLOWED_EVENT_TYPES = [
   'phrase_start',
   'phrase_day_logged',
   'phrase_retired',
-  'phrase_rewritten',
   'phrase_shared',
   'splash_shown',
   'splash_done',

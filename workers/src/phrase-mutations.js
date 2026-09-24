@@ -40,35 +40,6 @@ async function previousReplacement(db, sourceId, userId, text) {
   return source;
 }
 
-// 오타를 고치는 것과 다른 문장으로 바꾸는 것은 다른 일이다.
-//
-// replacePhrase는 옛 문장을 접고 새 문장을 세운다. 되새김 기록은 문장에
-// 붙어 있어서(daily_phrase_logs.phrase_id) 새로 시작한다 — 다른 말을 살기로
-// 했으니 그게 맞다. 그런데 "화를 내기전에"의 띄어쓰기 하나를 고치는 것도
-// 같은 길로 가서, 31일치 되새김이 말없이 0이 됐다.
-//
-// 그래서 글자만 고치는 길을 따로 둔다. 같은 문장이니 id가 그대로고,
-// 되새김도 연속도 이어진다. 둘 중 무엇인지는 사람이 정한다 — 글자가 얼마나
-// 바뀌었는지로 기계가 짐작하면, 어느 쪽으로 틀리든 조용히 틀린다.
-//
-// 이미 발행된 엽서·실천 기록은 그때의 문장을 통째로 복사해 굳혀둔 것이라
-// 여기서 안 바뀐다. 증명은 "그때 그 말"이어야 하니까 그게 맞다.
-export async function rewritePhrase(env, phraseId, request) {
-  const userId = getRequiredUserId(request);
-  const { phrase } = await readPhrase(request);
-
-  const result = await env.DB.prepare(`
-    UPDATE daily_phrases SET phrase = ?
-    WHERE id = ? AND user_id = ? AND status = 'active'
-  `).bind(phrase, phraseId, userId).run();
-  if (!result.meta.changes) {
-    throw new HttpError(409, '사용 중인 문장을 찾을 수 없어요. 새로고침 후 다시 확인해 주세요.');
-  }
-
-  await logUserEvent(env, request, 'phrase_rewritten', { phrase_id: phraseId });
-  return { id: phraseId, phrase, status: 'active' };
-}
-
 export async function replacePhrase(env, sourceId, request) {
   const userId = getRequiredUserId(request);
   const { phrase, source } = await readPhrase(request);

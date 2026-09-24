@@ -2,7 +2,7 @@ import { corsHeaders, jsonResponse, logUserEvent } from './core.js';
 import { HttpError, readJson } from './http-errors.js';
 import { ADMIN_PATHS, requireAdmin } from './admin-auth.js';
 import { handleAdminGet } from './admin-router.js';
-import { createPhrase, replacePhrase, rewritePhrase } from './phrase-mutations.js';
+import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
 import { getNuvWallet, getSavedPostcards, savePostcard } from './nuv-service.js';
 import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
@@ -53,14 +53,12 @@ async function handlePost(url, request, env) {
     return jsonResponse(await savePostcard(env, postcardMatch[1], request));
   }
   if (url.pathname === '/api/phrases') return jsonResponse(await createPhrase(env, request));
-  // rewrite는 글자만 고친다(되새김 기록이 이어짐), replace는 다른 문장으로
-  // 바꾼다(기록이 새로 시작). 둘을 가르는 건 사람이고, 여기서는 그 뜻을
-  // 그대로 받는다.
-  const match = /^\/api\/phrases\/([^/]+)\/(replace|rewrite|log|retire)$/.exec(url.pathname);
+  // 문장을 바꾸면 되새김은 새로 시작한다. 글자만 고치는 길(rewrite)을 잠깐
+  // 뒀다가 걷어냈다 — 다른 말을 살기로 했으면 처음부터 세는 게 맞다는
+  // 결정이었다.
+  const match = /^\/api\/phrases\/([^/]+)\/(replace|log|retire)$/.exec(url.pathname);
   if (!match) return jsonResponse({ error: 'Not Found' }, 404);
-  const handlers = {
-    replace: replacePhrase, rewrite: rewritePhrase, log: logPhraseDay, retire: retirePhrase,
-  };
+  const handlers = { replace: replacePhrase, log: logPhraseDay, retire: retirePhrase };
   return jsonResponse(await handlers[match[2]](env, match[1], request));
 }
 
