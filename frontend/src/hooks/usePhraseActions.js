@@ -2,7 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { savePhrase, logPhraseToday } from '../utils/phraseApi';
 import { logPhraseExampleUsed, logPhraseDayLogged } from '../utils/analytics';
 
-function useSavePhrase(resource, onFirstPhraseCreated) {
+// 첫 문장을 저장한 직후에 공유 시트를 자동으로 열던 자리가 여기였다.
+// 방금 쓴 사적인 문장을 아직 한 번도 되새기지 않았는데 앱이 먼저 "남한테
+// 알려라"라고 시키는 꼴이라 걷어냈다. 첫 순간에 시키는 일이 곧 그 사람이
+// 하는 일이 된다 — 온보딩이 "엽서를 만들어라"라고 말한 동안 신규의 되새김이
+// 85%에서 10%로 떨어졌던 것과 같은 계열의 실수다.
+function useSavePhrase(resource) {
   const [submitting, setSubmitting] = useState(false);
   const busy = useRef(false);
   const commit = async (text, source) => {
@@ -10,11 +15,8 @@ function useSavePhrase(resource, onFirstPhraseCreated) {
     busy.current = true;
     setSubmitting(true);
     try {
-      const isFirstPhrase = !resource.phrase;
       await savePhrase(text, resource.phrase?.id, source);
-      const refreshed = await resource.refresh();
-      if (refreshed && isFirstPhrase && onFirstPhraseCreated) onFirstPhraseCreated();
-      return refreshed;
+      return resource.refresh();
     } finally {
       busy.current = false;
       setSubmitting(false);
@@ -23,11 +25,9 @@ function useSavePhrase(resource, onFirstPhraseCreated) {
   return { submitting, commit };
 }
 
-export function usePhraseEditor(resource, {
-  isEditing, onEditingChange, source = 'written', onFirstPhraseCreated,
-}) {
+export function usePhraseEditor(resource, { isEditing, onEditingChange, source = 'written' }) {
   const [inputValue, setInputValue] = useState('');
-  const { submitting, commit } = useSavePhrase(resource, onFirstPhraseCreated);
+  const { submitting, commit } = useSavePhrase(resource);
   useEffect(() => {
     if (isEditing && resource.phrase) setInputValue(resource.phrase.phrase);
   }, [isEditing, resource.phrase]);

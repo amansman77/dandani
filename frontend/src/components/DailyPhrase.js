@@ -11,7 +11,7 @@ import { usePhraseEditor, usePhraseLogging } from '../hooks/usePhraseActions';
 
 const DailyPhrase = ({
   onViewHistory, isEditing, onEditingChange, onActivePhraseChange, onShare,
-  onNuvBalanceChange, onFirstPhraseCreated,
+  onNuvBalanceChange,
 }) => {
   const resource = usePhraseResource();
   const [entryMode, setEntryMode] = useState('browse');
@@ -25,9 +25,7 @@ const DailyPhrase = ({
   const source = pickedText === null
     ? 'written'
     : (editorText => editorText.trim() === pickedText.trim() ? 'picked' : 'picked_edited');
-  const editor = usePhraseEditor(resource, {
-    isEditing, onEditingChange, source, onFirstPhraseCreated,
-  });
+  const editor = usePhraseEditor(resource, { isEditing, onEditingChange, source });
   const logging = usePhraseLogging(resource, {
     onNuvBalanceChange,
     onNuvAwarded: amount => setNotice(`되새기고 ${amount} 누브를 받았어요`),

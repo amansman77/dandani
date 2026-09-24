@@ -19,7 +19,6 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77
 function App() {
   const [activeTab, setActiveTab] = useState(0);
   const isPoppingNavRef = useRef(false);
-  const isFirstVisit = useRef(getUserIdInfo().isNew).current;
   const [isNonKoreanUser, setIsNonKoreanUser] = useState(false);
   // 오늘의 문장 편집 트리거를 헤더(안내 버튼 옆)로 옮기면서, 편집 중인지/편집
   // 가능한 문장이 있는지를 App이 들고 DailyPhrase와 주고받는다.
@@ -188,7 +187,6 @@ function App() {
               onActivePhraseChange={setActivePhrase}
               onShare={() => setShareOpen(true)}
               onNuvBalanceChange={setNuvBalance}
-              onFirstPhraseCreated={isFirstVisit ? () => setShareOpen(true) : undefined}
             />
           )}
 
