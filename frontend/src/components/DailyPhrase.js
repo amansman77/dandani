@@ -21,7 +21,7 @@ const DailyPhrase = ({
   // 실천을 적으면 바로 엽서가 발행된다. 배경을 고르고 저장하는 화면은 예전엔
   // 공유 시트에 붙어 있었는데, 엽서를 만드는 길이 실천 하나로 바뀌면서
   // 발행 직후로 옮겼다 — 방금 나온 내 증명을 그 자리에서 꾸미게 된다.
-  const [issuedPostcardId, setIssuedPostcardId] = useState(null);
+  const [issued, setIssued] = useState(null);
   const source = pickedText === null
     ? 'written'
     : (editorText => editorText.trim() === pickedText.trim() ? 'picked' : 'picked_edited');
@@ -89,12 +89,14 @@ const DailyPhrase = ({
         open={practiceOpen} onClose={() => setPracticeOpen(false)} phrase={phrase}
         onSaved={result => {
           setNotice('실천을 남겼어요 — 엽서가 되었어요');
-          if (result.postcard_id) setIssuedPostcardId(result.postcard_id);
+          if (result.postcard_id) {
+            setIssued({ id: result.postcard_id, practicedOn: result.record.practiced_on });
+          }
         }}
       />
       <PhraseCardSheet
-        open={Boolean(issuedPostcardId)} onClose={() => setIssuedPostcardId(null)}
-        phrase={phrase} postcardId={issuedPostcardId}
+        open={Boolean(issued)} onClose={() => setIssued(null)}
+        phrase={phrase} postcardId={issued?.id} practicedOn={issued?.practicedOn}
       />
       <Snackbar
         open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')}

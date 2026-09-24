@@ -178,7 +178,10 @@ const ensureFonts = async () => {
   } catch (err) { /* 폰트를 못 받아도 그리기는 계속한다 */ }
 };
 
-export const renderPhraseCard = async ({ phrase, visitDays, preset = 'morning' }) => {
+// meta는 문장 아래 한 줄. 예전엔 "N번째 아침"을 여기 박아뒀는데, 실천으로
+// 발행한 엽서에서는 그 숫자가 사실 누브 잔액이었다. 증명서에 살 수 있는
+// 숫자가 들어가면 증명이 아니게 되므로, 무엇을 적을지는 부르는 쪽이 정한다.
+export const renderPhraseCard = async ({ phrase, meta, preset = 'morning' }) => {
   await ensureFonts();
 
   const canvas = document.createElement('canvas');
@@ -212,10 +215,10 @@ export const renderPhraseCard = async ({ phrase, visitDays, preset = 'morning' }
   ctx.lineTo(SIZE / 2 + 34, ruleY);
   ctx.stroke();
 
-  if (visitDays) {
+  if (meta) {
     ctx.fillStyle = theme.meta;
     ctx.font = '400 30px Pretendard, sans-serif';
-    ctx.fillText(`${visitDays}번째 아침`, SIZE / 2, ruleY + 62);
+    ctx.fillText(meta, SIZE / 2, ruleY + 62);
   }
 
   ctx.fillStyle = theme.mark;

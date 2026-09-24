@@ -3,6 +3,7 @@ import { Alert, Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { getUserId } from '../utils/userId';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import { formatPracticedOn } from '../utils/practiceDate';
 import Loader from './Loader';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
@@ -18,7 +19,7 @@ const PostcardCard = ({ postcard }) => {
     setPreviewFailed(false);
     renderPhraseCard({
       phrase: postcard.phrase,
-      visitDays: postcard.visit_days,
+      meta: formatPracticedOn(postcard.practiced_on),
       preset: postcard.preset,
     }).then((blob) => {
       if (!alive) return;
@@ -59,8 +60,11 @@ const PostcardCard = ({ postcard }) => {
             lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>
             {postcard.practice_body}
           </Typography>
+          {/* 누브는 여기 적지 않는다. 이 숫자는 발행 순간의 잔액이라,
+              누브를 주고받게 되면 "산 숫자"가 증명서에 박힌다. 증명에 남을
+              것은 무엇을 언제 살아냈는가뿐이다. */}
           <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.68rem', color: COLOR.text.muted, mt: 0.75 }}>
-            {postcard.practiced_on}에 있었던 일 · 그때까지 되새김 {postcard.nuv_at_issue}번
+            {formatPracticedOn(postcard.practiced_on)}에 있었던 일
           </Typography>
         </Box>
       )}

@@ -4,6 +4,7 @@ import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
 import { logPhraseShared } from '../utils/analytics';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import { formatPracticedOn } from '../utils/practiceDate';
 import { getUserId } from '../utils/userId';
 
 const SANS = FONT.sans;
@@ -37,7 +38,7 @@ const actionSx = (primary) => ({
   '&:disabled': { opacity: 0.45, cursor: 'default' },
 });
 
-const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
+const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn }) => {
   const [preset, setPreset] = useState('morning');
   const [url, setUrl] = useState(null);
   const [blob, setBlob] = useState(null);
@@ -54,7 +55,7 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
     setBusy(true);
     try {
       const b = await renderPhraseCard({
-        phrase: phrase.phrase, visitDays: phrase.visit_days, preset,
+        phrase: phrase.phrase, meta: formatPracticedOn(practicedOn), preset,
       });
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = URL.createObjectURL(b);
@@ -65,7 +66,7 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId }) => {
     } finally {
       setBusy(false);
     }
-  }, [phrase, preset]);
+  }, [phrase, preset, practicedOn]);
 
   useEffect(() => { if (open) draw(); }, [open, draw]);
 
