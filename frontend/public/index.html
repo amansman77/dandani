@@ -2,7 +2,11 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon/favicon.ico" />
+    <!-- ico는 옛 브라우저용 폴백. 요즘 브라우저는 아래 png를 골라 쓰고,
+         탭에서 더 또렷하다(ico 안에는 48px까지만 들어 있다). -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="96x96" href="%PUBLIC_URL%/favicon/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/favicon/web-app-manifest-192x192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- 모바일 브라우저 상단 바 색. 검정으로 박혀 있었는데 앱 배경과 안 맞았다 -->
     <meta name="theme-color" content="#eef2f4" />

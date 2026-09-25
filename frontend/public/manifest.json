@@ -1,6 +1,6 @@
 {
-  "short_name": "Dandani",
-  "name": "Dandani - Daily Practice Tracker",
+  "short_name": "단단이",
+  "name": "단단이 — 매일 아침의 한 문장",
   "icons": [
     {
       "src": "assets/icons/icon-48.webp",
@@ -47,6 +47,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#eef2f4",
+  "background_color": "#eef2f4"
 }
