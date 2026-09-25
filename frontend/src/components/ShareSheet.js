@@ -3,6 +3,7 @@ import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { logPhraseShared } from '../utils/analytics';
 import { isKakaoConfigured, preloadKakao, shareToKakao } from '../utils/kakaoShare';
+import { canShareImage, shareImageFile } from '../utils/shareImageFile';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;
@@ -71,14 +72,40 @@ const KakaoMark = () => (
   </svg>
 );
 
+// 인스타 글리프. 브랜드 색이 단색이 아니라 그라디언트라 circleSx에 그대로 넣는다.
+const INSTAGRAM_GRADIENT =
+  'radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%)';
+
+const InstagramMark = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF"
+    strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+    <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.1" cy="6.9" r="1.1" fill="#FFFFFF" stroke="none" />
+  </svg>
+);
+
 const XMark = () => (
   <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true">
     <path fill="#FFFFFF" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
 
-const ShareSheet = ({ open, onClose, phrase }) => {
+// 공유는 한 군데로 모은다. 오늘 탭에서는 문장을, 엽서함에서는 엽서 그림을
+// 내보내는데, 사람이 보기엔 둘 다 "이걸 어디로 가져갈까"라서 같은 시트를 쓴다.
+// image가 있으면 인스타가 목록에 붙고, 위쪽 미리보기도 글 대신 그림이 된다.
+const ShareSheet = ({ open, onClose, phrase, image }) => {
   const [notice, setNotice] = useState('');
+  // 미리보기용 주소는 blob이 바뀔 때마다 새로 만들고 반드시 해제한다 —
+  // 엽서를 여러 개 열어보면 그때마다 하나씩 쌓인다.
+  const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    if (!image) { setImageUrl(null); return undefined; }
+    const url = URL.createObjectURL(image);
+    setImageUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [image]);
 
   // 카카오 키가 없으면(앱 미등록) 카카오 심볼은 아예 안 뜨고 트위터만 남는다.
   const hasKakao = isKakaoConfigured();
@@ -140,6 +167,16 @@ const ShareSheet = ({ open, onClose, phrase }) => {
     done('twitter');
   };
 
+  // 인스타는 웹에서 직접 열 수 없다(메타 문서상 네이티브 전용). 이 버튼은
+  // OS 공유 목록을 열고, 거기서 인스타를 고르게 한다 — 그게 이미지가 인스타로
+  // 가는 유일한 길이다. 그래서 누르면 인스타가 바로 열리지 않는다.
+  const shareImage = async () => {
+    const result = await shareImageFile(image, 'instagram');
+    if (result === 'shared') onClose();
+    if (result === 'unsupported') setNotice('이 브라우저에서는 이미지를 내보낼 수 없어요');
+    if (result === 'failed') setNotice('공유하지 못했어요');
+  };
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(`${caption}\n${linkFor('copy')}`);
@@ -173,18 +210,26 @@ const ShareSheet = ({ open, onClose, phrase }) => {
           <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: COLOR.text.muted, mb: 1.25 }}>
             이렇게 공유돼요
           </Typography>
-          <Typography
-            sx={{
-              fontFamily: SERIF, fontWeight: 700, fontSize: '1.05rem',
-              color: COLOR.text.primary, lineHeight: 1.5,
-            }}
-          >
-            “{phrase.phrase}”
-          </Typography>
-          {Boolean(phrase.visit_days) && (
-            <Typography sx={{ fontFamily: SANS, fontSize: '0.76rem', color: COLOR.text.muted, mt: 0.5 }}>
-              {phrase.visit_days}번째 아침
-            </Typography>
+          {imageUrl ? (
+            <Box component="img" src={imageUrl} alt="공유할 엽서"
+              sx={{ width: 132, height: 132, borderRadius: '10px', display: 'block',
+                border: `1px solid ${COLOR.line.soft}` }} />
+          ) : (
+            <>
+              <Typography
+                sx={{
+                  fontFamily: SERIF, fontWeight: 700, fontSize: '1.05rem',
+                  color: COLOR.text.primary, lineHeight: 1.5,
+                }}
+              >
+                “{phrase.phrase}”
+              </Typography>
+              {Boolean(phrase.visit_days) && (
+                <Typography sx={{ fontFamily: SANS, fontSize: '0.76rem', color: COLOR.text.muted, mt: 0.5 }}>
+                  {phrase.visit_days}번째 아침
+                </Typography>
+              )}
+            </>
           )}
 
           {/* 셋 모두 "이걸 어디로 가져갈까"의 답이라, 한 줄에 나란히 둔다.
@@ -207,9 +252,13 @@ const ShareSheet = ({ open, onClose, phrase }) => {
               <Box sx={circleSx('#000000')}><XMark /></Box>
               X
             </Box>
-            {/* 여기 "엽서" 버튼이 있었다. 엽서는 실천의 증명이라, 실천 없이
-                만들 수 있으면 증명이 아니게 된다. 이제 엽서는 실천을 적을 때만
-                발행되고, 배경 고르기도 그 직후로 옮겼다. */}
+            {canShareImage(image) && (
+              <Box component="button" type="button" onClick={shareImage}
+                sx={brandBtnSx} aria-label="인스타그램 등으로 이미지 보내기">
+                <Box sx={circleSx(INSTAGRAM_GRADIENT)}><InstagramMark /></Box>
+                인스타그램
+              </Box>
+            )}
             <Box component="button" type="button" onClick={copyLink}
               sx={brandBtnSx} aria-label="링크 복사">
               <Box sx={{ ...circleSx('transparent'), border: `1.4px solid ${COLOR.line.main}` }}>

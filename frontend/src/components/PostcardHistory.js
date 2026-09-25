@@ -1,22 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Box, Typography, Snackbar } from '@mui/material';
+import { Alert, Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { getUserId } from '../utils/userId';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
 import { formatPracticedOn } from '../utils/practiceDate';
 import Loader from './Loader';
-import { canShareImage, shareImageFile } from '../utils/shareImageFile';
+import ShareSheet from './ShareSheet';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const presetLabels = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset.label]));
 
-const PostcardCard = ({ postcard, onNotice }) => {
+const PostcardCard = ({ postcard, onShare }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   // 공유는 그린 그림 자체를 넘겨야 해서 blob을 들고 있는다. 미리보기용
   // objectURL만으로는 파일을 만들 수 없다.
   const [previewBlob, setPreviewBlob] = useState(null);
   const [previewFailed, setPreviewFailed] = useState(false);
-  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -39,16 +38,6 @@ const PostcardCard = ({ postcard, onNotice }) => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [postcard]);
-
-  const canShare = canShareImage(previewBlob);
-  const share = async () => {
-    if (sharing) return;
-    setSharing(true);
-    const result = await shareImageFile(previewBlob, 'collection_share');
-    setSharing(false);
-    if (result === 'unsupported') onNotice('이 브라우저에서는 이미지를 내보낼 수 없어요');
-    if (result === 'failed') onNotice('공유하지 못했어요');
-  };
 
   return (
     <Box sx={{ maxWidth: 360, mx: 'auto', mb: 3 }}>
@@ -94,17 +83,16 @@ const PostcardCard = ({ postcard, onNotice }) => {
             : '초기 엽서'}
           {' · '}{presetLabels[postcard.preset] || postcard.preset}
         </Typography>
-        {/* 인스타로 가는 길은 OS 공유 시트뿐이라(웹에서 인스타를 직접 열 수
-            없다) 버튼 하나로 두고 어디로 보낼지는 OS가 고르게 한다. 그림에는
-            문장과 날짜만 들어가고 실천 기록 본문은 안 들어간다 — 밖으로
-            나가는 건 "무엇을 언제"까지다. */}
-        {canShare && (
-          <Box component="button" type="button" onClick={share} disabled={sharing}
+        {/* 공유는 앱 어디서나 같은 시트를 쓴다. 그림에는 문장과 날짜만
+            들어가고 실천 기록 본문은 안 그려서, 밖으로 나가는 건
+            "무엇을 언제"까지다. */}
+        {previewBlob && (
+          <Box component="button" type="button"
+            onClick={() => onShare({ blob: previewBlob, phrase: postcard.phrase })}
             sx={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer',
               color: COLOR.accent.main, fontFamily: FONT.sans, fontSize: '0.72rem',
-              fontWeight: 600, WebkitTapHighlightColor: 'transparent',
-              '&:disabled': { opacity: 0.45, cursor: 'default' } }}>
-            {sharing ? '여는 중…' : '이미지 공유'}
+              fontWeight: 600, WebkitTapHighlightColor: 'transparent' }}>
+            공유하기
           </Box>
         )}
       </Box>
@@ -115,7 +103,7 @@ const PostcardCard = ({ postcard, onNotice }) => {
 const PostcardHistory = () => {
   const [postcards, setPostcards] = useState(null);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [sharing, setSharing] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -150,11 +138,13 @@ const PostcardHistory = () => {
           아직 저장한 엽서가 없어요.
         </Typography>
       ) : postcards.map((postcard) => (
-        <PostcardCard key={postcard.id} postcard={postcard} onNotice={setNotice} />
+        <PostcardCard key={postcard.id} postcard={postcard} onShare={setSharing} />
       ))}
-      <Snackbar open={Boolean(notice)} autoHideDuration={3200} onClose={() => setNotice('')}
-        message={notice} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ bottom: { xs: 88 } }} />
+
+      <ShareSheet
+        open={Boolean(sharing)} onClose={() => setSharing(null)}
+        phrase={sharing ? { phrase: sharing.phrase } : null} image={sharing?.blob}
+      />
     </Box>
   );
 };
