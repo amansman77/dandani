@@ -96,7 +96,16 @@ const XMark = () => (
 
 // 공유는 한 군데로 모은다. 오늘 탭에서는 문장을, 엽서함에서는 엽서 그림을
 // 내보내는데, 사람이 보기엔 둘 다 "이걸 어디로 가져갈까"라서 같은 시트를 쓴다.
-// image가 있으면 이미지 공유가 목록에 붙고, 위쪽 미리보기도 글 대신 그림이 된다.
+//
+// 다만 무엇을 보내느냐에 따라 목적지가 달라진다. 카카오톡과 X는 문장 텍스트와
+// 링크를 보내는 길이라 엽서 그림을 실어 보낼 수 없다 — 카카오 SDK는 웹에
+// 올라간 이미지 '주소'를 요구하는데, 엽서 그림은 브라우저가 방금 그린 것이라
+// 줄 주소가 없다(서버에 보관하지 않기로 했다).
+//
+// 그래서 엽서를 공유할 때는 그 둘을 감춘다. 미리보기로 그림을 보여준 다음
+// 문장만 내보내면, "이렇게 공유돼요"가 거짓말이 된다. 엽서를 카톡으로 보내고
+// 싶으면 '이미지'를 눌러 OS 목록에서 카톡을 고르면 되고, 그 길로는 그림이
+// 그대로 간다.
 const ShareSheet = ({ open, onClose, phrase, image }) => {
   const [notice, setNotice] = useState('');
   // 미리보기용 주소는 blob이 바뀔 때마다 새로 만들고 반드시 해제한다 —
@@ -243,18 +252,20 @@ const ShareSheet = ({ open, onClose, phrase, image }) => {
             mt: 2.5, pt: 2.5, borderTop: `1px solid ${COLOR.line.faint}`,
             display: 'flex', justifyContent: 'space-between', gap: 0.5,
           }}>
-            {hasKakao && (
+            {hasKakao && !image && (
               <Box component="button" type="button" onClick={shareKakao}
                 sx={brandBtnSx} aria-label="카카오톡으로 보내기">
                 <Box sx={circleSx('#FEE500')}><KakaoMark /></Box>
                 카카오톡
               </Box>
             )}
-            <Box component="button" type="button" onClick={shareToTwitter}
-              sx={brandBtnSx} aria-label="X에 올리기">
-              <Box sx={circleSx('#000000')}><XMark /></Box>
-              X
-            </Box>
+            {!image && (
+              <Box component="button" type="button" onClick={shareToTwitter}
+                sx={brandBtnSx} aria-label="X에 올리기">
+                <Box sx={circleSx('#000000')}><XMark /></Box>
+                X
+              </Box>
+            )}
             {canShareImage(image) && (
               <Box component="button" type="button" onClick={shareImage}
                 sx={brandBtnSx} aria-label="엽서 이미지 공유하기">
