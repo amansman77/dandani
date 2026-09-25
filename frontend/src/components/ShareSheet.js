@@ -72,16 +72,19 @@ const KakaoMark = () => (
   </svg>
 );
 
-// 인스타 글리프. 브랜드 색이 단색이 아니라 그라디언트라 circleSx에 그대로 넣는다.
-const INSTAGRAM_GRADIENT =
-  'radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%)';
-
-const InstagramMark = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF"
-    strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
-    <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" />
-    <circle cx="12" cy="12" r="4" />
-    <circle cx="17.1" cy="6.9" r="1.1" fill="#FFFFFF" stroke="none" />
+// 한때 여기에 인스타 심볼을 달았다. 그런데 이 버튼은 인스타를 여는 게
+// 아니라 OS 공유 목록을 여는 것이고, 인스타는 그 목록 안의 여러 목적지 중
+// 하나다. 브랜드 심볼은 "여기로 간다"는 약속인데 지킬 수 없는 약속이라 뗐다.
+//
+// 다른 셋(카카오톡·X·링크 복사)과 성격도 다르다. 그 셋은 "어디로"인데
+// 이건 "무엇을" — 링크가 아니라 그림을 보낸다. 그래서 이름도 목적지가 아니라
+// 보내는 것으로 붙인다.
+const ImageMark = () => (
+  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={COLOR.accent.main}
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
+    <circle cx="8.7" cy="10" r="1.4" fill={COLOR.accent.main} stroke="none" />
+    <path d="M4.5 17l4.3-4.3 2.8 2.8L15.4 12l4.1 4.1" />
   </svg>
 );
 
@@ -93,7 +96,7 @@ const XMark = () => (
 
 // 공유는 한 군데로 모은다. 오늘 탭에서는 문장을, 엽서함에서는 엽서 그림을
 // 내보내는데, 사람이 보기엔 둘 다 "이걸 어디로 가져갈까"라서 같은 시트를 쓴다.
-// image가 있으면 인스타가 목록에 붙고, 위쪽 미리보기도 글 대신 그림이 된다.
+// image가 있으면 이미지 공유가 목록에 붙고, 위쪽 미리보기도 글 대신 그림이 된다.
 const ShareSheet = ({ open, onClose, phrase, image }) => {
   const [notice, setNotice] = useState('');
   // 미리보기용 주소는 blob이 바뀔 때마다 새로 만들고 반드시 해제한다 —
@@ -171,7 +174,7 @@ const ShareSheet = ({ open, onClose, phrase, image }) => {
   // OS 공유 목록을 열고, 거기서 인스타를 고르게 한다 — 그게 이미지가 인스타로
   // 가는 유일한 길이다. 그래서 누르면 인스타가 바로 열리지 않는다.
   const shareImage = async () => {
-    const result = await shareImageFile(image, 'instagram');
+    const result = await shareImageFile(image, 'image_share');
     if (result === 'shared') onClose();
     if (result === 'unsupported') setNotice('이 브라우저에서는 이미지를 내보낼 수 없어요');
     if (result === 'failed') setNotice('공유하지 못했어요');
@@ -254,9 +257,11 @@ const ShareSheet = ({ open, onClose, phrase, image }) => {
             </Box>
             {canShareImage(image) && (
               <Box component="button" type="button" onClick={shareImage}
-                sx={brandBtnSx} aria-label="인스타그램 등으로 이미지 보내기">
-                <Box sx={circleSx(INSTAGRAM_GRADIENT)}><InstagramMark /></Box>
-                인스타그램
+                sx={brandBtnSx} aria-label="엽서 이미지 공유하기">
+                <Box sx={{ ...circleSx('transparent'), border: `1.4px solid ${COLOR.accent.line}` }}>
+                  <ImageMark />
+                </Box>
+                이미지
               </Box>
             )}
             <Box component="button" type="button" onClick={copyLink}
