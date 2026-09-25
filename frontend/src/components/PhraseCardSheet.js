@@ -2,13 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
-import { logPhraseShared } from '../utils/analytics';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import { shareImageFile } from '../utils/shareImageFile';
 import { formatPracticedOn } from '../utils/practiceDate';
 import { getUserId } from '../utils/userId';
 
 const SANS = FONT.sans;
-const LINK = 'https://dandani.yetimates.com/?utm_source=card&utm_medium=organic&utm_campaign=phrase_share';
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 const chipSx = (on) => ({
@@ -79,28 +78,11 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn }) => 
 
   if (!phrase) return null;
 
-  const fileOf = () => new File([blob], 'dandani.png', { type: 'image/png' });
-
-  // 인스타는 웹에서 직접 열 수 없지만, OS 공유 시트에 이미지 파일을 넘기면
-  // 목록에 인스타가 뜬다 — 이미지가 인스타로 가는 실질적인 경로.
   const shareImage = async () => {
-    if (!blob) return;
-    const file = fileOf();
-    if (!navigator.canShare || !navigator.canShare({ files: [file] })) {
-      setNotice('이 브라우저에서는 이미지를 내보낼 수 없어요');
-      return;
-    }
-    try {
-      // 카톡은 넘긴 항목마다 메시지를 하나씩 보낸다. files·text·url을 다 주면
-      // 셋으로 쪼개져서(이미지·문장·링크) 처음엔 파일만 보냈는데, 그러면 돌아올
-      // 링크가 없어진다. text는 뺀다 — 문장은 이미 그림 안에 있어서 중복이다.
-      // 남는 건 이미지와 링크 둘, 즉 메시지 두 개.
-      await navigator.share({ files: [file], url: LINK });
-      logPhraseShared('card_share');
-      onClose();
-    } catch (err) {
-      if (!err || err.name !== 'AbortError') setNotice('공유하지 못했어요');
-    }
+    const result = await shareImageFile(blob, 'card_share');
+    if (result === 'shared') onClose();
+    if (result === 'unsupported') setNotice('이 브라우저에서는 이미지를 내보낼 수 없어요');
+    if (result === 'failed') setNotice('공유하지 못했어요');
   };
 
   const savePostcard = async () => {

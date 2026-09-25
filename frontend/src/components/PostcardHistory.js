@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Box, Typography } from '@mui/material';
+import { Alert, Box, Typography, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { getUserId } from '../utils/userId';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
 import { formatPracticedOn } from '../utils/practiceDate';
 import Loader from './Loader';
+import { canShareImage, shareImageFile } from '../utils/shareImageFile';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const presetLabels = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset.label]));
 
-const PostcardCard = ({ postcard }) => {
+const PostcardCard = ({ postcard, onNotice }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
+  // 공유는 그린 그림 자체를 넘겨야 해서 blob을 들고 있는다. 미리보기용
+  // objectURL만으로는 파일을 만들 수 없다.
+  const [previewBlob, setPreviewBlob] = useState(null);
   const [previewFailed, setPreviewFailed] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -24,6 +29,7 @@ const PostcardCard = ({ postcard }) => {
     }).then((blob) => {
       if (!alive) return;
       objectUrl = URL.createObjectURL(blob);
+      setPreviewBlob(blob);
       setPreviewUrl(objectUrl);
     }).catch(() => {
       if (alive) setPreviewFailed(true);
@@ -33,6 +39,16 @@ const PostcardCard = ({ postcard }) => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [postcard]);
+
+  const canShare = canShareImage(previewBlob);
+  const share = async () => {
+    if (sharing) return;
+    setSharing(true);
+    const result = await shareImageFile(previewBlob, 'collection_share');
+    setSharing(false);
+    if (result === 'unsupported') onNotice('이 브라우저에서는 이미지를 내보낼 수 없어요');
+    if (result === 'failed') onNotice('공유하지 못했어요');
+  };
 
   return (
     <Box sx={{ maxWidth: 360, mx: 'auto', mb: 3 }}>
@@ -68,15 +84,30 @@ const PostcardCard = ({ postcard }) => {
           </Typography>
         </Box>
       )}
-      <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.7rem', color: COLOR.text.muted, mt: 1.25 }}>
-        {postcard.issue_no
-          ? <Box component="span" sx={{ color: COLOR.accent.main, fontWeight: 700,
-              fontVariantNumeric: 'tabular-nums' }}>
-              #{String(postcard.issue_no).padStart(4, '0')}
-            </Box>
-          : '초기 엽서'}
-        {' · '}{presetLabels[postcard.preset] || postcard.preset}
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.25 }}>
+        <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.7rem', color: COLOR.text.muted }}>
+          {postcard.issue_no
+            ? <Box component="span" sx={{ color: COLOR.accent.main, fontWeight: 700,
+                fontVariantNumeric: 'tabular-nums' }}>
+                #{String(postcard.issue_no).padStart(4, '0')}
+              </Box>
+            : '초기 엽서'}
+          {' · '}{presetLabels[postcard.preset] || postcard.preset}
+        </Typography>
+        {/* 인스타로 가는 길은 OS 공유 시트뿐이라(웹에서 인스타를 직접 열 수
+            없다) 버튼 하나로 두고 어디로 보낼지는 OS가 고르게 한다. 그림에는
+            문장과 날짜만 들어가고 실천 기록 본문은 안 들어간다 — 밖으로
+            나가는 건 "무엇을 언제"까지다. */}
+        {canShare && (
+          <Box component="button" type="button" onClick={share} disabled={sharing}
+            sx={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer',
+              color: COLOR.accent.main, fontFamily: FONT.sans, fontSize: '0.72rem',
+              fontWeight: 600, WebkitTapHighlightColor: 'transparent',
+              '&:disabled': { opacity: 0.45, cursor: 'default' } }}>
+            {sharing ? '여는 중…' : '이미지 공유'}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };
@@ -84,6 +115,7 @@ const PostcardCard = ({ postcard }) => {
 const PostcardHistory = () => {
   const [postcards, setPostcards] = useState(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -117,7 +149,12 @@ const PostcardHistory = () => {
         <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.82rem', color: COLOR.text.muted }}>
           아직 저장한 엽서가 없어요.
         </Typography>
-      ) : postcards.map((postcard) => <PostcardCard key={postcard.id} postcard={postcard} />)}
+      ) : postcards.map((postcard) => (
+        <PostcardCard key={postcard.id} postcard={postcard} onNotice={setNotice} />
+      ))}
+      <Snackbar open={Boolean(notice)} autoHideDuration={3200} onClose={() => setNotice('')}
+        message={notice} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: { xs: 88 } }} />
     </Box>
   );
 };
