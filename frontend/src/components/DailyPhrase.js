@@ -88,13 +88,18 @@ const DailyPhrase = ({
         onSaved={result => {
           setNotice('실천을 남겼어요 — 엽서가 되었어요');
           if (result.postcard_id) {
-            setIssued({ id: result.postcard_id, practicedOn: result.record.practiced_on });
+            setIssued({
+              id: result.postcard_id,
+              practicedOn: result.record.practiced_on,
+              loggedDays: result.record.logged_days,
+            });
           }
         }}
       />
       <PhraseCardSheet
         open={Boolean(issued)} onClose={() => setIssued(null)}
         phrase={phrase} postcardId={issued?.id} practicedOn={issued?.practicedOn}
+        loggedDays={issued?.loggedDays}
       />
       <Snackbar
         open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')}

@@ -51,13 +51,15 @@ export async function issuePostcardForRecord(env, userId, record) {
   const created = await env.DB.prepare(`
     INSERT INTO digital_postcards
       (id, user_id, phrase_id, phrase, visit_days, preset, status, practice_record_id,
-       practice_body, practiced_on, nuv_at_issue, issue_no, issued_at, saved_at)
-    VALUES (?, ?, ?, ?, ?, 'morning', 'saved', ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+       practice_body, practiced_on, logged_days_at_issue, nuv_at_issue, issue_no,
+       issued_at, saved_at)
+    VALUES (?, ?, ?, ?, ?, 'morning', 'saved', ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     RETURNING id
   `).bind(
     postcardId, userId, record.phrase_id, record.phrase,
     Math.max(1, record.nuv_at_record), record.id,
-    record.body ?? null, record.practiced_on ?? null, record.nuv_at_record,
+    record.body ?? null, record.practiced_on ?? null,
+    record.logged_days ?? null, record.nuv_at_record,
     (last?.issue_no || 0) + 1
   ).first();
   return created?.id || null;
@@ -118,7 +120,8 @@ export async function getSavedPostcards(env, request) {
   const userId = getRequiredUserId(request);
   const { results } = await env.DB.prepare(`
     SELECT id, phrase, visit_days, preset, created_at, saved_at,
-           practice_record_id, practice_body, practiced_on, nuv_at_issue, issue_no, issued_at
+           practice_record_id, practice_body, practiced_on,
+           logged_days_at_issue, nuv_at_issue, issue_no, issued_at
     FROM digital_postcards
     WHERE user_id = ? AND status = 'saved'
     ORDER BY issue_no DESC, saved_at DESC, created_at DESC

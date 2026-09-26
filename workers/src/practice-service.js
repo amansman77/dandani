@@ -48,21 +48,30 @@ export async function createPracticeRecord(env, request) {
   // "이때까지 이만큼 되새기고 살아냈다"는 뜻이라 그 시점의 값이어야 한다.
   const balance = await getNuvBalance(env, userId);
 
+  // 실천한 날까지 이 문장을 며칠 되새겼는가. 오늘까지가 아니라 그날까지로
+  // 세는 건, 그저께 일을 오늘 적을 수 있기 때문이다 — 오늘 날수를 찍으면
+  // "그날 31일째였다"가 사실이 아니게 된다.
+  const counted = await env.DB.prepare(`
+    SELECT COUNT(DISTINCT log_date) AS days FROM daily_phrase_logs
+    WHERE phrase_id = ? AND user_id = ? AND log_date <= ?
+  `).bind(phrase.id, userId, practicedOn).first();
+
   const record = {
     id: generateId('practice'),
     phrase_id: phrase.id,
     phrase: phrase.phrase,
     practiced_on: practicedOn,
     body: text,
+    logged_days: counted?.days || 0,
     nuv_at_record: balance,
   };
   await env.DB.prepare(`
     INSERT INTO practice_records
-      (id, user_id, phrase_id, phrase, practiced_on, body, nuv_at_record)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+      (id, user_id, phrase_id, phrase, practiced_on, body, logged_days, nuv_at_record)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     record.id, userId, record.phrase_id, record.phrase,
-    record.practiced_on, record.body, record.nuv_at_record
+    record.practiced_on, record.body, record.logged_days, record.nuv_at_record
   ).run();
 
   // 적은 순간 바로 엽서가 된다. 살아낸 일이 증명이지, 누브가 증명이 아니다.
@@ -82,16 +91,16 @@ export async function getPracticeRecords(env, request) {
 
   const { results } = await (phraseId
     ? env.DB.prepare(`
-        SELECT r.id, r.phrase_id, r.phrase, r.practiced_on, r.body, r.nuv_at_record,
-               r.created_at, p.id AS postcard_id
+        SELECT r.id, r.phrase_id, r.phrase, r.practiced_on, r.body, r.logged_days,
+               r.nuv_at_record, r.created_at, p.id AS postcard_id
         FROM practice_records r
         LEFT JOIN digital_postcards p ON p.practice_record_id = r.id
         WHERE r.user_id = ? AND r.phrase_id = ?
         ORDER BY r.practiced_on DESC, r.created_at DESC
       `).bind(userId, phraseId)
     : env.DB.prepare(`
-        SELECT r.id, r.phrase_id, r.phrase, r.practiced_on, r.body, r.nuv_at_record,
-               r.created_at, p.id AS postcard_id
+        SELECT r.id, r.phrase_id, r.phrase, r.practiced_on, r.body, r.logged_days,
+               r.nuv_at_record, r.created_at, p.id AS postcard_id
         FROM practice_records r
         LEFT JOIN digital_postcards p ON p.practice_record_id = r.id
         WHERE r.user_id = ?

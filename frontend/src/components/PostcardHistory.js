@@ -3,7 +3,7 @@ import { Alert, Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { getUserId } from '../utils/userId';
 import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
-import { formatPracticedOn } from '../utils/practiceDate';
+import { formatPracticedOn, proofCaption } from '../utils/practiceDate';
 import Loader from './Loader';
 import ShareSheet from './ShareSheet';
 
@@ -23,7 +23,7 @@ const PostcardCard = ({ postcard, onShare }) => {
     setPreviewFailed(false);
     renderPhraseCard({
       phrase: postcard.phrase,
-      meta: formatPracticedOn(postcard.practiced_on),
+      meta: proofCaption(postcard.practiced_on, postcard.logged_days_at_issue),
       preset: postcard.preset,
     }).then((blob) => {
       if (!alive) return;
@@ -70,6 +70,8 @@ const PostcardCard = ({ postcard, onShare }) => {
               것은 무엇을 언제 살아냈는가뿐이다. */}
           <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.68rem', color: COLOR.text.muted, mt: 0.75 }}>
             {formatPracticedOn(postcard.practiced_on)}에 있었던 일
+            {postcard.logged_days_at_issue > 0
+              && ` · 그때까지 ${postcard.logged_days_at_issue}일 되새김`}
           </Typography>
         </Box>
       )}

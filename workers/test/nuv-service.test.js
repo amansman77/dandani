@@ -81,6 +81,7 @@ function createEnvironment() {
   database.exec(readFileSync(new URL('../schemas/schema_v260923_postcard_proof.sql', import.meta.url), 'utf8'));
   // 이미지 칸은 만들었다가 걷어냈다 — 실제 순서대로 재현해야 DROP도 검증된다.
   database.exec(readFileSync(new URL('../schemas/schema_v260924_drop_postcard_images.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260926_practice_logged_days.sql', import.meta.url), 'utf8'));
 
   return {
     database,

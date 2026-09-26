@@ -36,6 +36,10 @@ function createEnvironment() {
     CREATE TABLE daily_phrases (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, phrase TEXT NOT NULL, status TEXT NOT NULL
     );
+    CREATE TABLE daily_phrase_logs (
+      id TEXT PRIMARY KEY, phrase_id TEXT NOT NULL, user_id TEXT NOT NULL,
+      log_date TEXT NOT NULL, UNIQUE(phrase_id, log_date)
+    );
   `);
   for (const file of [
     '../schemas/schema_v260917_nuv.sql',
@@ -45,6 +49,7 @@ function createEnvironment() {
     '../schemas/schema_v260923_practice_records.sql',
     '../schemas/schema_v260923_postcard_proof.sql',
     '../schemas/schema_v260924_drop_postcard_images.sql',
+    '../schemas/schema_v260926_practice_logged_days.sql',
   ]) {
     database.exec(readFileSync(new URL(file, import.meta.url), 'utf8'));
   }
@@ -156,6 +161,39 @@ test('the phrase is frozen into the record, so replacing it later changes nothin
   const listed = await getPracticeRecords(env, request());
   assert.equal(listed.records[0].phrase, '화를 내기 전에 한 번 더 묻자');
   assert.equal(result.record.phrase, '화를 내기 전에 한 번 더 묻자');
+});
+
+test('the postcard records how many days that phrase was reflected on', async () => {
+  const { database, env } = createEnvironment();
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  ['2026-09-20', '2026-09-21', '2026-09-22', '2026-09-25'].forEach((day, i) => {
+    addLog.run(`log-${i}`, 'phrase-1', 'user-1', day);
+  });
+
+  // 그저께 일을 오늘 적는 경우. 그날까지 되새긴 날만 세야 "그날 3일째였다"가
+  // 사실이 된다 — 오늘까지 세면 4가 찍힌다.
+  const backdated = await createPracticeRecord(env, request({
+    phrase_id: 'phrase-1', body: '그날 그렇게 했다', practiced_on: '2026-09-22',
+  }));
+  assert.equal(backdated.record.logged_days, 3);
+
+  const today = await createPracticeRecord(env, request({
+    phrase_id: 'phrase-1', body: '오늘도 그렇게 했다', practiced_on: '2026-09-25',
+  }));
+  assert.equal(today.record.logged_days, 4);
+
+  const rows = database.prepare(
+    'SELECT logged_days_at_issue FROM digital_postcards ORDER BY issue_no'
+  ).all();
+  assert.deepEqual(rows.map((row) => row.logged_days_at_issue), [3, 4]);
+});
+
+test('a phrase never reflected on records zero days', async () => {
+  const { env } = createEnvironment();
+  const result = await createPracticeRecord(env, request({
+    phrase_id: 'phrase-1', body: '되새기기 전에 먼저 살아냈다',
+  }));
+  assert.equal(result.record.logged_days, 0);
 });
 
 test('a past date is accepted and a future date falls back to today', async () => {
