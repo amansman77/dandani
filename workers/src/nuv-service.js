@@ -72,8 +72,11 @@ export async function getNuvWallet(env, request) {
   return { balance: await getBalance(env, userId) };
 }
 
+// 되새김은 하루 한 번이라 누브도 사람당 하루 1개다. 원장 키를 날짜만으로
+// 잡아 UNIQUE(user_id, reason, reference_id)가 그걸 지킨다 — 같은 날 문장을
+// 새로 바꾸고 다시 되새겨도 두 번째 누브는 나오지 않는다.
 export async function awardNuvForReflection(env, userId, phraseId, logDate) {
-  const referenceId = `${phraseId}:${logDate}`;
+  const referenceId = logDate;
   const granted = await env.DB.prepare(`
     INSERT OR IGNORE INTO nuv_transactions
       (id, user_id, amount, reason, reference_id)

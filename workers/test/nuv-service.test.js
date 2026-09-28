@@ -110,6 +110,43 @@ test('a daily reflection awards one Nuv only once', async () => {
   assert.deepEqual(duplicate, { awarded_nuv: 0, balance: 1 });
 });
 
+test('a replaced phrase does not earn a second Nuv on the same day', async () => {
+  const { database, env } = createEnvironment();
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  addLog.run('log-1', 'phrase-1', 'user-1', '2026-09-28');
+  addLog.run('log-2', 'phrase-2', 'user-1', '2026-09-28');
+  addLog.run('log-3', 'phrase-2', 'user-1', '2026-09-29');
+
+  const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28');
+  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28');
+  const nextDay = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-29');
+
+  assert.deepEqual(first, { awarded_nuv: 1, balance: 1 });
+  assert.deepEqual(replaced, { awarded_nuv: 0, balance: 1 });
+  assert.deepEqual(nextDay, { awarded_nuv: 1, balance: 2 });
+});
+
+test('the one-per-day migration keys existing rewards by date alone', async () => {
+  const { database, env } = createEnvironment();
+  database.prepare(`
+    INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
+  `).run('reward-1', 'user-1', 'phrase-1:2026-09-28');
+  database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)')
+    .run('log-2', 'phrase-2', 'user-1', '2026-09-28');
+
+  database.exec(readFileSync(
+    new URL('../schemas/schema_v260928_nuv_one_per_day.sql', import.meta.url), 'utf8'
+  ));
+
+  // 옛 키로 받은 날에도 새 문장으로 한 번 더 받을 수 없다.
+  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28');
+  assert.deepEqual(replaced, { awarded_nuv: 0, balance: 1 });
+  assert.equal(
+    database.prepare('SELECT reference_id FROM nuv_transactions').get().reference_id,
+    '2026-09-28'
+  );
+});
+
 test('the accrual migration erases granted and spent Nuv and rebuilds balances', async () => {
   const { database } = createEnvironment();
   const addTransaction = database.prepare(`
