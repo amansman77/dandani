@@ -28,13 +28,13 @@ export async function createPracticeRecord(env, request) {
   // Error로 던지면 라우터가 500으로 묶어서 "잠시 후 다시 시도해 주세요"가
   // 되는데, 빈 기록에 그 말을 하면 무엇이 잘못됐는지 알 수가 없다.
   if (!phraseId || typeof phraseId !== 'string') {
-    throw new HttpError(400, '어떤 문장의 실천인지 알 수 없어요.');
+    throw new HttpError(400, '어떤 문장의 엽서인지 알 수 없어요.');
   }
   // 길이는 재지 않는다 — 한 줄이어도 기록이다. 빈 것만 막는다.
   const text = typeof body === 'string' ? body.trim() : '';
-  if (!text) throw new HttpError(400, '실천 기록을 한 줄이라도 적어주세요.');
+  if (!text) throw new HttpError(400, '엽서에 담을 이야기를 한 줄이라도 적어주세요.');
   if (text.length > MAX_BODY_LENGTH) {
-    throw new HttpError(400, `실천 기록은 ${MAX_BODY_LENGTH}자까지 적을 수 있어요.`);
+    throw new HttpError(400, `엽서에는 ${MAX_BODY_LENGTH}자까지 적을 수 있어요.`);
   }
 
   const phrase = await env.DB.prepare(`

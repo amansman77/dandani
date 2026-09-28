@@ -138,7 +138,7 @@ const FloatingActions = ({ done, logging, onLog, onViewHistory, onShare, onWrite
     >
       {open && (
         <>
-          <ExpandedAction label="실천 남기기" onClick={run(onWritePractice)} delay={0}>
+          <ExpandedAction label="엽서 만들기" onClick={run(onWritePractice)} delay={0}>
             <PenIcon color={COLOR.accent.main} />
           </ExpandedAction>
           <ExpandedAction label="이 문장 공유하기" onClick={run(onShare)} delay={40}>
@@ -152,7 +152,7 @@ const FloatingActions = ({ done, logging, onLog, onViewHistory, onShare, onWrite
         type="button"
         onClick={() => setOpen(value => !value)}
         aria-expanded={open}
-        aria-label={open ? '닫기' : '실천 남기기, 공유하기'}
+        aria-label={open ? '닫기' : '엽서 만들기, 공유하기'}
         sx={{
           ...circleSx, width: SIZE, height: SIZE,
           background: COLOR.surface.sheet,

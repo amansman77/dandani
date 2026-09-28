@@ -88,7 +88,7 @@ const DailyPhrase = ({
       <PracticeSheet
         open={practiceOpen} onClose={() => setPracticeOpen(false)} phrase={phrase}
         onSaved={result => {
-          setNotice('실천을 남겼어요 — 엽서가 되었어요');
+          setNotice('엽서를 만들었어요');
           if (result.postcard_id) {
             setIssued({
               id: result.postcard_id,

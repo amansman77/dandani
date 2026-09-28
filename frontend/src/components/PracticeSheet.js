@@ -7,7 +7,13 @@ import { savePracticeRecord } from '../utils/practiceApi';
 const SANS = FONT.sans;
 const SERIF = FONT.serif;
 
-// 실천을 적는 자리.
+// 엽서를 만드는 자리.
+//
+// 예전엔 "실천 남기기"와 "엽서"가 따로 있었다. 실천을 적으면 곧바로 엽서가
+// 발행되니 사용자에겐 한 가지 일인데 이름이 둘이라, 이름을 "엽서 만들기"
+// 하나로 모았다. 엽서에 적는 건 여전히 "이 말대로 한 순간"이다 — 그게
+// 엽서를 그냥 예쁜 카드가 아니라 살아낸 날의 증명으로 만든다. 코드와 테이블
+// (practice_records)의 이름은 호환을 위해 그대로 둔다.
 //
 // 묻는 말이 "실천했나요?"가 아니라 "적어주세요"인 게 이 화면의 전부다.
 // 예/아니오를 물으면 평가가 되고, 여기까지 온 사람은 이미 답이 "예"인
@@ -83,7 +89,7 @@ const PracticeSheet = ({ open, onClose, phrase, onSaved }) => {
         )}
         <Typography sx={{ fontFamily: SANS, fontSize: '1rem', fontWeight: 700,
           color: COLOR.text.primary, textAlign: 'center', mb: 2.5, lineHeight: 1.5 }}>
-          이 말대로 한 순간을<br />적어주세요
+          이 말대로 한 순간을<br />엽서에 담아요
         </Typography>
 
         <TextField fullWidth multiline minRows={4} autoFocus value={body}
@@ -100,7 +106,7 @@ const PracticeSheet = ({ open, onClose, phrase, onSaved }) => {
           <Typography sx={labelSx}>언제 있었던 일인가요</Typography>
           <Box component="input" type="date" value={practicedOn} max={todayString()}
             onChange={event => setPracticedOn(event.target.value)}
-            aria-label="실천한 날짜"
+            aria-label="있었던 날짜"
             sx={{ fontFamily: SANS, fontSize: '0.8rem', color: COLOR.text.body,
               background: 'none', border: `1px solid ${COLOR.line.main}`, borderRadius: '8px',
               padding: '6px 10px' }} />
@@ -108,7 +114,7 @@ const PracticeSheet = ({ open, onClose, phrase, onSaved }) => {
 
         <Box component="button" type="button" onClick={submit}
           disabled={!body.trim() || saving} sx={submitSx(Boolean(body.trim()) && !saving)}>
-          {saving ? <Loader small /> : '남기기'}
+          {saving ? <Loader small /> : '엽서 만들기'}
         </Box>
       </Drawer>
 

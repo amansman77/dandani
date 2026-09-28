@@ -24,7 +24,7 @@ async function practiceRequest(path, body) {
     if (!(error instanceof SyntaxError)) throw error;
     throw new Error('서버 응답을 읽지 못했어요. 다시 시도해 주세요.');
   }
-  if (!response.ok) throw new Error(data.error || '실천 기록을 남기지 못했어요. 다시 시도해 주세요.');
+  if (!response.ok) throw new Error(data.error || '엽서를 만들지 못했어요. 다시 시도해 주세요.');
   return data;
 }
 
