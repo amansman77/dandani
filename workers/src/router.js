@@ -4,7 +4,7 @@ import { ADMIN_PATHS, requireAdmin } from './admin-auth.js';
 import { handleAdminGet } from './admin-router.js';
 import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
-import { getNuvWallet, getSavedPostcards, savePostcard } from './nuv-service.js';
+import { getNuvLedger, getNuvWallet, getSavedPostcards, savePostcard } from './nuv-service.js';
 import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
 
 // Legacy services stay unregistered; see docs/adr/0005-legacy-backend-inventory.md.
@@ -15,6 +15,7 @@ async function handleGet(url, request, env) {
     case '/api/phrases/history': return jsonResponse(await getPhraseHistory(env, request));
     case '/api/phrases/community': return jsonResponse(await getCommunityPhrases(env, request));
     case '/api/nuv': return jsonResponse(await getNuvWallet(env, request));
+    case '/api/nuv/ledger': return jsonResponse(await getNuvLedger(env, request));
     case '/api/practices': return jsonResponse(await getPracticeRecords(env, request));
     case '/api/nuv/postcards': return jsonResponse(await getSavedPostcards(env, request));
     case '/api/analytics/event': return jsonResponse({ error: 'Method Not Allowed. Use POST.' }, 405);

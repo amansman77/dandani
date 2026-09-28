@@ -35,6 +35,7 @@ const AppHeaderSection = ({
   isEditing,
   onCancelEdit,
   nuvBalance,
+  onOpenNuvLedger,
 }) => {
   return (
     <>
@@ -60,8 +61,11 @@ const AppHeaderSection = ({
             같은 색 글자 둘이 붙어 보이던 것도 이 간격에서 나아진다. */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           {nuvBalance !== null && (
-            <Box aria-label={`누브 잔액 ${nuvBalance}`}
-              sx={{ fontFamily: FONT.sans, fontSize: '0.72rem', color: COLOR.text.muted, whiteSpace: 'nowrap' }}>
+            // 누르면 누브 장부가 열린다. 색은 안내와 같은 옅은 톤으로 둔다 —
+            // 오른쪽의 "문장 바꾸기"처럼 해야 할 일이 아니라, 궁금할 때 열어 보는 기록이라서.
+            <Box component="button" type="button" onClick={onOpenNuvLedger}
+              aria-label={`누브 ${nuvBalance}, 누브 장부 열기`}
+              sx={{ ...linkButtonSx, color: COLOR.text.muted, whiteSpace: 'nowrap' }}>
               누브 {nuvBalance}
             </Box>
           )}

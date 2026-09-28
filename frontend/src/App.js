@@ -13,6 +13,7 @@ import { getUserIdInfo, markUserInitialized } from './utils/userId';
 import { logOnboardingComplete, logSplashBypassed } from './utils/analytics';
 import { isCampaignEntry } from './utils/attribution';
 import { COLOR } from './theme/tokens';
+import NuvLedgerSheet from './components/NuvLedgerSheet';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
@@ -34,6 +35,7 @@ function App() {
 
   const [shareOpen, setShareOpen] = useState(false);
   const [nuvBalance, setNuvBalance] = useState(null);
+  const [nuvLedgerOpen, setNuvLedgerOpen] = useState(false);
 
   useEffect(() => {
     // 예전엔 여기서 가입 선물 누브를 받아왔다. 누브가 "되새긴 날의 수"가 된
@@ -176,6 +178,7 @@ function App() {
           isEditing={activeTab === 0 && phraseEditing}
           onCancelEdit={() => setPhraseEditing(false)}
           nuvBalance={nuvBalance}
+          onOpenNuvLedger={() => setNuvLedgerOpen(true)}
         />
 
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
@@ -193,6 +196,8 @@ function App() {
           {activeTab === 1 && <PhraseHistory />}
           {activeTab === 2 && <PostcardHistory />}
         </Box>
+
+        <NuvLedgerSheet open={nuvLedgerOpen} onClose={() => setNuvLedgerOpen(false)} />
 
         <OnboardingModal
           open={showOnboarding}

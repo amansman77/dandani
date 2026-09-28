@@ -6,6 +6,7 @@ import {
   awardNuvForReflection,
   issuePostcardForRecord,
   getSavedPostcards,
+  getNuvLedger,
   getNuvWallet,
   savePostcard,
 } from '../src/nuv-service.js';
@@ -241,4 +242,42 @@ test('issuing a postcard leaves the Nuv untouched', async () => {
   assert.equal(saved.postcards[0].preset, 'dawn');
   assert.equal(saved.postcards[0].issue_no, 1);
 
+});
+
+test('the ledger lists each Nuv day with the phrase reflected on, newest first', async () => {
+  const { database, env } = createEnvironment();
+  database.exec(`
+    ALTER TABLE daily_phrase_logs ADD COLUMN created_at TEXT;
+    ${readFileSync(new URL('../schemas/schema_v260928_nuv_anchors.sql', import.meta.url), 'utf8')}
+  `);
+  const addPhrase = database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)');
+  const addLog = database.prepare(`
+    INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date, created_at) VALUES (?, ?, ?, ?, ?)
+  `);
+  const addNuv = database.prepare(`
+    INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id, created_at)
+    VALUES (?, ?, 1, 'daily_reflection', ?, ?)
+  `);
+  addPhrase.run('phrase-1', 'user-1', '오늘을 믿자', 'retired');
+  addPhrase.run('phrase-2', 'user-1', '천천히 가도 된다', 'active');
+  addLog.run('l1', 'phrase-1', 'user-1', '2026-09-26', '2026-09-26 00:00:00');
+  addNuv.run('n1', 'user-1', '2026-09-26', '2026-09-26 00:00:00');
+  // 같은 날 문장을 바꿔 다시 되새겨도 누브는 첫 되새김의 것 하나다.
+  addLog.run('l2', 'phrase-2', 'user-1', '2026-09-26', '2026-09-26 05:00:00');
+  addLog.run('l3', 'phrase-2', 'user-1', '2026-09-27', '2026-09-27 00:00:01');
+  addNuv.run('n2', 'user-1', '2026-09-27', '2026-09-27 00:00:01');
+  addNuv.run('other', 'user-2', '2026-09-27', '2026-09-27 00:00:01');
+  database.prepare(`
+    INSERT INTO nuv_anchors (day, cutoff_at, root, people, total_nuv, status)
+    VALUES ('2026-09-26', '2026-09-26 15:30:00', '0xabc', 1, 1, 'awaiting_chain')
+  `).run();
+
+  const ledger = await getNuvLedger(env, request('user-1'));
+
+  assert.equal(ledger.total, 2);
+  assert.deepEqual(ledger.days.map(({ day, phrase }) => ({ day, phrase })), [
+    { day: '2026-09-27', phrase: '천천히 가도 된다' },
+    { day: '2026-09-26', phrase: '오늘을 믿자' },
+  ]);
+  assert.equal(ledger.last_sealed_day, '2026-09-26');
 });

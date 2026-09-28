@@ -28,7 +28,9 @@ const DailyPhrase = ({
   const editor = usePhraseEditor(resource, { isEditing, onEditingChange, source });
   const logging = usePhraseLogging(resource, {
     onNuvBalanceChange,
-    onNuvAwarded: amount => setNotice(`되새기고 ${amount} 누브를 받았어요`),
+    // "받았어요"는 보상의 말이다. 누브는 되새긴 하루가 남은 것이고 그 수가 곧
+    // 되새긴 날의 수라서, 몇 번째 하루인지를 말한다.
+    onNuvAwarded: balance => setNotice(`오늘이 ${balance}번째 누브로 남았어요`),
   });
   const { phrase, loading, error, refresh } = resource;
   useEffect(() => {

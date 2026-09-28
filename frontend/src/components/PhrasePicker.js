@@ -94,6 +94,11 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
     onPick(text);
   };
 
+  // 9/17 가입 선물 때 이 화면이 "첫 엽서에 담을 문장 / 10 누브로 엽서를 만들 수
+  // 있어요 / 엽서에 담기"로 바뀌었다. 선물과 온보딩 모달은 9/22에 되돌렸는데 이
+  // 화면만 남아서, 신규는 온보딩 바로 다음에 여전히 "엽서를 만들라"는 지시를
+  // 받았다(되새김 활성화 85%→10%의 원인과 같은 문구). 여기서 시키는 일은
+  // 문장을 골라 되새기기 시작하는 것 하나다.
   return (
     <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <Typography
@@ -102,7 +107,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
           color: COLOR.accent.eyebrow, mb: 1.5,
         }}
       >
-        첫 엽서, 나에게
+        오늘부터, 나에게
       </Typography>
       {/* 예전엔 "다른 사람들은 이런 문장으로 아침을 열고 있어요"였는데, 그건
           상황 설명이지 할 일이 아니다. 처음 온 사람이 이 화면에서 무엇을 해야
@@ -113,7 +118,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
           color: COLOR.text.primary, textAlign: 'center', mb: 1.25,
         }}
       >
-        첫 엽서에 담을
+        오늘 나에게 필요한
         <br />문장 하나를 골라보세요
       </Typography>
       <Typography
@@ -122,8 +127,8 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
           color: COLOR.text.muted, textAlign: 'center', mb: 3,
         }}
       >
-        처음 받은 10 누브로 엽서를 만들 수 있어요.
-        <br />마음에 드는 문장을 고르거나 직접 써보세요.
+        다른 사람들이 되새기고 있는 문장이에요.
+        <br />마음에 드는 하나로 바로 시작할 수 있어요.
       </Typography>
 
       {items === null ? (
@@ -166,7 +171,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
                     color: COLOR.accent.main, whiteSpace: 'nowrap', flexShrink: 0,
                   }}
                 >
-                  엽서에 담기 ›
+                  이 문장으로 시작 ›
                 </Typography>
               </Box>
             </Box>
@@ -220,7 +225,7 @@ const PhrasePicker = ({ onPick, onWriteOwn }) => {
             '&:hover': { background: '#fff', color: COLOR.accent.main },
           }}
         >
-          내 엽서 문장은 직접 쓸래요
+          마음에 드는 게 없나요? 직접 쓸래요
         </Box>
       </Box>
     </Box>

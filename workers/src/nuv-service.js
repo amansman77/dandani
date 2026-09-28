@@ -89,6 +89,32 @@ export async function getNuvWallet(env, request) {
 // 가며 보내면 실제 하루에 누브를 2~3개 받을 수 있었다. 누브는 체인에 새길
 // 장부라 그 구멍을 닫는다. 되새김 기록(daily_phrase_logs)은 여전히 앱의
 // 시간대를 따른다 — 화면에 보이는 "오늘"은 사용자가 있는 곳의 오늘이어야 해서.
+// 누브 장부 — 누브 하나하나가 어느 날, 어떤 문장을 되새긴 것인지. 원장엔
+// 날짜만 있어서 문장은 그 누브 직전에 남은 되새김 기록으로 찾는다(되새김
+// 기록을 남긴 같은 요청 안에서 누브가 나오므로 그 기록이 곧 이 누브의 것이다).
+// 장부가 봉인된 날도 함께 돌려준다 — 체인 이야기는 하지 않고 "봉인"까지만.
+export async function getNuvLedger(env, request) {
+  const userId = getRequiredUserId(request);
+  const { results } = await env.DB.prepare(`
+    SELECT t.reference_id AS day,
+      (SELECT p.phrase FROM daily_phrase_logs l
+        JOIN daily_phrases p ON p.id = l.phrase_id
+        WHERE l.user_id = t.user_id AND l.created_at <= t.created_at
+        ORDER BY l.created_at DESC LIMIT 1) AS phrase
+    FROM nuv_transactions t
+    WHERE t.user_id = ? AND t.reason = 'daily_reflection'
+    ORDER BY t.created_at DESC
+  `).bind(userId).all();
+  const seal = await env.DB.prepare(`
+    SELECT day FROM nuv_anchors ORDER BY day DESC LIMIT 1
+  `).first();
+  return {
+    total: await getBalance(env, userId),
+    days: results,
+    last_sealed_day: seal?.day || null,
+  };
+}
+
 export async function awardNuvForReflection(env, userId, phraseId, logDate, {
   timezone, now = new Date(),
 } = {}) {
