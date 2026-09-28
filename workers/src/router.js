@@ -4,7 +4,9 @@ import { ADMIN_PATHS, requireAdmin } from './admin-auth.js';
 import { handleAdminGet } from './admin-router.js';
 import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
-import { getNuvLedger, getNuvWallet, getSavedPostcards, savePostcard } from './nuv-service.js';
+import {
+  createPostcardFromPhrase, getNuvLedger, getNuvWallet, getSavedPostcards, savePostcard,
+} from './nuv-service.js';
 import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
 
 // Legacy services stay unregistered; see docs/adr/0005-legacy-backend-inventory.md.
@@ -43,9 +45,12 @@ async function handlePost(url, request, env) {
   // 아직 여기로 오기 때문에, 없애는 대신 잔액만 돌려준다(누브를 발행하지 않음).
   if (url.pathname === '/api/nuv/welcome') return jsonResponse(await getNuvWallet(env, request));
 
-  // 엽서에 남은 POST는 배경 저장 하나다.
-  //   POST /api/nuv/postcards(실천 없이 엽서 만들기) — 없앴다. 엽서는 실천의
-  //     증명이라, 실천 없이 만들 수 있으면 증명이 아니게 된다.
+  // 엽서 만들기 — 지금 문장을 엽서로. 2026-09-24에 "실천 없이는 증명이
+  // 아니다"라며 없앴다가, 09-28 엽서를 "문장을 엽서로 옮기는 일"로 다시 정하면서
+  // 되살렸다. POST /api/practices는 이미 설치된 앱이 아직 부르므로 남겨 둔다.
+  if (url.pathname === '/api/nuv/postcards') {
+    return jsonResponse(await createPostcardFromPhrase(env, request), 201);
+  }
   //   POST .../image, GET /api/nuv/postcard-files/:token — 없앴다. 이미지는
   //     서버에 보관하지 않는다. 미리보기는 브라우저가 문장·프리셋으로 그때그때
   //     다시 그리고, 밖으로 내보내는 건 OS 공유 시트가 맡는다.

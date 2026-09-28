@@ -48,12 +48,14 @@ const ShareIcon = ({ color }) => (
   </svg>
 );
 
-// 실천은 쓰는 일이다. 펜이어야 "두드리는 것"과 구별된다.
-const PenIcon = ({ color }) => (
+// 엽서 한 장 — 오른쪽 위에 우표. 예전엔 "쓰는 일"이라 펜이었는데, 엽서
+// 만들기가 문장을 엽서로 옮기는 일이 되면서 쓸 것이 없어졌다.
+const PostcardIcon = ({ color }) => (
   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke={color}
     strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M14.5 4.5l5 5L9 20H4v-5z" />
-    <path d="M12.5 6.5l5 5" />
+    <rect x="3" y="5.5" width="18" height="13" rx="1.6" />
+    <rect x="14.5" y="8.5" width="3.5" height="4" rx="0.5" />
+    <path d="M6.5 11h5M6.5 14.5h5" />
   </svg>
 );
 
@@ -94,7 +96,7 @@ function ExpandedAction({ label, onClick, children, delay }) {
   );
 }
 
-const FloatingActions = ({ done, logging, onLog, onViewHistory, onShare, onWritePractice }) => {
+const FloatingActions = ({ done, logging, onLog, onViewHistory, onShare, onMakePostcard }) => {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -138,8 +140,8 @@ const FloatingActions = ({ done, logging, onLog, onViewHistory, onShare, onWrite
     >
       {open && (
         <>
-          <ExpandedAction label="엽서 만들기" onClick={run(onWritePractice)} delay={0}>
-            <PenIcon color={COLOR.accent.main} />
+          <ExpandedAction label="엽서 만들기" onClick={run(onMakePostcard)} delay={0}>
+            <PostcardIcon color={COLOR.accent.main} />
           </ExpandedAction>
           <ExpandedAction label="이 문장 공유하기" onClick={run(onShare)} delay={40}>
             <ShareIcon color={COLOR.accent.main} />

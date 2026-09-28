@@ -1,5 +1,6 @@
 import { getRequiredUserId } from './service-utils.js';
-import { dateIn, normalizeTimezone } from './phrase-dates.js';
+import { dateIn, normalizeTimezone, phraseDateContext } from './phrase-dates.js';
+import { HttpError } from './http-errors.js';
 
 // 누브는 되새김이 쌓여 만들어지는 기록이지 재화가 아니다. 그래서 줄어들지도
 // 않고, 무언가를 여는 열쇠도 아니다.
@@ -46,15 +47,24 @@ export async function issuePostcardForRecord(env, userId, record) {
   `).bind(record.id, userId).first();
   if (existing) return existing.id;
 
+  return insertPostcard(env, userId, {
+    phrase_id: record.phrase_id, phrase: record.phrase, record_id: record.id,
+    body: record.body ?? null, on: record.practiced_on ?? null,
+    logged_days: record.logged_days ?? null, nuv: record.nuv_at_record,
+  });
+}
+
+async function insertPostcard(env, userId, card) {
   // 발행번호는 사람마다 1번부터. 남과 견주는 숫자가 아니라 "내 몇 번째
-  // 증명인가"라서 전역 번호일 이유가 없다.
+  // 엽서인가"라서 전역 번호일 이유가 없다.
   const last = await env.DB.prepare(`
     SELECT MAX(issue_no) AS issue_no FROM digital_postcards WHERE user_id = ?
   `).bind(userId).first();
 
   // 여기 들어가는 값은 전부 지금 한 번 쓰고 다시 쓰지 않는다. 나중에 문장을
-  // 바꾸거나 되새김이 더 쌓여도 안 변한다 — 내용이 바뀌는 기록은 증명이
-  // 아니다. draft를 거치지 않고 바로 saved로 굳히는 것도 같은 이유다.
+  // 바꾸거나 되새김이 더 쌓여도 안 변한다. draft를 거치지 않고 바로 saved로
+  // 굳히는 것도 같은 이유다. practiced_on은 이름이 옛날 그대로지만 엽서가
+  // 가리키는 날이다.
   const postcardId = generateId('postcard');
   const created = await env.DB.prepare(`
     INSERT INTO digital_postcards
@@ -64,13 +74,67 @@ export async function issuePostcardForRecord(env, userId, record) {
     VALUES (?, ?, ?, ?, ?, 'morning', 'saved', ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     RETURNING id
   `).bind(
-    postcardId, userId, record.phrase_id, record.phrase,
-    Math.max(1, record.nuv_at_record), record.id,
-    record.body ?? null, record.practiced_on ?? null,
-    record.logged_days ?? null, record.nuv_at_record,
+    postcardId, userId, card.phrase_id, card.phrase,
+    Math.max(1, card.nuv), card.record_id,
+    card.body, card.on, card.logged_days, card.nuv,
     (last?.issue_no || 0) + 1
   ).first();
   return created?.id || null;
+}
+
+// 지금 문장을 엽서로 만든다.
+//
+// 한때 엽서는 "이 말대로 한 순간"을 적어야만 나오는 실천의 증명이었다.
+// 2026-09-28 그 쓰기 단계를 걷어냈다 — 엽서 만들기는 이제 지금 되새기는
+// 문장을 엽서로 옮기는 일 하나다. 그래서 엽서에 굳는 건 문장, 오늘 날짜,
+// 오늘까지 이 문장을 되새긴 날수다.
+//
+// 같은 문장으로 같은 날 다시 누르면 새 장을 찍지 않고 그날의 엽서를 돌려준다.
+// 누를 때마다 발행번호가 늘면 번호가 아무 뜻이 없어진다.
+export async function createPostcardFromPhrase(env, request) {
+  const userId = getRequiredUserId(request);
+  const { phrase_id: phraseId } = await request.json();
+  if (!phraseId || typeof phraseId !== 'string') {
+    throw new HttpError(400, '어떤 문장의 엽서인지 알 수 없어요.');
+  }
+  const phrase = await env.DB.prepare(`
+    SELECT id, phrase FROM daily_phrases WHERE id = ? AND user_id = ? AND status = 'active'
+  `).bind(phraseId, userId).first();
+  if (!phrase) throw new HttpError(404, '문장을 찾을 수 없어요.');
+
+  const { today } = phraseDateContext(request);
+  const findToday = () => env.DB.prepare(`
+    SELECT id, practiced_on, logged_days_at_issue FROM digital_postcards
+    WHERE user_id = ? AND phrase_id = ? AND practiced_on = ?
+      AND practice_record_id IS NULL AND issue_no IS NOT NULL
+  `).bind(userId, phrase.id, today).first();
+  const existing = await findToday();
+  if (existing) return postcardResult(existing, false);
+
+  const counted = await env.DB.prepare(`
+    SELECT COUNT(DISTINCT log_date) AS days FROM daily_phrase_logs
+    WHERE phrase_id = ? AND user_id = ? AND log_date <= ?
+  `).bind(phrase.id, userId, today).first();
+
+  try {
+    await insertPostcard(env, userId, {
+      phrase_id: phrase.id, phrase: phrase.phrase, record_id: null, body: null,
+      on: today, logged_days: counted?.days || 0, nuv: await getBalance(env, userId),
+    });
+  } catch (error) {
+    // 같은 순간 두 번 눌러 UNIQUE에 걸린 경우 — 먼저 들어간 엽서를 돌려준다.
+    if (!String(error?.message).includes('UNIQUE')) throw error;
+  }
+  return postcardResult(await findToday(), true);
+}
+
+function postcardResult(row, created) {
+  return {
+    postcard_id: row.id,
+    issued_on: row.practiced_on,
+    logged_days: row.logged_days_at_issue,
+    created,
+  };
 }
 
 // 차감이 없어진 뒤로 지갑 잔액은 곧 평생 누적이다 — 원장에 더하기만 들어오니
@@ -172,18 +236,19 @@ export async function getSavedPostcards(env, request) {
   const userId = getRequiredUserId(request);
   const { results } = await env.DB.prepare(`
     SELECT id, phrase, visit_days, preset, created_at, saved_at,
-           practice_record_id, practice_body, practiced_on,
+           practice_body, practiced_on,
            logged_days_at_issue, nuv_at_issue, issue_no, issued_at
     FROM digital_postcards
     WHERE user_id = ? AND status = 'saved'
     ORDER BY issue_no DESC, saved_at DESC, created_at DESC
   `).bind(userId).all();
   return {
-    postcards: results.map(({ practice_record_id: practiceRecordId, ...postcard }) => ({
+    postcards: results.map((postcard) => ({
       ...postcard,
-      // 실천 없이 누브를 주고 샀던 옛 엽서. 지우지도 번호를 주지도 않고,
-      // 화면에서만 갈라 보여준다.
-      is_legacy: !practiceRecordId,
+      // 누브를 주고 샀던 옛 엽서. 지우지도 번호를 주지도 않고, 화면에서만
+      // 갈라 보여준다. 이제 엽서는 실천 기록 없이도 나오므로, 옛 엽서를
+      // 가르는 표시는 practice_record_id가 아니라 발행번호의 유무다.
+      is_legacy: postcard.issue_no == null,
     })),
   };
 }

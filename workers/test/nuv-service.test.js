@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
+  createPostcardFromPhrase,
   issuePostcardForRecord,
   getSavedPostcards,
   getNuvLedger,
@@ -84,6 +85,7 @@ function createEnvironment() {
   database.exec(readFileSync(new URL('../schemas/schema_v260924_drop_postcard_images.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260926_practice_logged_days.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260928_postcard_per_phrase_day.sql', import.meta.url), 'utf8'));
 
   return {
     database,
@@ -280,4 +282,49 @@ test('the ledger lists each Nuv day with the phrase reflected on, newest first',
     { day: '2026-09-26', phrase: '오늘을 믿자' },
   ]);
   assert.equal(ledger.last_sealed_day, '2026-09-26');
+});
+
+test('making a postcard turns the active phrase into a numbered postcard, with no writing', async () => {
+  const { database, env } = createEnvironment();
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)').run('phrase-1', 'user-1', '천천히 가도 된다', 'active');
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  addLog.run('l1', 'phrase-1', 'user-1', '2026-09-01');
+  addLog.run('l2', 'phrase-1', 'user-1', '2026-09-02');
+
+  const made = await createPostcardFromPhrase(env, request('user-1', { phrase_id: 'phrase-1' }));
+
+  assert.equal(made.created, true);
+  assert.equal(made.logged_days, 2);
+  const row = database.prepare('SELECT * FROM digital_postcards WHERE id = ?').get(made.postcard_id);
+  assert.equal(row.phrase, '천천히 가도 된다');
+  assert.equal(row.issue_no, 1);
+  assert.equal(row.status, 'saved');
+  assert.equal(row.practice_body, null);
+  assert.equal(row.practiced_on, made.issued_on);
+
+  const { postcards } = await getSavedPostcards(env, request('user-1'));
+  assert.equal(postcards[0].is_legacy, false);
+});
+
+test('pressing again on the same day hands back the same postcard', async () => {
+  const { database, env } = createEnvironment();
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)').run('phrase-1', 'user-1', '오늘을 믿자', 'active');
+
+  const first = await createPostcardFromPhrase(env, request('user-1', { phrase_id: 'phrase-1' }));
+  const again = await createPostcardFromPhrase(env, request('user-1', { phrase_id: 'phrase-1' }));
+
+  assert.equal(again.created, false);
+  assert.equal(again.postcard_id, first.postcard_id);
+  assert.equal(database.prepare('SELECT COUNT(*) AS n FROM digital_postcards').get().n, 1);
+});
+
+test('only your own active phrase can become a postcard', async () => {
+  const { database, env } = createEnvironment();
+  const addPhrase = database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)');
+  addPhrase.run('retired', 'user-1', '옛 문장', 'retired');
+  addPhrase.run('theirs', 'user-2', '남의 문장', 'active');
+
+  await assert.rejects(createPostcardFromPhrase(env, request('user-1', { phrase_id: 'retired' })), /찾을 수 없어요/);
+  await assert.rejects(createPostcardFromPhrase(env, request('user-1', { phrase_id: 'theirs' })), /찾을 수 없어요/);
+  await assert.rejects(createPostcardFromPhrase(env, request('user-1', {})), /어떤 문장/);
 });

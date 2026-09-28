@@ -3,9 +3,9 @@ import { Box, Alert, Button, Snackbar } from '@mui/material';
 import VariantA from './phraseVariants/VariantA';
 import Loader from './Loader';
 import PhrasePicker from './PhrasePicker';
-import PracticeSheet from './PracticeSheet';
 import PhraseCardSheet from './PhraseCardSheet';
 import { logPhraseOnboardingShown } from '../utils/analytics';
+import { createPostcard } from '../utils/nuvApi';
 import usePhraseResource from '../hooks/usePhraseResource';
 import { usePhraseEditor, usePhraseLogging } from '../hooks/usePhraseActions';
 
@@ -17,11 +17,11 @@ const DailyPhrase = ({
   const [entryMode, setEntryMode] = useState('browse');
   const [pickedText, setPickedText] = useState(null);
   const [notice, setNotice] = useState('');
-  const [practiceOpen, setPracticeOpen] = useState(false);
-  // 실천을 적으면 바로 엽서가 발행된다. 배경을 고르고 저장하는 화면은 예전엔
-  // 공유 시트에 붙어 있었는데, 엽서를 만드는 길이 실천 하나로 바뀌면서
-  // 발행 직후로 옮겼다 — 방금 나온 내 증명을 그 자리에서 꾸미게 된다.
+  // 엽서 만들기는 지금 문장을 엽서로 옮기는 일 하나다(2026-09-28 쓰기 단계를
+  // 걷어냈다). 누르면 곧바로 엽서가 나오고, 배경을 고르는 시트가 그 자리에서
+  // 열린다.
   const [issued, setIssued] = useState(null);
+  const [making, setMaking] = useState(false);
   const source = pickedText === null
     ? 'written'
     : (editorText => editorText.trim() === pickedText.trim() ? 'picked' : 'picked_edited');
@@ -33,6 +33,18 @@ const DailyPhrase = ({
     onNuvAwarded: balance => setNotice(`오늘이 ${balance}번째 누브로 남았어요`),
   });
   const { phrase, loading, error, refresh } = resource;
+  const makePostcard = async () => {
+    if (!phrase || making) return;
+    setMaking(true);
+    try {
+      const made = await createPostcard(phrase.id);
+      setIssued({ id: made.postcard_id, practicedOn: made.issued_on, loggedDays: made.logged_days });
+    } catch (err) {
+      setNotice(err.message);
+    } finally {
+      setMaking(false);
+    }
+  };
   useEffect(() => {
     if (!loading && !error && !phrase) logPhraseOnboardingShown();
   }, [loading, error, phrase]);
@@ -77,25 +89,12 @@ const DailyPhrase = ({
         phrase={phrase} {...editor} {...logging}
         onViewHistory={onViewHistory} hasActivePhrase={Boolean(phrase)} isEditing={isEditing}
         onShare={onShare}
-        onWritePractice={() => setPracticeOpen(true)}
+        onMakePostcard={makePostcard}
         cameFromPicker={pickedText !== null}
         onBackToPicker={() => {
           setPickedText(null);
           editor.setInputValue('');
           setEntryMode('browse');
-        }}
-      />
-      <PracticeSheet
-        open={practiceOpen} onClose={() => setPracticeOpen(false)} phrase={phrase}
-        onSaved={result => {
-          setNotice('엽서를 만들었어요');
-          if (result.postcard_id) {
-            setIssued({
-              id: result.postcard_id,
-              practicedOn: result.record.practiced_on,
-              loggedDays: result.record.logged_days,
-            });
-          }
         }}
       />
       <PhraseCardSheet
