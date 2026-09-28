@@ -7,6 +7,21 @@ function dateFormatter(timezone) {
   }
 }
 
+// 시간대 이름이 Intl이 모르는 값이면 UTC로 본다 — dateFormatter와 같은 규칙.
+export function normalizeTimezone(timezone) {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone || 'UTC' }).resolvedOptions().timeZone;
+  } catch (error) {
+    if (!(error instanceof RangeError)) throw error;
+    return 'UTC';
+  }
+}
+
+export function dateIn(timezone, date = new Date()) {
+  const parts = dateFormatter(timezone).formatToParts(date);
+  return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('-');
+}
+
 export function phraseDateContext(request) {
   const formatter = dateFormatter(request.headers.get('X-Client-Timezone'));
   const format = date => {

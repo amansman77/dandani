@@ -73,7 +73,9 @@ export async function logPhraseDay(env, phraseId, request) {
   if (!logs.some(log => log.log_date === today)) {
     throw new HttpError(409, '문장이 이미 변경됐어요. 새로고침 후 다시 확인해 주세요.');
   }
-  const reward = await awardNuvForReflection(env, userId, phraseId, today);
+  const reward = await awardNuvForReflection(env, userId, phraseId, today, {
+    timezone: request.headers.get('X-Client-Timezone'),
+  });
   return { logged_days: logs.length, ...reward };
 }
 

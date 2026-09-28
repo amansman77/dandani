@@ -1,4 +1,5 @@
 import { getRequiredUserId } from './service-utils.js';
+import { dateIn, normalizeTimezone } from './phrase-dates.js';
 
 // 누브는 되새김이 쌓여 만들어지는 기록이지 재화가 아니다. 그래서 줄어들지도
 // 않고, 무언가를 여는 열쇠도 아니다.
@@ -15,6 +16,13 @@ import { getRequiredUserId } from './service-utils.js';
 // 이미 나간 210누브도 원장에서 되돌렸다(schema_v260922_nuv_accrual.sql).
 export const REFLECTION_REWARD = 1;
 const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light']);
+
+// 장부 도장에서 사용자 ID를 가리는 값. 체인에는 루트만 올라가지만 사용자가
+// 자기 증명을 공유할 수 있어서, 그때 내부 ID가 드러나지 않게 한다.
+function newSalt() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return `0x${Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
+}
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -75,8 +83,23 @@ export async function getNuvWallet(env, request) {
 // 되새김은 하루 한 번이라 누브도 사람당 하루 1개다. 원장 키를 날짜만으로
 // 잡아 UNIQUE(user_id, reason, reference_id)가 그걸 지킨다 — 같은 날 문장을
 // 새로 바꾸고 다시 되새겨도 두 번째 누브는 나오지 않는다.
-export async function awardNuvForReflection(env, userId, phraseId, logDate) {
-  const referenceId = logDate;
+//
+// 그 날짜는 앱이 보낸 시간대가 아니라 처음 누브를 받을 때 고정한 시간대로
+// 센다. 같은 순간에도 UTC+14와 UTC-12는 날짜가 이틀 차이 나서, 헤더를 바꿔
+// 가며 보내면 실제 하루에 누브를 2~3개 받을 수 있었다. 누브는 체인에 새길
+// 장부라 그 구멍을 닫는다. 되새김 기록(daily_phrase_logs)은 여전히 앱의
+// 시간대를 따른다 — 화면에 보이는 "오늘"은 사용자가 있는 곳의 오늘이어야 해서.
+export async function awardNuvForReflection(env, userId, phraseId, logDate, {
+  timezone, now = new Date(),
+} = {}) {
+  await env.DB.prepare(`
+    INSERT OR IGNORE INTO nuv_accounts (user_id, timezone, salt) VALUES (?, ?, ?)
+  `).bind(userId, normalizeTimezone(timezone), newSalt()).run();
+  const account = await env.DB.prepare(`
+    SELECT timezone FROM nuv_accounts WHERE user_id = ?
+  `).bind(userId).first();
+  const referenceId = dateIn(account.timezone, now);
+
   const granted = await env.DB.prepare(`
     INSERT OR IGNORE INTO nuv_transactions
       (id, user_id, amount, reason, reference_id)

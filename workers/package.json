@@ -12,5 +12,9 @@
   },
   "devDependencies": {
     "wrangler": "^4.20.4"
+  },
+  "dependencies": {
+    "@openzeppelin/merkle-tree": "^1.0.8",
+    "ethereum-cryptography": "^3.2.0"
   }
 }

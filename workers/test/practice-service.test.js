@@ -50,6 +50,7 @@ function createEnvironment() {
     '../schemas/schema_v260923_postcard_proof.sql',
     '../schemas/schema_v260924_drop_postcard_images.sql',
     '../schemas/schema_v260926_practice_logged_days.sql',
+    '../schemas/schema_v260928_nuv_accounts.sql',
   ]) {
     database.exec(readFileSync(new URL(file, import.meta.url), 'utf8'));
   }

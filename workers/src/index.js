@@ -3,6 +3,7 @@ import { getDailyReportData } from './analytics-service.js';
 import { formatDiscordMessage, sendDiscordMessage } from './discord-service.js';
 import { generateDailyInsight, formatInsightMessage } from './insight-service.js';
 import { handleRequest } from './router.js';
+import { formatStampMessage, stampLedger } from './nuv-anchor-service.js';
 
 // 계정 전체 cron trigger 한도(5개)를 다른 프로젝트가 이미 다 쓰고 있어서
 // "0,30 9,22 * * *" 한 슬롯으로 4번 트리거되고, 시/분으로 실제 작업을 분기한다.
@@ -10,6 +11,8 @@ const REPORT_UTC_HOUR = 9;
 const REPORT_UTC_MINUTE = 0;
 const INSIGHT_UTC_HOUR = 22;
 const INSIGHT_UTC_MINUTE = 30;
+const STAMP_UTC_HOUR = 15;
+const STAMP_UTC_MINUTE = 30;
 
 async function sendErrorToDiscord(env, title, error) {
   try {
@@ -57,6 +60,20 @@ async function runDailyReport(env) {
   }
 }
 
+async function runLedgerStamp(env, scheduled) {
+  try {
+    const stamp = await stampLedger(env, scheduled);
+    if (!stamp?.created) {
+      console.log('누브 장부 도장: 새로 찍을 것 없음', stamp?.day || '(장부 비어 있음)');
+      return;
+    }
+    await sendDiscordMessage(env, formatStampMessage(stamp));
+  } catch (error) {
+    console.error('누브 장부 도장 실패:', error);
+    await sendErrorToDiscord(env, '누브 장부 도장 실패', error);
+  }
+}
+
 async function runDailyInsight(env) {
   try {
     console.log('일일 인사이트 Cron Job 시작:', new Date().toISOString());
@@ -88,6 +105,10 @@ export default {
 
     if (hour === INSIGHT_UTC_HOUR && minute === INSIGHT_UTC_MINUTE) {
       await runDailyInsight(env);
+      return;
+    }
+    if (hour === STAMP_UTC_HOUR && minute === STAMP_UTC_MINUTE) {
+      await runLedgerStamp(env, scheduled);
       return;
     }
     if (hour === REPORT_UTC_HOUR && minute === REPORT_UTC_MINUTE) {

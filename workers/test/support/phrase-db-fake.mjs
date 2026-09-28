@@ -7,6 +7,7 @@ export function createPhraseDbFake() {
     events: [],
     nuvTransactions: [],
     nuvBalances: new Map(),
+    nuvAccounts: new Map(),
   };
 
   return {
@@ -41,6 +42,9 @@ function createStatement(state, sql) {
 }
 
 function executeFirst(state, sql, values) {
+  if (sql.includes('SELECT timezone FROM nuv_accounts')) {
+    return state.nuvAccounts.get(values[0]) || null;
+  }
   if (sql.includes('INSERT OR IGNORE INTO nuv_transactions')) {
     const [, userId, amount, referenceId, phraseId, , logDate] = values;
     const hasLog = state.logs.some(item => item.phrase_id === phraseId && item.user_id === userId && item.log_date === logDate);
@@ -93,6 +97,11 @@ function executeAll(state, sql, values) {
 }
 
 function executeRun(state, sql, values) {
+  if (sql.startsWith('INSERT OR IGNORE INTO nuv_accounts')) {
+    const [userId, timezone, salt] = values;
+    if (!state.nuvAccounts.has(userId)) state.nuvAccounts.set(userId, { timezone, salt });
+    return { meta: { changes: 1 } };
+  }
   if (sql.startsWith('INSERT INTO daily_phrases')) {
     const [id, userId, phrase] = values;
     if (state.phrases.some(item => item.user_id === userId && item.status === 'active')) {

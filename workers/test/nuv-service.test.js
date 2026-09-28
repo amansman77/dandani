@@ -82,6 +82,7 @@ function createEnvironment() {
   // 이미지 칸은 만들었다가 걷어냈다 — 실제 순서대로 재현해야 DROP도 검증된다.
   database.exec(readFileSync(new URL('../schemas/schema_v260924_drop_postcard_images.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260926_practice_logged_days.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
 
   return {
     database,
@@ -98,13 +99,18 @@ function request(userId, body) {
 }
 
 
+// 서울 기준으로 그 날짜 정오. 누브의 하루는 서버 시계와 고정된 시간대로 센다.
+function seoulNoon(date) {
+  return { timezone: 'Asia/Seoul', now: new Date(`${date}T03:00:00Z`) };
+}
+
 test('a daily reflection awards one Nuv only once', async () => {
   const { database, env } = createEnvironment();
   database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)')
     .run('log-1', 'phrase-1', 'user-1', '2026-09-17');
 
-  const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-17');
-  const duplicate = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-17');
+  const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-17', seoulNoon('2026-09-17'));
+  const duplicate = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-17', seoulNoon('2026-09-17'));
 
   assert.deepEqual(first, { awarded_nuv: 1, balance: 1 });
   assert.deepEqual(duplicate, { awarded_nuv: 0, balance: 1 });
@@ -117,13 +123,45 @@ test('a replaced phrase does not earn a second Nuv on the same day', async () =>
   addLog.run('log-2', 'phrase-2', 'user-1', '2026-09-28');
   addLog.run('log-3', 'phrase-2', 'user-1', '2026-09-29');
 
-  const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28');
-  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28');
-  const nextDay = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-29');
+  const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28', seoulNoon('2026-09-28'));
+  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28', seoulNoon('2026-09-28'));
+  const nextDay = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-29', seoulNoon('2026-09-29'));
 
   assert.deepEqual(first, { awarded_nuv: 1, balance: 1 });
   assert.deepEqual(replaced, { awarded_nuv: 0, balance: 1 });
   assert.deepEqual(nextDay, { awarded_nuv: 1, balance: 2 });
+});
+
+test('switching the timezone header does not earn a second Nuv on the same real day', async () => {
+  const { database, env } = createEnvironment();
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  // 서울 09-28 23:30 = UTC 14:30. 같은 순간 키리바시(UTC+14)는 이미 09-29다.
+  const now = new Date('2026-09-28T14:30:00Z');
+  addLog.run('log-1', 'phrase-1', 'user-1', '2026-09-28');
+  addLog.run('log-2', 'phrase-1', 'user-1', '2026-09-29');
+
+  const home = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28', { timezone: 'Asia/Seoul', now });
+  const hopped = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-29', { timezone: 'Pacific/Kiritimati', now });
+
+  assert.deepEqual(home, { awarded_nuv: 1, balance: 1 });
+  assert.deepEqual(hopped, { awarded_nuv: 0, balance: 1 });
+  assert.equal(database.prepare('SELECT timezone FROM nuv_accounts').get().timezone, 'Asia/Seoul');
+});
+
+test('an unknown timezone is pinned as UTC and every account gets its own salt', async () => {
+  const { database, env } = createEnvironment();
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  addLog.run('log-1', 'phrase-1', 'user-1', '2026-09-28');
+  addLog.run('log-2', 'phrase-2', 'user-2', '2026-09-28');
+  const now = new Date('2026-09-28T12:00:00Z');
+
+  await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28', { timezone: 'Mars/Olympus', now });
+  await awardNuvForReflection(env, 'user-2', 'phrase-2', '2026-09-28', { timezone: 'Asia/Seoul', now });
+
+  const accounts = database.prepare('SELECT user_id, timezone, salt FROM nuv_accounts ORDER BY user_id').all();
+  assert.equal(accounts[0].timezone, 'UTC');
+  assert.match(accounts[0].salt, /^0x[0-9a-f]{64}$/);
+  assert.notEqual(accounts[0].salt, accounts[1].salt);
 });
 
 test('the one-per-day migration keys existing rewards by date alone', async () => {
@@ -139,7 +177,7 @@ test('the one-per-day migration keys existing rewards by date alone', async () =
   ));
 
   // 옛 키로 받은 날에도 새 문장으로 한 번 더 받을 수 없다.
-  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28');
+  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28', seoulNoon('2026-09-28'));
   assert.deepEqual(replaced, { awarded_nuv: 0, balance: 1 });
   assert.equal(
     database.prepare('SELECT reference_id FROM nuv_transactions').get().reference_id,
