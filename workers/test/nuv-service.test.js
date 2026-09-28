@@ -304,6 +304,8 @@ test('making a postcard turns the active phrase into a numbered postcard, with n
 
   const { postcards } = await getSavedPostcards(env, request('user-1'));
   assert.equal(postcards[0].is_legacy, false);
+  // 엽서도 밤마다 봉인되므로, 누브가 없던 사람도 엽서를 만들면 salt가 생긴다.
+  assert.match(database.prepare('SELECT salt FROM nuv_accounts WHERE user_id = ?').get('user-1').salt, /^0x[0-9a-f]{64}$/);
 });
 
 test('pressing again on the same day hands back the same postcard', async () => {

@@ -1,7 +1,7 @@
 import { getRequiredUserId } from './service-utils.js';
 import { phraseDateContext } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
-import { getNuvBalance, issuePostcardForRecord } from './nuv-service.js';
+import { ensureNuvAccount, getNuvBalance, issuePostcardForRecord } from './nuv-service.js';
 
 // 실천은 되새김과 다른 일이다. 되새김은 매일 두드리는 것이라 내용이 없고,
 // 실천은 가끔 쓰는 것이라 본문이 있다. 그래서 여기서 하는 일은 하나뿐 —
@@ -75,6 +75,7 @@ export async function createPracticeRecord(env, request) {
   ).run();
 
   // 적은 순간 바로 엽서가 된다. 살아낸 일이 증명이지, 누브가 증명이 아니다.
+  await ensureNuvAccount(env, userId, request.headers.get('X-Client-Timezone'));
   const postcardId = await issuePostcardForRecord(env, userId, record);
 
   return {

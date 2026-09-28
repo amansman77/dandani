@@ -103,6 +103,7 @@ export async function createPostcardFromPhrase(env, request) {
   if (!phrase) throw new HttpError(404, '문장을 찾을 수 없어요.');
 
   const { today } = phraseDateContext(request);
+  await ensureNuvAccount(env, userId, request.headers.get('X-Client-Timezone'));
   const findToday = () => env.DB.prepare(`
     SELECT id, practiced_on, logged_days_at_issue FROM digital_postcards
     WHERE user_id = ? AND phrase_id = ? AND practiced_on = ?
@@ -179,12 +180,18 @@ export async function getNuvLedger(env, request) {
   };
 }
 
-export async function awardNuvForReflection(env, userId, phraseId, logDate, {
-  timezone, now = new Date(),
-} = {}) {
+// 누브·엽서 장부에서 사람마다 한 번 정하는 값(시간대, salt). 누브를 받거나
+// 엽서를 처음 만들 때 생긴다 — 엽서도 밤마다 봉인에 들어가서 salt가 필요하다.
+export async function ensureNuvAccount(env, userId, timezone) {
   await env.DB.prepare(`
     INSERT OR IGNORE INTO nuv_accounts (user_id, timezone, salt) VALUES (?, ?, ?)
   `).bind(userId, normalizeTimezone(timezone), newSalt()).run();
+}
+
+export async function awardNuvForReflection(env, userId, phraseId, logDate, {
+  timezone, now = new Date(),
+} = {}) {
+  await ensureNuvAccount(env, userId, timezone);
   const account = await env.DB.prepare(`
     SELECT timezone FROM nuv_accounts WHERE user_id = ?
   `).bind(userId).first();

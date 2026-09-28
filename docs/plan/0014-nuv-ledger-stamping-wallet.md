@@ -17,6 +17,8 @@
 | 누브의 하루를 첫 보상 때 고정한 시간대로 셈 | `nuv_accounts.timezone` | 동작 |
 | 사용자 ID를 가리는 salt | `nuv_accounts.salt` | 동작 |
 | 매일 00:30 KST 누적 스냅샷 → 머클 루트 | `workers/src/nuv-anchor-service.js` `stampLedger` | 동작 |
+| 엽서도 같은 봉인에 포함 (`postcard_root`) | `buildPostcardTree` | 동작 |
+| 엽서 한 장의 봉인 증명 | `postcardProof` (라우트 없음) | 코드만 있음 |
 | 루트 저장 | `nuv_anchors` (status `awaiting_chain`) | 동작 |
 | 루트를 Discord에 게시 | cron `15:30 UTC` → `runLedgerStamp` | 동작 |
 | 한 사람의 증명 계산 | `proofForUser` (라우트 없음) | 코드만 있음 |
@@ -77,6 +79,45 @@
   못 바꾸고, 잃을 수 있는 돈은 지갑에 든 ETH(약 5달러)뿐이다.
 - 키가 샜다고 의심되면: 새 지갑을 만들고 컨트랙트 소유자를 옮기고 secret을 교체한다.
   소유자 이전 기능은 컨트랙트 배포 전에 넣는다.
+
+## 엽서 NFT (2026-09-28 방향 확정)
+
+엽서는 NFT 자산으로 받아 갈 수 있게 한다. 구조는 누브와 같다 — **지금 봉인으로
+증명하고, NFT는 사용자가 원할 때 자기 지갑으로 받아 간다(claim).** 우리가 사용자
+NFT를 대신 보관하지 않고(커스터디 규제 회피), 원하지 않는 사람은 NFT를 만들지 않는다.
+
+**지금 동작하는 것.** 엽서 만들기는 지금 문장을 한 번에 엽서로 옮긴다(발행번호 붙음).
+발행번호가 있는 엽서는 매일 밤 누브와 같은 컷오프로 봉인된다. 엽서 한 줄은
+
+```
+[commitment(bytes32), issue_no(uint256), content_hash(bytes32)]
+content_hash = keccak256(utf8(JSON.stringify([phrase, practiced_on, logged_days_at_issue])))
+```
+
+체인에는 루트만 올라가서 문장은 공개되지 않는다. 번호 없는 옛 엽서는 빠진다.
+엽서를 처음 만드는 사람에게도 salt가 생긴다(`ensureNuvAccount`).
+
+**확정된 결정**
+1. **문장 공개는 명시적 동의로.** NFT는 공개·영구다. "NFT로 받기"에서 "이 문장이 영원히
+   공개됩니다"를 확인받는다. 자동 발행은 하지 않는다.
+2. **그림은 IPFS에 고정.** 발행 순간의 엽서 그림과 메타데이터를 IPFS에 올리고, tokenURI가
+   그걸 가리킨다. 저장 서비스(Pinata 등) 하나가 필요하다.
+3. **배경은 받는 순간 굳는다.** 그 전까지는 지금처럼 바꿀 수 있다.
+
+**지갑이 온 뒤 만들 것**
+- `DandaniPostcard` (ERC-721, Base). `claim(to, commitment, issueNo, contentHash, day, proof,
+  tokenURI)` — `NuvLedgerAnchor.postcardRootOf(day)`로 증명을 확인하고 발행. 같은
+  (commitment, issueNo)는 한 번만.
+- "이 엽서가 내 것"은 증명만으로는 부족하다(commitment를 아는 사람은 누구나 낼 수 있음).
+  claim 요청에 서버 서명(해당 사용자가 로그인해 요청했음)을 함께 요구한다.
+- `NuvLedgerAnchor.anchor`에 `postcardRoot`, `postcards` 인자를 추가한다.
+- 앱: 엽서함 카드에 "NFT로 받기" → 동의 → 지갑 연결 → claim. 받은 엽서엔 표시만.
+
+**지키는 선**
+- App Store: 자기 NFT를 보여 주는 건 허용, NFT 소유가 기능을 열면 안 됨, 앱에서 발행을
+  팔면 인앱결제. 무료 claim + 보여 주기만. "되새기면 NFT" 같은 보상 표현 금지.
+- 국내법: 한 장씩 다른 NFT는 보통 가상자산으로 보지 않지만, 대량 발행·분할·결제 수단화하면
+  가상자산으로 볼 수 있다(금융위 NFT 가이드라인). 엽서를 사고파는 설계 전엔 검토.
 
 ## 아직 열려 있는 것
 
