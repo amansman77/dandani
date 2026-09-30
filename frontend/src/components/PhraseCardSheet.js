@@ -25,15 +25,16 @@ const chipSx = (on) => ({
   whiteSpace: 'nowrap',
 });
 
-// 아직 못 이긴 사람에게 보이는 잠긴 칸. 누를 수는 있고, 누르면 여는 방법을 말한다.
-const lockedChipSx = {
-  ...chipSx(false),
+// 아직 못 이긴 사람에게 보이는 잠긴 칸. 누르면 그 배경을 미리 보여 준다 —
+// 잠겨도 그림은 보여야 갖고 싶어진다. 저장·공유만 막는다.
+const lockedChipSx = (on) => ({
+  ...chipSx(on),
   borderStyle: 'dashed',
-  color: COLOR.line.disabled,
+  color: on ? COLOR.accent.main : COLOR.line.disabled,
   display: 'inline-flex',
   alignItems: 'center',
   gap: '5px',
-};
+});
 
 const LockIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -102,6 +103,8 @@ const PhraseCardSheet = ({
 
   if (!phrase) return null;
   const dedicated = DEDICATED_BACKGROUNDS[kind];
+  // 잠긴 배경을 구경하는 중 — 그림은 보여 주되 저장·공유는 안 된다.
+  const previewingLocked = !dedicated && !earnedUnlocked && preset === EARNED_BACKGROUND.id;
 
   const shareImage = async () => {
     const result = await shareImageFile(blob, 'card_share');
@@ -168,6 +171,19 @@ const PhraseCardSheet = ({
               <Box component="img" src={url} alt="공유 카드 미리보기"
                 sx={{ width: '100%', height: '100%', display: 'block' }} />
             )}
+            {previewingLocked && !busy && (
+              <Box sx={{
+                position: 'absolute', left: 0, right: 0, top: 14, display: 'flex', justifyContent: 'center',
+              }}>
+                <Box sx={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px', px: 1.75, py: 0.75,
+                  borderRadius: 999, background: 'rgba(58,46,32,0.78)', color: '#fbf1dc',
+                  fontFamily: SANS, fontSize: '0.74rem', fontWeight: 600,
+                }}>
+                  <LockIcon />작심삼일을 이겨내면 열려요
+                </Box>
+              </Box>
+            )}
             {busy && (
               <Box sx={{
                 position: 'absolute', inset: 0, display: 'flex',
@@ -193,7 +209,7 @@ const PhraseCardSheet = ({
               </Box>
             ) : (
               <Box component="button" type="button" aria-label={`${EARNED_BACKGROUND.label}, 잠김`}
-                onClick={() => setNotice('작심삼일을 이겨내면 열려요')} sx={lockedChipSx}>
+                onClick={() => setPreset(EARNED_BACKGROUND.id)} sx={lockedChipSx(preset === EARNED_BACKGROUND.id)}>
                 <LockIcon />{EARNED_BACKGROUND.label}
               </Box>
             )}
@@ -208,12 +224,13 @@ const PhraseCardSheet = ({
             {/* 전용 배경 엽서는 고를 배경이 없고, 발행될 때 이미 엽서함에 들어가 있다. */}
             {!dedicated && (
               <Box component="button" type="button" onClick={savePostcard}
-                disabled={!postcardId || saving || savedPreset === preset} sx={actionSx(true)}>
-                {saving ? '저장 중…' : (savedPreset === preset ? '저장됨' : '엽서함에 저장')}
+                disabled={!postcardId || saving || savedPreset === preset || previewingLocked} sx={actionSx(true)}>
+                {previewingLocked ? '잠겨 있어요'
+                  : (saving ? '저장 중…' : (savedPreset === preset ? '저장됨' : '엽서함에 저장'))}
               </Box>
             )}
             <Box component="button" type="button" onClick={shareImage}
-              disabled={!blob || busy} sx={actionSx(false)}>
+              disabled={!blob || busy || previewingLocked} sx={actionSx(false)}>
               이미지 공유
             </Box>
           </Box>
