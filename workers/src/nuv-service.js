@@ -125,34 +125,59 @@ export function currentStreak(dates, today) {
   return run;
 }
 
-async function phraseLogDates(env, userId, phraseId, upTo) {
+// 작심삼일은 앱이 보낸 날짜(log_date)가 아니라 서버가 기록한 시각(created_at)을
+// 그 사람의 고정된 시간대로 읽어 판정한다. log_date는 앱이 보낸 시간대를 따르는데,
+// 같은 순간에도 UTC−12·서울·UTC+14는 날짜가 하루씩 달라서 헤더만 바꿔 보내면
+// 1분 안에 "3일 연속"이 됐다(2026-09-30 로컬에서 재현). 누브의 하루와 같은 기준이다.
+// 시간대가 아직 없는 사람(되새기면 곧바로 생긴다)은 서울로 본다.
+const FALLBACK_TIMEZONE = 'Asia/Seoul';
+
+function serverDay(createdAt, timezone) {
+  return dateIn(timezone, new Date(`${createdAt.replace(' ', 'T')}Z`));
+}
+
+async function pinnedTimezone(env, userId) {
+  const account = await env.DB.prepare(`
+    SELECT timezone FROM nuv_accounts WHERE user_id = ?
+  `).bind(userId).first();
+  return account?.timezone || FALLBACK_TIMEZONE;
+}
+
+// 이 문장을 실제로 되새긴 날들(고정 시간대 기준, 중복 없음).
+export async function reflectedDays(env, userId, phraseId) {
+  const timezone = await pinnedTimezone(env, userId);
   const { results } = await env.DB.prepare(`
-    SELECT DISTINCT log_date FROM daily_phrase_logs
-    WHERE phrase_id = ? AND user_id = ? AND log_date <= ?
-  `).bind(phraseId, userId, upTo).all();
-  return results.map(row => row.log_date);
+    SELECT created_at FROM daily_phrase_logs WHERE phrase_id = ? AND user_id = ?
+  `).bind(phraseId, userId).all();
+  return [...new Set(results.map(row => serverDay(row.created_at, timezone)))];
 }
 
 // 어느 문장으로든 3일 연속을 한 번이라도 해냈는가. "이겨낸 아침" 배경이
 // 열리는 조건이다 — 특별한 엽서를 받았는지가 아니라 이겨냈는지로 본다.
 export async function hasBeatenThreeDays(env, userId) {
+  const timezone = await pinnedTimezone(env, userId);
   const { results } = await env.DB.prepare(`
-    SELECT phrase_id, log_date FROM daily_phrase_logs WHERE user_id = ?
+    SELECT phrase_id, created_at FROM daily_phrase_logs WHERE user_id = ?
   `).bind(userId).all();
   const byPhrase = new Map();
-  results.forEach(row => byPhrase.set(row.phrase_id, [...(byPhrase.get(row.phrase_id) || []), row.log_date]));
-  return [...byPhrase.values()].some(dates => longestStreak(dates) >= BEAT_THREE_DAYS_STREAK);
+  results.forEach(row => byPhrase.set(
+    row.phrase_id, [...(byPhrase.get(row.phrase_id) || []), serverDay(row.created_at, timezone)]
+  ));
+  return [...byPhrase.values()].some(days => longestStreak(days) >= BEAT_THREE_DAYS_STREAK);
 }
 
-// 오늘 화면이 "작심삼일을 이겨냈어요"를 띄울지 정하는 데 쓴다.
-export async function beatThreeDaysState(env, userId, phraseId, loggedDates) {
+// 오늘 화면의 "작심삼일을 이겨냈어요"와 발행 가능 여부가 같은 판정을 쓴다.
+// (예전엔 화면은 모든 되새김으로, 발행은 오늘까지로 따로 판단해 어긋날 수 있었다.)
+export async function beatThreeDaysState(env, userId, phraseId, now = new Date()) {
+  const days = await reflectedDays(env, userId, phraseId);
   const issued = await env.DB.prepare(`
     SELECT id FROM digital_postcards
     WHERE user_id = ? AND phrase_id = ? AND kind = 'beat_three_days'
   `).bind(userId, phraseId).first();
   return {
     streak_goal: BEAT_THREE_DAYS_STREAK,
-    reached: longestStreak(loggedDates) >= BEAT_THREE_DAYS_STREAK,
+    streak: currentStreak(days, dateIn(await pinnedTimezone(env, userId), now)),
+    reached: longestStreak(days) >= BEAT_THREE_DAYS_STREAK,
     postcard_id: issued?.id || null,
     // 문장과 상관없이, 이 사람에게 "이겨낸 아침" 배경이 열렸는가.
     background_unlocked: await hasBeatenThreeDays(env, userId),
@@ -188,10 +213,14 @@ export async function createPostcardFromPhrase(env, request) {
   const existing = await findExisting();
   if (existing) return postcardResult(existing, false);
 
-  const loggedDates = await phraseLogDates(env, userId, phrase.id, today);
-  const loggedDays = loggedDates.length;
-  // 작심삼일 엽서는 이겨낸 사람만. 앱 화면이 막아도 서버에서 한 번 더 확인한다.
-  if (kind === 'beat_three_days' && longestStreak(loggedDates) < BEAT_THREE_DAYS_STREAK) {
+  const counted = await env.DB.prepare(`
+    SELECT COUNT(DISTINCT log_date) AS days FROM daily_phrase_logs
+    WHERE phrase_id = ? AND user_id = ? AND log_date <= ?
+  `).bind(phrase.id, userId, today).first();
+  const loggedDays = counted?.days || 0;
+  // 작심삼일 엽서는 이겨낸 사람만. 오늘 화면과 같은 판정(서버 시각 기준)으로 확인한다.
+  if (kind === 'beat_three_days'
+      && longestStreak(await reflectedDays(env, userId, phrase.id)) < BEAT_THREE_DAYS_STREAK) {
     throw new HttpError(409, `같은 문장을 ${BEAT_THREE_DAYS_STREAK}일 연속 되새기면 발행할 수 있어요.`);
   }
 

@@ -6,6 +6,7 @@ import {
   awardNuvForReflection,
   createPostcardFromPhrase,
   hasBeatenThreeDays,
+  beatThreeDaysState,
   longestStreak,
   currentStreak,
   issuePostcardForRecord,
@@ -76,7 +77,8 @@ function createEnvironment() {
     );
     CREATE TABLE daily_phrase_logs (
       id TEXT PRIMARY KEY, phrase_id TEXT NOT NULL, user_id TEXT NOT NULL,
-      log_date TEXT NOT NULL, UNIQUE(phrase_id, log_date)
+      log_date TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(phrase_id, log_date)
     );
   `);
   database.exec(readFileSync(new URL('../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
@@ -114,7 +116,7 @@ function seoulNoon(date) {
 
 test('a daily reflection awards one Nuv only once', async () => {
   const { database, env } = createEnvironment();
-  database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)')
+  database.prepare('INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date) VALUES (?, ?, ?, ?)')
     .run('log-1', 'phrase-1', 'user-1', '2026-09-17');
 
   const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-17', seoulNoon('2026-09-17'));
@@ -126,7 +128,7 @@ test('a daily reflection awards one Nuv only once', async () => {
 
 test('a replaced phrase does not earn a second Nuv on the same day', async () => {
   const { database, env } = createEnvironment();
-  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date) VALUES (?, ?, ?, ?)');
   addLog.run('log-1', 'phrase-1', 'user-1', '2026-09-28');
   addLog.run('log-2', 'phrase-2', 'user-1', '2026-09-28');
   addLog.run('log-3', 'phrase-2', 'user-1', '2026-09-29');
@@ -142,7 +144,7 @@ test('a replaced phrase does not earn a second Nuv on the same day', async () =>
 
 test('switching the timezone header does not earn a second Nuv on the same real day', async () => {
   const { database, env } = createEnvironment();
-  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date) VALUES (?, ?, ?, ?)');
   // 서울 09-28 23:30 = UTC 14:30. 같은 순간 키리바시(UTC+14)는 이미 09-29다.
   const now = new Date('2026-09-28T14:30:00Z');
   addLog.run('log-1', 'phrase-1', 'user-1', '2026-09-28');
@@ -158,7 +160,7 @@ test('switching the timezone header does not earn a second Nuv on the same real 
 
 test('an unknown timezone is pinned as UTC and every account gets its own salt', async () => {
   const { database, env } = createEnvironment();
-  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date) VALUES (?, ?, ?, ?)');
   addLog.run('log-1', 'phrase-1', 'user-1', '2026-09-28');
   addLog.run('log-2', 'phrase-2', 'user-2', '2026-09-28');
   const now = new Date('2026-09-28T12:00:00Z');
@@ -177,7 +179,7 @@ test('the one-per-day migration keys existing rewards by date alone', async () =
   database.prepare(`
     INSERT INTO nuv_transactions VALUES (?, ?, 1, 'daily_reflection', ?, datetime('now'))
   `).run('reward-1', 'user-1', 'phrase-1:2026-09-28');
-  database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)')
+  database.prepare('INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date) VALUES (?, ?, ?, ?)')
     .run('log-2', 'phrase-2', 'user-1', '2026-09-28');
 
   database.exec(readFileSync(
@@ -253,10 +255,7 @@ test('issuing a postcard leaves the Nuv untouched', async () => {
 
 test('the ledger lists each Nuv day with the phrase reflected on, newest first', async () => {
   const { database, env } = createEnvironment();
-  database.exec(`
-    ALTER TABLE daily_phrase_logs ADD COLUMN created_at TEXT;
-    ${readFileSync(new URL('../schemas/schema_v260928_nuv_anchors.sql', import.meta.url), 'utf8')}
-  `);
+  database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_anchors.sql', import.meta.url), 'utf8'));
   const addPhrase = database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)');
   const addLog = database.prepare(`
     INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date, created_at) VALUES (?, ?, ?, ?, ?)
@@ -292,7 +291,7 @@ test('the ledger lists each Nuv day with the phrase reflected on, newest first',
 test('making a postcard turns the active phrase into a numbered postcard, with no writing', async () => {
   const { database, env } = createEnvironment();
   database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)').run('phrase-1', 'user-1', '천천히 가도 된다', 'active');
-  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date) VALUES (?, ?, ?, ?)');
   addLog.run('l1', 'phrase-1', 'user-1', '2026-09-01');
   addLog.run('l2', 'phrase-1', 'user-1', '2026-09-02');
 
@@ -345,10 +344,15 @@ test('the longest streak counts calendar days in a row, ignoring repeats and gap
   assert.equal(longestStreak(['2026-03-07', '2026-03-08', '2026-03-09']), 3);
 });
 
+// 되새김은 그날 서울 정오(UTC 03:00)에 실제로 한 것으로 남긴다 — 작심삼일은
+// 서버가 기록한 시각으로 판정하기 때문이다.
 function seedPhraseWithLogs(database, dates) {
   database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)').run('phrase-1', 'user-1', '천천히 가도 된다', 'active');
-  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
-  dates.forEach((date, index) => addLog.run(`l${index}`, 'phrase-1', 'user-1', date));
+  database.prepare("INSERT INTO nuv_accounts (user_id, timezone, salt) VALUES ('user-1', 'Asia/Seoul', '0x00')").run();
+  const addLog = database.prepare(`
+    INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date, created_at) VALUES (?, ?, ?, ?, ?)
+  `);
+  dates.forEach((date, index) => addLog.run(`l${index}`, 'phrase-1', 'user-1', date, `${date} 03:00:00`));
 }
 
 const special = { phrase_id: 'phrase-1', kind: 'beat_three_days' };
@@ -414,7 +418,9 @@ test('이겨낸 아침 opens for regular postcards only after beating 작심삼�
   assert.equal(await hasBeatenThreeDays(env, 'user-1'), false);
   await assert.rejects(savePostcard(env, card.postcard_id, request('user-1', { preset: 'triumph' })), /이겨내면 열려요/);
 
-  database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)').run('l-late', 'phrase-1', 'user-1', '2026-09-03');
+  database.prepare(`
+    INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date, created_at) VALUES (?, ?, ?, ?, ?)
+  `).run('l-late', 'phrase-1', 'user-1', '2026-09-03', '2026-09-03 03:00:00');
   assert.equal(await hasBeatenThreeDays(env, 'user-1'), true);
   const saved = await savePostcard(env, card.postcard_id, request('user-1', { preset: 'triumph' }));
   assert.equal(saved.postcard.preset, 'triumph');
@@ -428,4 +434,23 @@ test('the background rebuild keeps every postcard and its indexes', () => {
     'idx_digital_postcards_phrase_day', 'idx_digital_postcards_practice_record',
     'idx_digital_postcards_user_status_created',
   ]);
+});
+
+test('switching the timezone header cannot fake three days in a row', async () => {
+  const { database, env } = createEnvironment();
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)').run('phrase-1', 'user-1', '시간대 실험', 'active');
+  database.prepare("INSERT INTO nuv_accounts (user_id, timezone, salt) VALUES ('user-1', 'Asia/Seoul', '0x00')").run();
+  const addLog = database.prepare(`
+    INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date, created_at) VALUES (?, ?, ?, ?, ?)
+  `);
+  // 2026-09-30 11:29 UTC에 UTC−12·서울·UTC+14 헤더로 연달아 보낸 세 번 — 로컬에서 재현한 그대로.
+  addLog.run('h1', 'phrase-1', 'user-1', '2026-09-29', '2026-09-30 11:29:40');
+  addLog.run('h2', 'phrase-1', 'user-1', '2026-09-30', '2026-09-30 11:29:41');
+  addLog.run('h3', 'phrase-1', 'user-1', '2026-10-01', '2026-09-30 11:29:42');
+
+  const state = await beatThreeDaysState(env, 'user-1', 'phrase-1', new Date('2026-09-30T11:30:00Z'));
+  assert.equal(state.reached, false);
+  assert.equal(state.streak, 1);
+  assert.equal(await hasBeatenThreeDays(env, 'user-1'), false);
+  await assert.rejects(createPostcardFromPhrase(env, request('user-1', special)), /3일 연속/);
 });

@@ -81,9 +81,14 @@ function executeAll(state, sql, values) {
   if (sql.includes('SELECT DISTINCT created_at FROM user_events')) {
     return { results: [] };
   }
-  if (sql.includes('SELECT phrase_id, log_date FROM daily_phrase_logs WHERE user_id = ?')) {
+  // 가짜 DB의 되새김은 그날 서울 정오에 한 것으로 본다(작심삼일은 created_at으로 판정).
+  if (sql.includes('SELECT phrase_id, created_at FROM daily_phrase_logs WHERE user_id = ?')) {
     return { results: state.logs.filter((item) => item.user_id === values[0])
-      .map(({ phrase_id, log_date }) => ({ phrase_id, log_date })) };
+      .map(({ phrase_id, log_date }) => ({ phrase_id, created_at: `${log_date} 03:00:00` })) };
+  }
+  if (sql.includes('SELECT created_at FROM daily_phrase_logs WHERE phrase_id = ? AND user_id = ?')) {
+    return { results: state.logs.filter((item) => item.phrase_id === values[0] && item.user_id === values[1])
+      .map(({ log_date }) => ({ created_at: `${log_date} 03:00:00` })) };
   }
   if (sql.includes('SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ?')) {
     const logs = state.logs
