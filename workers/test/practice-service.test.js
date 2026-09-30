@@ -51,6 +51,8 @@ function createEnvironment() {
     '../schemas/schema_v260924_drop_postcard_images.sql',
     '../schemas/schema_v260926_practice_logged_days.sql',
     '../schemas/schema_v260928_nuv_accounts.sql',
+    '../schemas/schema_v260928_postcard_per_phrase_day.sql',
+    '../schemas/schema_v260930_beat_three_days.sql',
   ]) {
     database.exec(readFileSync(new URL(file, import.meta.url), 'utf8'));
   }

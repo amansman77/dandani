@@ -5,6 +5,8 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
   createPostcardFromPhrase,
+  longestStreak,
+  currentStreak,
   issuePostcardForRecord,
   getSavedPostcards,
   getNuvLedger,
@@ -86,6 +88,7 @@ function createEnvironment() {
   database.exec(readFileSync(new URL('../schemas/schema_v260926_practice_logged_days.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260928_postcard_per_phrase_day.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260930_beat_three_days.sql', import.meta.url), 'utf8'));
 
   return {
     database,
@@ -329,4 +332,64 @@ test('only your own active phrase can become a postcard', async () => {
   await assert.rejects(createPostcardFromPhrase(env, request('user-1', { phrase_id: 'retired' })), /찾을 수 없어요/);
   await assert.rejects(createPostcardFromPhrase(env, request('user-1', { phrase_id: 'theirs' })), /찾을 수 없어요/);
   await assert.rejects(createPostcardFromPhrase(env, request('user-1', {})), /어떤 문장/);
+});
+
+test('the longest streak counts calendar days in a row, ignoring repeats and gaps', () => {
+  assert.equal(longestStreak([]), 0);
+  assert.equal(longestStreak(['2026-09-01']), 1);
+  assert.equal(longestStreak(['2026-09-01', '2026-09-02', '2026-09-04']), 2);
+  assert.equal(longestStreak(['2026-09-30', '2026-10-01', '2026-10-02', '2026-10-02']), 3);
+  // 서머타임이 바뀌는 날을 끼어도 하루는 하루다.
+  assert.equal(longestStreak(['2026-03-07', '2026-03-08', '2026-03-09']), 3);
+});
+
+function seedPhraseWithLogs(database, dates) {
+  database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)').run('phrase-1', 'user-1', '천천히 가도 된다', 'active');
+  const addLog = database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)');
+  dates.forEach((date, index) => addLog.run(`l${index}`, 'phrase-1', 'user-1', date));
+}
+
+const special = { phrase_id: 'phrase-1', kind: 'beat_three_days' };
+
+test('the beat-three-days postcard needs three days in a row, not three days in total', async () => {
+  const { database, env } = createEnvironment();
+  seedPhraseWithLogs(database, ['2026-09-01', '2026-09-02', '2026-09-04']);
+
+  await assert.rejects(createPostcardFromPhrase(env, request('user-1', special)), /3일 연속/);
+  assert.equal(database.prepare('SELECT COUNT(*) AS n FROM digital_postcards').get().n, 0);
+});
+
+test('three days in a row earns one special postcard per phrase, even after a later gap', async () => {
+  const { database, env } = createEnvironment();
+  seedPhraseWithLogs(database, ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-10']);
+
+  const made = await createPostcardFromPhrase(env, request('user-1', special));
+  const again = await createPostcardFromPhrase(env, request('user-1', special));
+  // 같은 날 일반 엽서도 따로 만들 수 있다 — 두 규칙이 서로 막지 않는다.
+  const regular = await createPostcardFromPhrase(env, request('user-1', { phrase_id: 'phrase-1' }));
+
+  assert.equal(made.kind, 'beat_three_days');
+  assert.equal(made.created, true);
+  assert.equal(made.logged_days, 4);
+  assert.equal(again.created, false);
+  assert.equal(again.postcard_id, made.postcard_id);
+  assert.equal(regular.kind, 'regular');
+  assert.notEqual(regular.postcard_id, made.postcard_id);
+
+  const { postcards } = await getSavedPostcards(env, request('user-1'));
+  assert.deepEqual(postcards.map(p => p.kind).sort(), ['beat_three_days', 'regular']);
+});
+
+test('an unknown postcard kind is refused', async () => {
+  const { database, env } = createEnvironment();
+  seedPhraseWithLogs(database, []);
+  await assert.rejects(createPostcardFromPhrase(env, request('user-1', { phrase_id: 'phrase-1', kind: 'gold' })), /알 수 없는 엽서/);
+});
+
+test('the current streak ends today, or yesterday if today is not reflected yet', () => {
+  const dates = ['2026-09-27', '2026-09-28', '2026-09-29'];
+  assert.equal(currentStreak(dates, '2026-09-29'), 3);
+  assert.equal(currentStreak(dates, '2026-09-30'), 3);
+  assert.equal(currentStreak(dates, '2026-10-01'), 0);
+  assert.equal(currentStreak([], '2026-10-01'), 0);
 });

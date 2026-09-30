@@ -18,13 +18,14 @@ export async function fetchNuvLedger() {
 }
 
 // 지금 문장을 엽서로. 같은 날 다시 부르면 그날의 엽서를 돌려준다.
-export async function createPostcard(phraseId) {
+// kind 'beat_three_days'는 작심삼일을 이겨낸 엽서 — 문장마다 한 장.
+export async function createPostcard(phraseId, kind = 'regular') {
   let response;
   try {
     response = await fetch(`${API_URL}/api/nuv/postcards`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId(), ...getClientTimeHeaders() },
-      body: JSON.stringify({ phrase_id: phraseId }),
+      body: JSON.stringify({ phrase_id: phraseId, kind }),
     });
   } catch (error) {
     if (!(error instanceof TypeError)) throw error;

@@ -42,6 +42,7 @@ function createEnvironment() {
     'schema_v260926_practice_logged_days.sql',
     'schema_v260928_postcard_per_phrase_day.sql',
     'schema_v260928_anchor_postcards.sql',
+    'schema_v260930_beat_three_days.sql',
   ]) {
     database.exec(readFileSync(new URL(`../schemas/${file}`, import.meta.url), 'utf8'));
   }
@@ -255,4 +256,10 @@ test('a sealed postcard edited afterwards refuses to hand out proofs', async () 
   environment.database.prepare(`UPDATE digital_postcards SET phrase = '고친 문장' WHERE id = 'card-1'`).run();
 
   await assert.rejects(postcardProof(environment.env, 'user-1', 'card-1'), /다르다/);
+});
+
+test('a special postcard carries its kind in the fingerprint; a regular one keeps the old fingerprint', () => {
+  const base = { phrase: '천천히 가도 된다', practiced_on: '2026-09-30', logged_days_at_issue: 3 };
+  assert.equal(postcardContentHash({ ...base, kind: 'regular' }), postcardContentHash(base));
+  assert.notEqual(postcardContentHash({ ...base, kind: 'beat_three_days' }), postcardContentHash(base));
 });

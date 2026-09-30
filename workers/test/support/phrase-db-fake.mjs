@@ -42,6 +42,9 @@ function createStatement(state, sql) {
 }
 
 function executeFirst(state, sql, values) {
+  if (sql.includes("FROM digital_postcards WHERE user_id = ? AND phrase_id = ? AND kind = 'beat_three_days'")) {
+    return null;
+  }
   if (sql.includes('SELECT timezone FROM nuv_accounts')) {
     return state.nuvAccounts.get(values[0]) || null;
   }

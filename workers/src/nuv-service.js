@@ -70,14 +70,14 @@ async function insertPostcard(env, userId, card) {
     INSERT INTO digital_postcards
       (id, user_id, phrase_id, phrase, visit_days, preset, status, practice_record_id,
        practice_body, practiced_on, logged_days_at_issue, nuv_at_issue, issue_no,
-       issued_at, saved_at)
-    VALUES (?, ?, ?, ?, ?, 'morning', 'saved', ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+       kind, issued_at, saved_at)
+    VALUES (?, ?, ?, ?, ?, 'morning', 'saved', ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     RETURNING id
   `).bind(
     postcardId, userId, card.phrase_id, card.phrase,
     Math.max(1, card.nuv), card.record_id,
     card.body, card.on, card.logged_days, card.nuv,
-    (last?.issue_no || 0) + 1
+    (last?.issue_no || 0) + 1, card.kind || 'regular'
   ).first();
   return created?.id || null;
 }
@@ -91,12 +91,63 @@ async function insertPostcard(env, userId, card) {
 //
 // 같은 문장으로 같은 날 다시 누르면 새 장을 찍지 않고 그날의 엽서를 돌려준다.
 // 누를 때마다 발행번호가 늘면 번호가 아무 뜻이 없어진다.
+// 작심삼일을 이겨낸 엽서 — 같은 문장을 3일 연속 되새기면 발행할 수 있다.
+// 한 번 3일 연속을 해냈으면 그 뒤에 하루 쉬어도 자격은 남는다. 이미 이긴 것이다.
+export const BEAT_THREE_DAYS_STREAK = 3;
+const POSTCARD_KINDS = new Set(['regular', 'beat_three_days']);
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 'YYYY-MM-DD' 목록에서 가장 긴 연속 일수. 날짜 문자열을 UTC 정오로 읽어
+// 서머타임 경계에서도 하루가 23·25시간으로 흔들리지 않게 한다.
+export function longestStreak(dates) {
+  const days = [...new Set(dates)].sort().map(date => Date.parse(`${date}T12:00:00Z`) / DAY_MS);
+  let best = 0;
+  let run = 0;
+  days.forEach((day, index) => {
+    run = index > 0 && day - days[index - 1] === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+  });
+  return best;
+}
+
+// 오늘(또는 어제)에서 끝나는 연속 일수. 오늘 아직 안 되새겼으면 어제까지를 센다.
+export function currentStreak(dates, today) {
+  const set = new Set(dates);
+  const at = offset => new Date(Date.parse(`${today}T12:00:00Z`) - offset * DAY_MS).toISOString().slice(0, 10);
+  let offset = set.has(today) ? 0 : 1;
+  let run = 0;
+  while (set.has(at(offset))) { run += 1; offset += 1; }
+  return run;
+}
+
+async function phraseLogDates(env, userId, phraseId, upTo) {
+  const { results } = await env.DB.prepare(`
+    SELECT DISTINCT log_date FROM daily_phrase_logs
+    WHERE phrase_id = ? AND user_id = ? AND log_date <= ?
+  `).bind(phraseId, userId, upTo).all();
+  return results.map(row => row.log_date);
+}
+
+// 오늘 화면이 "작심삼일을 이겨냈어요"를 띄울지 정하는 데 쓴다.
+export async function beatThreeDaysState(env, userId, phraseId, loggedDates) {
+  const issued = await env.DB.prepare(`
+    SELECT id FROM digital_postcards
+    WHERE user_id = ? AND phrase_id = ? AND kind = 'beat_three_days'
+  `).bind(userId, phraseId).first();
+  return {
+    streak_goal: BEAT_THREE_DAYS_STREAK,
+    reached: longestStreak(loggedDates) >= BEAT_THREE_DAYS_STREAK,
+    postcard_id: issued?.id || null,
+  };
+}
+
 export async function createPostcardFromPhrase(env, request) {
   const userId = getRequiredUserId(request);
-  const { phrase_id: phraseId } = await request.json();
+  const { phrase_id: phraseId, kind = 'regular' } = await request.json();
   if (!phraseId || typeof phraseId !== 'string') {
     throw new HttpError(400, '어떤 문장의 엽서인지 알 수 없어요.');
   }
+  if (!POSTCARD_KINDS.has(kind)) throw new HttpError(400, '알 수 없는 엽서예요.');
   const phrase = await env.DB.prepare(`
     SELECT id, phrase FROM daily_phrases WHERE id = ? AND user_id = ? AND status = 'active'
   `).bind(phraseId, userId).first();
@@ -104,29 +155,38 @@ export async function createPostcardFromPhrase(env, request) {
 
   const { today } = phraseDateContext(request);
   await ensureNuvAccount(env, userId, request.headers.get('X-Client-Timezone'));
-  const findToday = () => env.DB.prepare(`
-    SELECT id, practiced_on, logged_days_at_issue FROM digital_postcards
-    WHERE user_id = ? AND phrase_id = ? AND practiced_on = ?
-      AND practice_record_id IS NULL AND issue_no IS NOT NULL
-  `).bind(userId, phrase.id, today).first();
-  const existing = await findToday();
+  // 일반 엽서는 문장·날짜마다 한 장, 작심삼일 엽서는 문장마다 한 장.
+  const findExisting = () => (kind === 'beat_three_days'
+    ? env.DB.prepare(`
+        SELECT id, practiced_on, logged_days_at_issue, kind FROM digital_postcards
+        WHERE user_id = ? AND phrase_id = ? AND kind = 'beat_three_days'
+      `).bind(userId, phrase.id)
+    : env.DB.prepare(`
+        SELECT id, practiced_on, logged_days_at_issue, kind FROM digital_postcards
+        WHERE user_id = ? AND phrase_id = ? AND practiced_on = ?
+          AND practice_record_id IS NULL AND issue_no IS NOT NULL AND kind = 'regular'
+      `).bind(userId, phrase.id, today)
+  ).first();
+  const existing = await findExisting();
   if (existing) return postcardResult(existing, false);
 
-  const counted = await env.DB.prepare(`
-    SELECT COUNT(DISTINCT log_date) AS days FROM daily_phrase_logs
-    WHERE phrase_id = ? AND user_id = ? AND log_date <= ?
-  `).bind(phrase.id, userId, today).first();
+  const loggedDates = await phraseLogDates(env, userId, phrase.id, today);
+  const loggedDays = loggedDates.length;
+  // 작심삼일 엽서는 이겨낸 사람만. 앱 화면이 막아도 서버에서 한 번 더 확인한다.
+  if (kind === 'beat_three_days' && longestStreak(loggedDates) < BEAT_THREE_DAYS_STREAK) {
+    throw new HttpError(409, `같은 문장을 ${BEAT_THREE_DAYS_STREAK}일 연속 되새기면 발행할 수 있어요.`);
+  }
 
   try {
     await insertPostcard(env, userId, {
       phrase_id: phrase.id, phrase: phrase.phrase, record_id: null, body: null,
-      on: today, logged_days: counted?.days || 0, nuv: await getBalance(env, userId),
+      on: today, logged_days: loggedDays, nuv: await getBalance(env, userId), kind,
     });
   } catch (error) {
     // 같은 순간 두 번 눌러 UNIQUE에 걸린 경우 — 먼저 들어간 엽서를 돌려준다.
     if (!String(error?.message).includes('UNIQUE')) throw error;
   }
-  return postcardResult(await findToday(), true);
+  return postcardResult(await findExisting(), true);
 }
 
 function postcardResult(row, created) {
@@ -134,6 +194,7 @@ function postcardResult(row, created) {
     postcard_id: row.id,
     issued_on: row.practiced_on,
     logged_days: row.logged_days_at_issue,
+    kind: row.kind,
     created,
   };
 }
@@ -244,7 +305,7 @@ export async function getSavedPostcards(env, request) {
   const { results } = await env.DB.prepare(`
     SELECT id, phrase, visit_days, preset, created_at, saved_at,
            practice_body, practiced_on,
-           logged_days_at_issue, nuv_at_issue, issue_no, issued_at
+           logged_days_at_issue, nuv_at_issue, issue_no, issued_at, kind
     FROM digital_postcards
     WHERE user_id = ? AND status = 'saved'
     ORDER BY issue_no DESC, saved_at DESC, created_at DESC

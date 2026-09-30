@@ -30,15 +30,32 @@ const DailyPhrase = ({
     onNuvBalanceChange,
     // "받았어요"는 보상의 말이다. 누브는 되새긴 하루가 남은 것이고 그 수가 곧
     // 되새긴 날의 수라서, 몇 번째 하루인지를 말한다.
-    onNuvAwarded: balance => setNotice(`오늘이 ${balance}번째 누브로 남았어요`),
+    //
+    // 작심삼일을 아직 못 넘긴 사람에겐 거기까지 남은 날을 먼저 말한다. 광고
+    // ("작심 3일을 이겨내봐요")를 보고 온 사람이 목표를 앱 안에서 다시 만나게.
+    onNuvAwarded: (balance, data) => {
+      const beat = data?.beat_three_days;
+      const streak = data?.streak || 0;
+      if (beat && !beat.reached) {
+        setNotice(`${streak}일 연속 · ${beat.streak_goal - streak}일 더 이어 가면 작심삼일을 이겨내요`);
+      } else if (beat && !beat.postcard_id && streak === beat.streak_goal) {
+        setNotice(`${streak}일 연속, 작심삼일을 이겨냈어요`);
+      } else {
+        setNotice(`오늘이 ${balance}번째 누브로 남았어요`);
+      }
+    },
   });
   const { phrase, loading, error, refresh } = resource;
-  const makePostcard = async () => {
+  const makePostcard = async (kind = 'regular') => {
     if (!phrase || making) return;
     setMaking(true);
     try {
-      const made = await createPostcard(phrase.id);
-      setIssued({ id: made.postcard_id, practicedOn: made.issued_on, loggedDays: made.logged_days });
+      const made = await createPostcard(phrase.id, kind);
+      setIssued({
+        id: made.postcard_id, practicedOn: made.issued_on, loggedDays: made.logged_days, kind: made.kind,
+      });
+      // 작심삼일 엽서를 받았으면 오늘 화면의 안내가 사라져야 한다.
+      if (kind !== 'regular') refresh();
     } catch (err) {
       setNotice(err.message);
     } finally {
@@ -89,7 +106,9 @@ const DailyPhrase = ({
         phrase={phrase} {...editor} {...logging}
         onViewHistory={onViewHistory} hasActivePhrase={Boolean(phrase)} isEditing={isEditing}
         onShare={onShare}
-        onMakePostcard={makePostcard}
+        onMakePostcard={() => makePostcard()}
+        onMakeSpecialPostcard={() => makePostcard('beat_three_days')}
+        makingPostcard={making}
         cameFromPicker={pickedText !== null}
         onBackToPicker={() => {
           setPickedText(null);
@@ -100,7 +119,7 @@ const DailyPhrase = ({
       <PhraseCardSheet
         open={Boolean(issued)} onClose={() => setIssued(null)}
         phrase={phrase} postcardId={issued?.id} practicedOn={issued?.practicedOn}
-        loggedDays={issued?.loggedDays}
+        loggedDays={issued?.loggedDays} kind={issued?.kind}
       />
       <Snackbar
         open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')}

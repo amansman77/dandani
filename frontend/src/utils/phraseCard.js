@@ -181,7 +181,10 @@ const ensureFonts = async () => {
 // meta는 문장 아래 한 줄. 예전엔 "N번째 아침"을 여기 박아뒀는데, 실천으로
 // 발행한 엽서에서는 그 숫자가 사실 누브 잔액이었다. 증명서에 살 수 있는
 // 숫자가 들어가면 증명이 아니게 되므로, 무엇을 적을지는 부르는 쪽이 정한다.
-export const renderPhraseCard = async ({ phrase, meta, preset = 'morning' }) => {
+//
+// badge는 문장 위 한 줄. 작심삼일을 이겨낸 엽서처럼 특별한 엽서에만 붙는다 —
+// 같은 문장의 일반 엽서와 한눈에 구별되어야 "특별한 엽서"가 참말이 된다.
+export const renderPhraseCard = async ({ phrase, meta, preset = 'morning', badge }) => {
   await ensureFonts();
 
   const canvas = document.createElement('canvas');
@@ -202,6 +205,28 @@ export const renderPhraseCard = async ({ phrase, meta, preset = 'morning' }) => 
   // 문장 덩어리를 카드 한가운데. 예전엔 40px 위로 올렸는데, 그러면 기록과
   // 하단 마크 사이가 벌어져서 아래쪽이 비어 보였다.
   let y = SIZE / 2 - blockH / 2 + size * 0.72;
+
+  if (badge) {
+    // 문장 덩어리 바로 위, 양옆에 짧은 선을 둔 도장 같은 한 줄.
+    const badgeY = y - size - 64;
+    ctx.fillStyle = theme.mark;
+    ctx.font = '600 30px Pretendard, sans-serif';
+    ctx.letterSpacing = '0.12em';
+    const width = ctx.measureText(badge).width;
+    ctx.fillText(badge, SIZE / 2, badgeY);
+    ctx.letterSpacing = '0px';
+    ctx.strokeStyle = theme.mark;
+    ctx.lineWidth = 2;
+    const gap = 22;
+    const rule = 40;
+    const lineY = badgeY - 10;
+    ctx.beginPath();
+    ctx.moveTo(SIZE / 2 - width / 2 - gap - rule, lineY);
+    ctx.lineTo(SIZE / 2 - width / 2 - gap, lineY);
+    ctx.moveTo(SIZE / 2 + width / 2 + gap, lineY);
+    ctx.lineTo(SIZE / 2 + width / 2 + gap + rule, lineY);
+    ctx.stroke();
+  }
 
   ctx.fillStyle = theme.text;
   ctx.font = `700 ${size}px Pretendard, sans-serif`;
@@ -238,3 +263,8 @@ export const renderPhraseCard = async ({ phrase, meta, preset = 'morning' }) => 
 };
 
 export const CARD_SIZE = SIZE;
+
+// 엽서 종류 → 문장 위에 붙는 표시. 일반 엽서는 없다.
+export const POSTCARD_BADGES = {
+  beat_three_days: '작심삼일을 이겨낸 날',
+};

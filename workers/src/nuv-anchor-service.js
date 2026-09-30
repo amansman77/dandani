@@ -77,8 +77,13 @@ export async function buildLedgerTree(env, cutoffAt) {
 
 // 엽서 내용의 지문. 문장·날짜·그날까지 되새긴 날수를 순서가 정해진 JSON
 // 배열로 적어 해시한다 — 누가 언제 다시 계산해도 같은 값이 나와야 한다.
+//
+// 작심삼일 엽서는 종류까지 지문에 넣어 "특별한 엽서"임이 증명되게 한다. 일반
+// 엽서는 넣지 않는다 — 이미 봉인된 일반 엽서의 지문이 바뀌면 안 되니까.
 export function postcardContentHash(postcard) {
-  const canonical = JSON.stringify([postcard.phrase, postcard.practiced_on, postcard.logged_days_at_issue]);
+  const fields = [postcard.phrase, postcard.practiced_on, postcard.logged_days_at_issue];
+  if (postcard.kind && postcard.kind !== 'regular') fields.push(postcard.kind);
+  const canonical = JSON.stringify(fields);
   return `0x${bytesToHex(keccak256(utf8ToBytes(canonical)))}`;
 }
 
@@ -86,7 +91,7 @@ export function postcardContentHash(postcard) {
 // 증명할 것이 없어서 뺀다.
 export async function buildPostcardTree(env, cutoffAt) {
   const { results } = await env.DB.prepare(`
-    SELECT p.id, p.user_id, a.salt, p.issue_no, p.phrase, p.practiced_on, p.logged_days_at_issue
+    SELECT p.id, p.user_id, a.salt, p.issue_no, p.phrase, p.practiced_on, p.logged_days_at_issue, p.kind
     FROM digital_postcards p
     LEFT JOIN nuv_accounts a ON a.user_id = p.user_id
     WHERE p.issue_no IS NOT NULL AND p.issued_at <= ?

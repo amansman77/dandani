@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { getUserId } from '../utils/userId';
-import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import { POSTCARD_BADGES, PRESETS, renderPhraseCard } from '../utils/phraseCard';
 import { formatPracticedOn, proofCaption } from '../utils/practiceDate';
 import Loader from './Loader';
 import ShareSheet from './ShareSheet';
@@ -25,6 +25,7 @@ const PostcardCard = ({ postcard, onShare }) => {
       phrase: postcard.phrase,
       meta: proofCaption(postcard.practiced_on, postcard.logged_days_at_issue),
       preset: postcard.preset,
+      badge: POSTCARD_BADGES[postcard.kind],
     }).then((blob) => {
       if (!alive) return;
       objectUrl = URL.createObjectURL(blob);

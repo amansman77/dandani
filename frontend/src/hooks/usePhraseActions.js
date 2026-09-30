@@ -73,7 +73,7 @@ export function usePhraseLogging(resource, { onNuvBalanceChange, onNuvAwarded } 
       const data = await logPhraseToday(resource.phrase.id);
       logPhraseDayLogged(resource.phrase.id, data.logged_days);
       if (onNuvBalanceChange && data.balance !== undefined) onNuvBalanceChange(data.balance);
-      if (onNuvAwarded && data.awarded_nuv > 0) onNuvAwarded(data.balance);
+      if (onNuvAwarded && data.awarded_nuv > 0) onNuvAwarded(data.balance, data);
       await resource.refresh();
     } catch (error) {
       resource.setError(error.message);

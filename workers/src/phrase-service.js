@@ -2,7 +2,7 @@ import { phraseDateContext, countPhraseVisits } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
 import { getRequiredUserId, logUserEvent } from './service-utils.js';
 import { getNickname } from './nickname-service.js';
-import { awardNuvForReflection } from './nuv-service.js';
+import { awardNuvForReflection, beatThreeDaysState, currentStreak } from './nuv-service.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -39,7 +39,8 @@ export async function getActivePhrase(env, request) {
       logged_days: logs.length,
       logged_dates: logs.map((log) => log.log_date),
       logged_today: loggedToday,
-      visit_days: visitDays
+      visit_days: visitDays,
+      beat_three_days: await beatThreeDaysState(env, userId, phrase.id, logs.map(log => log.log_date)),
     }
   };
 }
@@ -76,7 +77,13 @@ export async function logPhraseDay(env, phraseId, request) {
   const reward = await awardNuvForReflection(env, userId, phraseId, today, {
     timezone: request.headers.get('X-Client-Timezone'),
   });
-  return { logged_days: logs.length, ...reward };
+  const dates = logs.map(log => log.log_date);
+  return {
+    logged_days: logs.length,
+    streak: currentStreak(dates, today),
+    beat_three_days: await beatThreeDaysState(env, userId, phraseId, dates),
+    ...reward,
+  };
 }
 
 export async function retirePhrase(env, phraseId, request) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
-import { PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import { POSTCARD_BADGES, PRESETS, renderPhraseCard } from '../utils/phraseCard';
 import { shareImageFile } from '../utils/shareImageFile';
 import { proofCaption } from '../utils/practiceDate';
 import { getUserId } from '../utils/userId';
@@ -37,7 +37,7 @@ const actionSx = (primary) => ({
   '&:disabled': { opacity: 0.45, cursor: 'default' },
 });
 
-const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, loggedDays }) => {
+const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, loggedDays, kind }) => {
   const [preset, setPreset] = useState('morning');
   const [url, setUrl] = useState(null);
   const [blob, setBlob] = useState(null);
@@ -55,6 +55,7 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
     try {
       const b = await renderPhraseCard({
         phrase: phrase.phrase, meta: proofCaption(practicedOn, loggedDays), preset,
+        badge: POSTCARD_BADGES[kind],
       });
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = URL.createObjectURL(b);
@@ -65,7 +66,7 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
     } finally {
       setBusy(false);
     }
-  }, [phrase, preset, practicedOn, loggedDays]);
+  }, [phrase, preset, practicedOn, loggedDays, kind]);
 
   useEffect(() => { if (open) draw(); }, [open, draw]);
 

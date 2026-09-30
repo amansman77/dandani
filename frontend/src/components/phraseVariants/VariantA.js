@@ -89,9 +89,29 @@ function useMilestone(phrase, streak) {
   return milestone;
 }
 
+// 작심삼일을 이겨낸 사람에게만, 엽서를 받기 전까지 남는 한 칸. 광고의 약속
+// ("작심 3일을 이겨낸 특별한 엽서를 발행할 수 있어요")이 앱에서 만나는 자리다.
+// 오늘 화면의 배치는 건드리지 않고 기존 이정표 자리와 같은 결로 둔다.
+function BeatThreeDays({ onIssue, busy }) {
+  return (
+    <Box sx={{ position: 'relative', mb: 2, px: 3, py: 1.75, borderRadius: '14px', textAlign: 'center',
+      background: 'radial-gradient(ellipse at center, rgba(255,240,208,0.95) 0%, rgba(255,235,196,0.35) 55%, rgba(255,235,196,0) 78%)' }}>
+      <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.82rem', fontWeight: 700, color: COLOR.accent.main }}>
+        작심삼일을 이겨냈어요
+      </Typography>
+      <Box component="button" type="button" onClick={onIssue} disabled={busy}
+        sx={{ mt: 1, border: `1px solid ${COLOR.accent.line}`, borderRadius: 999, background: 'rgba(255,255,255,0.7)',
+          px: 2, py: 0.75, cursor: busy ? 'default' : 'pointer', fontFamily: FONT.sans, fontSize: '0.76rem',
+          fontWeight: 600, color: COLOR.accent.main, WebkitTapHighlightColor: 'transparent' }}>
+        {busy ? <Loader small /> : '특별한 엽서 발행하기'}
+      </Box>
+    </Box>
+  );
+}
+
 function ActivePhrase({
   phrase, logging, onLogToday, onViewHistory, onUseCommunityPhrase, hasActivePhrase,
-  onShare, onMakePostcard,
+  onShare, onMakePostcard, onMakeSpecialPostcard, makingPostcard,
 }) {
   const ticks = getRollingWeekTicks(phrase.logged_dates, phrase.today);
   const streak = ticks.filter(Boolean).length;
@@ -106,6 +126,9 @@ function ActivePhrase({
         {phrase.visit_days}번째 아침이에요
       </Typography>
       <Phrase sx={{ mb: 3.5 }}>{phrase.phrase}</Phrase>
+      {phrase.beat_three_days?.reached && !phrase.beat_three_days.postcard_id && (
+        <BeatThreeDays onIssue={onMakeSpecialPostcard} busy={makingPostcard} />
+      )}
       {milestone && (
         <Box sx={{ position: 'relative', mb: 2, px: 3, py: 1.5, borderRadius: '14px',
           background: 'radial-gradient(ellipse at center, rgba(255,240,208,0.95) 0%, rgba(255,235,196,0.35) 55%, rgba(255,235,196,0) 78%)' }}>
