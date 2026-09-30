@@ -2,7 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
-import { POSTCARD_BADGES, PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import {
+  DEDICATED_BACKGROUNDS, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
+} from '../utils/phraseCard';
 import { shareImageFile } from '../utils/shareImageFile';
 import { proofCaption } from '../utils/practiceDate';
 import { getUserId } from '../utils/userId';
@@ -54,7 +56,8 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
     setBusy(true);
     try {
       const b = await renderPhraseCard({
-        phrase: phrase.phrase, meta: proofCaption(practicedOn, loggedDays), preset,
+        phrase: phrase.phrase, meta: proofCaption(practicedOn, loggedDays),
+        preset: backgroundFor(kind, preset),
         badge: POSTCARD_BADGES[kind],
       });
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -78,6 +81,7 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
   }, []);
 
   if (!phrase) return null;
+  const dedicated = DEDICATED_BACKGROUNDS[kind];
 
   const shareImage = async () => {
     const result = await shareImageFile(blob, 'card_share');
@@ -128,7 +132,9 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
 
         <Box sx={{ padding: '8px 20px 24px' }}>
           <Typography sx={{ fontFamily: SANS, fontSize: '0.72rem', color: COLOR.text.muted, mb: 1.25 }}>
-            배경을 고르고 엽서함에 간직하거나 이미지로 내보내요
+            {dedicated
+              ? `작심삼일 극복 엽서는 전용 배경 "${dedicated.label}"으로 발행돼요`
+              : '배경을 고르고 엽서함에 간직하거나 이미지로 내보내요'}
           </Typography>
 
           <Box
@@ -153,14 +159,14 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
             )}
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {!dedicated && <Box sx={{ display: 'flex', gap: 1, mt: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
             {PRESETS.map((p) => (
               <Box key={p.id} component="button" type="button"
                 onClick={() => setPreset(p.id)} sx={chipSx(preset === p.id)}>
                 {p.label}
               </Box>
             ))}
-          </Box>
+          </Box>}
 
           {/* 다운로드 버튼이 여기 있었다. 브라우저마다 blob 다운로드가
               제각각이라(빈 파일이 받아지는 환경이 있었다) 걷어냈다.
@@ -168,10 +174,13 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
               사진 앱에 저장하는 것도 거기서 되고, 인스타로 가는 유일한
               길이기도 하다. */}
           <Box sx={{ display: 'flex', gap: 1.5, mt: 2.5 }}>
-            <Box component="button" type="button" onClick={savePostcard}
-              disabled={!postcardId || saving || savedPreset === preset} sx={actionSx(true)}>
-              {saving ? '저장 중…' : (savedPreset === preset ? '저장됨' : '엽서함에 저장')}
-            </Box>
+            {/* 전용 배경 엽서는 고를 배경이 없고, 발행될 때 이미 엽서함에 들어가 있다. */}
+            {!dedicated && (
+              <Box component="button" type="button" onClick={savePostcard}
+                disabled={!postcardId || saving || savedPreset === preset} sx={actionSx(true)}>
+                {saving ? '저장 중…' : (savedPreset === preset ? '저장됨' : '엽서함에 저장')}
+              </Box>
+            )}
             <Box component="button" type="button" onClick={shareImage}
               disabled={!blob || busy} sx={actionSx(false)}>
               이미지 공유

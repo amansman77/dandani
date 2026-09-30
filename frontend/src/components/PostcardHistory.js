@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { getUserId } from '../utils/userId';
-import { POSTCARD_BADGES, PRESETS, renderPhraseCard } from '../utils/phraseCard';
+import {
+  DEDICATED_BACKGROUNDS, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
+} from '../utils/phraseCard';
 import { formatPracticedOn, proofCaption } from '../utils/practiceDate';
 import Loader from './Loader';
 import ShareSheet from './ShareSheet';
@@ -24,7 +26,7 @@ const PostcardCard = ({ postcard, onShare }) => {
     renderPhraseCard({
       phrase: postcard.phrase,
       meta: proofCaption(postcard.practiced_on, postcard.logged_days_at_issue),
-      preset: postcard.preset,
+      preset: backgroundFor(postcard.kind, postcard.preset),
       badge: POSTCARD_BADGES[postcard.kind],
     }).then((blob) => {
       if (!alive) return;
@@ -84,7 +86,7 @@ const PostcardCard = ({ postcard, onShare }) => {
                 #{String(postcard.issue_no).padStart(4, '0')}
               </Box>
             : '초기 엽서'}
-          {' · '}{presetLabels[postcard.preset] || postcard.preset}
+          {' · '}{DEDICATED_BACKGROUNDS[postcard.kind]?.label || presetLabels[postcard.preset] || postcard.preset}
         </Typography>
         {/* 공유는 앱 어디서나 같은 시트를 쓴다. 그림에는 문장과 날짜만
             들어가고 실천 기록 본문은 안 그려서, 밖으로 나가는 건

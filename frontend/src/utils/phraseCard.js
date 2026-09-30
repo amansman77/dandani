@@ -26,6 +26,7 @@ const THEME = {
   dawn:    { text: '#f6efe2', meta: '#c3b6a1', rule: '#8a7a63', mark: '#e0c49a' },
   paper:   { text: '#413a30', meta: '#8f8778', rule: '#cdbda4', mark: '#a9764f' },
   light:   { text: '#453d31', meta: '#8c8578', rule: '#c9b79c', mark: '#a9764f' },
+  triumph: { text: '#3a2e20', meta: '#8a6c4a', rule: '#d2a466', mark: '#a5622c' },
 };
 
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -100,6 +101,47 @@ const paintStars = (ctx, rnd, count) => {
   ctx.restore();
 };
 
+// 이겨낸 아침 — 작심삼일 극복 엽서에만 쓰는 전용 배경. 고를 수 있는 배경
+// 목록(PRESETS)에는 없다. 이겨낸 사람만 가진 그림이어야 특별해서다.
+// "아침"에서 해가 한 단계 더 떠오른 금빛: 아래에서 떠오르는 해, 더 짙은
+// 빛무리, 별, 그리고 우표처럼 두 겹으로 두른 금빛 테두리.
+const paintTriumph = (ctx, rnd) => {
+  paintGradient(ctx, [[0, '#fbf1dc'], [0.5, '#f8e2bd'], [1, '#f2cf98']]);
+
+  const sun = ctx.createRadialGradient(SIZE / 2, SIZE * 1.02, 0, SIZE / 2, SIZE * 1.02, SIZE * 0.75);
+  sun.addColorStop(0, 'rgba(255,196,110,0.75)');
+  sun.addColorStop(0.45, 'rgba(255,212,140,0.35)');
+  sun.addColorStop(1, 'rgba(255,220,160,0)');
+  ctx.fillStyle = sun;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  paintHalo(ctx, 1);
+  // 긴 문장은 가운데 띠를 넘어서 도장·날짜 줄까지 내려온다 — 별을 조금만 둔다.
+  paintStars(ctx, rnd, 22);
+
+  // 테두리는 문장·하단 마크와 겹치지 않는 가장자리에만.
+  ctx.save();
+  ctx.strokeStyle = 'rgba(176,112,52,0.55)';
+  ctx.lineWidth = 3;
+  roundRect(ctx, 30, 30, SIZE - 60, SIZE - 60, 34);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(176,112,52,0.3)';
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, 44, 44, SIZE - 88, SIZE - 88, 24);
+  ctx.stroke();
+  ctx.restore();
+};
+
+const roundRect = (ctx, x, y, w, h, r) => {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+};
+
 const paintBackground = (ctx, preset, rnd) => {
   if (preset === 'dawn') {
     paintGradient(ctx, [[0, '#2b241c'], [0.55, '#3a3026'], [1, '#4a3d2f']]);
@@ -123,6 +165,10 @@ const paintBackground = (ctx, preset, rnd) => {
     paintGradient(ctx, [[0, '#f4efe6'], [1, '#f9f3e9']]);
     paintHalo(ctx, 1);
     paintStars(ctx, rnd, 18);
+    return;
+  }
+  if (preset === 'triumph') {
+    paintTriumph(ctx, rnd);
     return;
   }
   // morning — 앱 배경 그라디언트 그대로
@@ -268,3 +314,11 @@ export const CARD_SIZE = SIZE;
 export const POSTCARD_BADGES = {
   beat_three_days: '작심삼일을 이겨낸 날',
 };
+
+// 엽서 종류마다 정해진 전용 배경. 여기 있는 종류는 배경을 고르지 않는다 —
+// DB의 preset 칸은 CHECK 때문에 기본값(morning)으로 남지만 그림은 이걸 따른다.
+export const DEDICATED_BACKGROUNDS = {
+  beat_three_days: { id: 'triumph', label: '이겨낸 아침' },
+};
+
+export const backgroundFor = (kind, preset) => DEDICATED_BACKGROUNDS[kind]?.id || preset;
