@@ -315,10 +315,14 @@ export const POSTCARD_BADGES = {
   beat_three_days: '작심삼일을 이겨낸 날',
 };
 
-// 엽서 종류마다 정해진 전용 배경. 여기 있는 종류는 배경을 고르지 않는다 —
-// DB의 preset 칸은 CHECK 때문에 기본값(morning)으로 남지만 그림은 이걸 따른다.
+// 이겨내야 열리는 배경. 일반 엽서의 배경 목록 끝에 붙되, 작심삼일을 한 번이라도
+// 이겨낸 사람만 고를 수 있다(서버가 확인한다). 아직인 사람에겐 잠긴 칸으로 보인다.
+export const EARNED_BACKGROUND = { id: 'triumph', label: '이겨낸 아침' };
+
+// 엽서 종류마다 정해진 전용 배경. 여기 있는 종류는 배경을 고르지 않는다.
+// 발행할 때 preset에도 이 값이 적힌다(2026-09-30 이전에 나간 것도 맞춰 두었다).
 export const DEDICATED_BACKGROUNDS = {
-  beat_three_days: { id: 'triumph', label: '이겨낸 아침' },
+  beat_three_days: EARNED_BACKGROUND,
 };
 
 export const backgroundFor = (kind, preset) => DEDICATED_BACKGROUNDS[kind]?.id || preset;

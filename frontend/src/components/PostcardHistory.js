@@ -3,14 +3,14 @@ import { Alert, Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import { getUserId } from '../utils/userId';
 import {
-  DEDICATED_BACKGROUNDS, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
+  DEDICATED_BACKGROUNDS, EARNED_BACKGROUND, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
 } from '../utils/phraseCard';
 import { formatPracticedOn, proofCaption } from '../utils/practiceDate';
 import Loader from './Loader';
 import ShareSheet from './ShareSheet';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
-const presetLabels = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset.label]));
+const presetLabels = Object.fromEntries([...PRESETS, EARNED_BACKGROUND].map((preset) => [preset.id, preset.label]));
 
 const PostcardCard = ({ postcard, onShare }) => {
   const [previewUrl, setPreviewUrl] = useState(null);

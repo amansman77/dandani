@@ -3,7 +3,7 @@ import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
 import {
-  DEDICATED_BACKGROUNDS, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
+  DEDICATED_BACKGROUNDS, EARNED_BACKGROUND, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
 } from '../utils/phraseCard';
 import { shareImageFile } from '../utils/shareImageFile';
 import { proofCaption } from '../utils/practiceDate';
@@ -25,6 +25,24 @@ const chipSx = (on) => ({
   whiteSpace: 'nowrap',
 });
 
+// 아직 못 이긴 사람에게 보이는 잠긴 칸. 누를 수는 있고, 누르면 여는 방법을 말한다.
+const lockedChipSx = {
+  ...chipSx(false),
+  borderStyle: 'dashed',
+  color: COLOR.line.disabled,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '5px',
+};
+
+const LockIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+
 const actionSx = (primary) => ({
   flex: 1,
   border: `1.4px solid ${primary ? COLOR.accent.line : COLOR.line.main}`,
@@ -39,7 +57,9 @@ const actionSx = (primary) => ({
   '&:disabled': { opacity: 0.45, cursor: 'default' },
 });
 
-const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, loggedDays, kind }) => {
+const PhraseCardSheet = ({
+  open, onClose, phrase, postcardId, practicedOn, loggedDays, kind, earnedUnlocked,
+}) => {
   const [preset, setPreset] = useState('morning');
   const [url, setUrl] = useState(null);
   const [blob, setBlob] = useState(null);
@@ -166,6 +186,17 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
                 {p.label}
               </Box>
             ))}
+            {earnedUnlocked ? (
+              <Box component="button" type="button"
+                onClick={() => setPreset(EARNED_BACKGROUND.id)} sx={chipSx(preset === EARNED_BACKGROUND.id)}>
+                {EARNED_BACKGROUND.label}
+              </Box>
+            ) : (
+              <Box component="button" type="button" aria-label={`${EARNED_BACKGROUND.label}, 잠김`}
+                onClick={() => setNotice('작심삼일을 이겨내면 열려요')} sx={lockedChipSx}>
+                <LockIcon />{EARNED_BACKGROUND.label}
+              </Box>
+            )}
           </Box>}
 
           {/* 다운로드 버튼이 여기 있었다. 브라우저마다 blob 다운로드가
@@ -187,16 +218,19 @@ const PhraseCardSheet = ({ open, onClose, phrase, postcardId, practicedOn, logge
             </Box>
           </Box>
         </Box>
+        {/* 알림은 시트 안에 둔다. 시트는 body에 붙는 모달이고, 밖에 두면 앱의
+            Container(zIndex 1)가 만든 쌓임 맥락에 갇혀 시트 뒤로 숨는다 —
+            "내 엽서함에 저장했어요"가 한 번도 안 보였던 이유다. */}
+        <Snackbar
+          open={Boolean(notice)}
+          autoHideDuration={3000}
+          onClose={() => setNotice('')}
+          message={notice}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          sx={{ bottom: { xs: 88 } }}
+        />
       </Drawer>
 
-      <Snackbar
-        open={Boolean(notice)}
-        autoHideDuration={3000}
-        onClose={() => setNotice('')}
-        message={notice}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ bottom: { xs: 88 } }}
-      />
     </>
   );
 };

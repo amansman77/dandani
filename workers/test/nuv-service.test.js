@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
   createPostcardFromPhrase,
+  hasBeatenThreeDays,
   longestStreak,
   currentStreak,
   issuePostcardForRecord,
@@ -89,6 +90,7 @@ function createEnvironment() {
   database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260928_postcard_per_phrase_day.sql', import.meta.url), 'utf8'));
   database.exec(readFileSync(new URL('../schemas/schema_v260930_beat_three_days.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../schemas/schema_v260930_triumph_background.sql', import.meta.url), 'utf8'));
 
   return {
     database,
@@ -392,4 +394,38 @@ test('the current streak ends today, or yesterday if today is not reflected yet'
   assert.equal(currentStreak(dates, '2026-09-30'), 3);
   assert.equal(currentStreak(dates, '2026-10-01'), 0);
   assert.equal(currentStreak([], '2026-10-01'), 0);
+});
+
+test('the special postcard is issued on its dedicated background and cannot be repainted', async () => {
+  const { database, env } = createEnvironment();
+  seedPhraseWithLogs(database, ['2026-09-01', '2026-09-02', '2026-09-03']);
+  const made = await createPostcardFromPhrase(env, request('user-1', special));
+
+  assert.equal(database.prepare('SELECT preset FROM digital_postcards WHERE id = ?').get(made.postcard_id).preset, 'triumph');
+  await assert.rejects(savePostcard(env, made.postcard_id, request('user-1', { preset: 'dawn' })));
+  assert.equal(database.prepare('SELECT preset FROM digital_postcards WHERE id = ?').get(made.postcard_id).preset, 'triumph');
+});
+
+test('이겨낸 아침 opens for regular postcards only after beating 작심삼일 once', async () => {
+  const { database, env } = createEnvironment();
+  seedPhraseWithLogs(database, ['2026-09-01', '2026-09-02']);
+  const card = await createPostcardFromPhrase(env, request('user-1', { phrase_id: 'phrase-1' }));
+
+  assert.equal(await hasBeatenThreeDays(env, 'user-1'), false);
+  await assert.rejects(savePostcard(env, card.postcard_id, request('user-1', { preset: 'triumph' })), /이겨내면 열려요/);
+
+  database.prepare('INSERT INTO daily_phrase_logs VALUES (?, ?, ?, ?)').run('l-late', 'phrase-1', 'user-1', '2026-09-03');
+  assert.equal(await hasBeatenThreeDays(env, 'user-1'), true);
+  const saved = await savePostcard(env, card.postcard_id, request('user-1', { preset: 'triumph' }));
+  assert.equal(saved.postcard.preset, 'triumph');
+});
+
+test('the background rebuild keeps every postcard and its indexes', () => {
+  const { database } = createEnvironment();
+  const indexes = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'digital_postcards' AND sql IS NOT NULL ORDER BY name`).all().map(r => r.name);
+  assert.deepEqual(indexes, [
+    'idx_digital_postcards_beat_three_days', 'idx_digital_postcards_issue_no',
+    'idx_digital_postcards_phrase_day', 'idx_digital_postcards_practice_record',
+    'idx_digital_postcards_user_status_created',
+  ]);
 });

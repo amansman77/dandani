@@ -43,6 +43,7 @@ function createEnvironment() {
     'schema_v260928_postcard_per_phrase_day.sql',
     'schema_v260928_anchor_postcards.sql',
     'schema_v260930_beat_three_days.sql',
+    'schema_v260930_triumph_background.sql',
   ]) {
     database.exec(readFileSync(new URL(`../schemas/${file}`, import.meta.url), 'utf8'));
   }

@@ -16,7 +16,9 @@ import { HttpError } from './http-errors.js';
 // 4누브, 발행된 엽서 전부가 선물로 산 것이었다. 그래서 선물을 없앴고,
 // 이미 나간 210누브도 원장에서 되돌렸다(schema_v260922_nuv_accrual.sql).
 export const REFLECTION_REWARD = 1;
-const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light']);
+// triumph(이겨낸 아침)는 작심삼일을 한 번이라도 이겨낸 사람만 고를 수 있다.
+const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light', 'triumph']);
+const EARNED_PRESET = 'triumph';
 
 // 장부 도장에서 사용자 ID를 가리는 값. 체인에는 루트만 올라가지만 사용자가
 // 자기 증명을 공유할 수 있어서, 그때 내부 ID가 드러나지 않게 한다.
@@ -71,11 +73,14 @@ async function insertPostcard(env, userId, card) {
       (id, user_id, phrase_id, phrase, visit_days, preset, status, practice_record_id,
        practice_body, practiced_on, logged_days_at_issue, nuv_at_issue, issue_no,
        kind, issued_at, saved_at)
-    VALUES (?, ?, ?, ?, ?, 'morning', 'saved', ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    VALUES (?, ?, ?, ?, ?, ?, 'saved', ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     RETURNING id
   `).bind(
     postcardId, userId, card.phrase_id, card.phrase,
-    Math.max(1, card.nuv), card.record_id,
+    Math.max(1, card.nuv),
+    // 작심삼일 극복 엽서는 전용 배경으로 나오고 바꿀 수 없다.
+    card.kind === 'beat_three_days' ? EARNED_PRESET : 'morning',
+    card.record_id,
     card.body, card.on, card.logged_days, card.nuv,
     (last?.issue_no || 0) + 1, card.kind || 'regular'
   ).first();
@@ -128,6 +133,17 @@ async function phraseLogDates(env, userId, phraseId, upTo) {
   return results.map(row => row.log_date);
 }
 
+// 어느 문장으로든 3일 연속을 한 번이라도 해냈는가. "이겨낸 아침" 배경이
+// 열리는 조건이다 — 특별한 엽서를 받았는지가 아니라 이겨냈는지로 본다.
+export async function hasBeatenThreeDays(env, userId) {
+  const { results } = await env.DB.prepare(`
+    SELECT phrase_id, log_date FROM daily_phrase_logs WHERE user_id = ?
+  `).bind(userId).all();
+  const byPhrase = new Map();
+  results.forEach(row => byPhrase.set(row.phrase_id, [...(byPhrase.get(row.phrase_id) || []), row.log_date]));
+  return [...byPhrase.values()].some(dates => longestStreak(dates) >= BEAT_THREE_DAYS_STREAK);
+}
+
 // 오늘 화면이 "작심삼일을 이겨냈어요"를 띄울지 정하는 데 쓴다.
 export async function beatThreeDaysState(env, userId, phraseId, loggedDates) {
   const issued = await env.DB.prepare(`
@@ -138,6 +154,8 @@ export async function beatThreeDaysState(env, userId, phraseId, loggedDates) {
     streak_goal: BEAT_THREE_DAYS_STREAK,
     reached: longestStreak(loggedDates) >= BEAT_THREE_DAYS_STREAK,
     postcard_id: issued?.id || null,
+    // 문장과 상관없이, 이 사람에게 "이겨낸 아침" 배경이 열렸는가.
+    background_unlocked: await hasBeatenThreeDays(env, userId),
   };
 }
 
@@ -284,6 +302,9 @@ export async function savePostcard(env, postcardId, request) {
   if (!POSTCARD_PRESETS.has(preset)) {
     throw new Error('invalid postcard preset');
   }
+  if (preset === EARNED_PRESET && !(await hasBeatenThreeDays(env, userId))) {
+    throw new HttpError(403, '작심삼일을 이겨내면 열려요.');
+  }
 
   // 바꿀 수 있는 건 배경뿐이다. 문장·실천 기록·실천일·누브·발행번호는
   // 발행할 때 한 번 쓰고 여기서 건드리지 않는다 — 그게 증명이고, 배경은
@@ -291,7 +312,7 @@ export async function savePostcard(env, postcardId, request) {
   const postcard = await env.DB.prepare(`
     UPDATE digital_postcards
     SET preset = ?, status = 'saved', saved_at = COALESCE(saved_at, datetime('now'))
-    WHERE id = ? AND user_id = ?
+    WHERE id = ? AND user_id = ? AND kind = 'regular'
     RETURNING id, phrase, visit_days, preset, created_at, saved_at, issue_no
   `).bind(preset, postcardId, userId).first();
   if (!postcard) {

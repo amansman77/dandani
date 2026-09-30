@@ -120,6 +120,7 @@ const DailyPhrase = ({
         open={Boolean(issued)} onClose={() => setIssued(null)}
         phrase={phrase} postcardId={issued?.id} practicedOn={issued?.practicedOn}
         loggedDays={issued?.loggedDays} kind={issued?.kind}
+        earnedUnlocked={Boolean(phrase?.beat_three_days?.background_unlocked)}
       />
       <Snackbar
         open={Boolean(notice)} autoHideDuration={3600} onClose={() => setNotice('')}

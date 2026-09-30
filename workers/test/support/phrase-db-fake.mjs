@@ -81,6 +81,10 @@ function executeAll(state, sql, values) {
   if (sql.includes('SELECT DISTINCT created_at FROM user_events')) {
     return { results: [] };
   }
+  if (sql.includes('SELECT phrase_id, log_date FROM daily_phrase_logs WHERE user_id = ?')) {
+    return { results: state.logs.filter((item) => item.user_id === values[0])
+      .map(({ phrase_id, log_date }) => ({ phrase_id, log_date })) };
+  }
   if (sql.includes('SELECT log_date FROM daily_phrase_logs WHERE phrase_id = ?')) {
     const logs = state.logs
       .filter((item) => item.phrase_id === values[0])
