@@ -1,4 +1,5 @@
-import { getRequiredUserId, getClientLocalDate, logUserEvent } from '../service-utils.js';
+import { getRequiredUserId, logUserEvent } from '../service-utils.js';
+import { getClientLocalDate } from './challenge-dates.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;

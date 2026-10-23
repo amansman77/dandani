@@ -3,7 +3,7 @@ import { keccak256 } from 'ethereum-cryptography/keccak.js';
 import { bytesToHex, concatBytes, hexToBytes, utf8ToBytes } from 'ethereum-cryptography/utils.js';
 import { dateIn } from './phrase-dates.js';
 
-// 누브 장부 도장.
+// 누브 장부 봉인.
 //
 // 하루에 한 번, 그 시각까지 원장에 쌓인 사람별 누적 누브를 한 줄씩 묶어 머클
 // 루트 하나로 만든다. 그 루트를 체인에 새기면 "그날 장부가 이랬고 그 뒤로 아무도
@@ -12,9 +12,9 @@ import { dateIn } from './phrase-dates.js';
 // 따른다 — MerkleProof.verify가 그대로 검증할 수 있는 모양이다.
 //
 // 누브는 차감이 없어 누적은 줄지 않는다. 그날의 증감이 아니라 누적을 새기므로
-// 가장 최근 도장 하나로 전체 잔액이 증명되고, 하루가 빠져도 다음 도장이 덮는다.
+// 가장 최근 봉인 하나로 전체 누적이 증명되고, 하루가 빠져도 다음 봉인이 덮는다.
 //
-// 체인에 올리는 건 도장 지갑이 준비된 뒤다. 그 전까지 루트는 여기
+// 체인에 올리는 건 체인 기록 지갑이 준비된 뒤다. 그 전까지 루트는 여기
 // (nuv_anchors, status = 'awaiting_chain')와 Discord 메시지에만 남는다.
 
 export const LEDGER_TIMEZONE = 'Asia/Seoul';
@@ -52,7 +52,7 @@ export async function buildLedgerTree(env, cutoffAt) {
 
   if (results.length === 0) return null;
 
-  // salt 없는 사람을 조용히 빼면 그 사람의 누브가 도장에서 사라진다.
+  // salt 없는 사람을 조용히 빼면 그 사람의 누브가 봉인에서 사라진다.
   const unsalted = results.filter(row => !row.salt).map(row => row.user_id);
   if (unsalted.length > 0) {
     throw new Error(`nuv_accounts에 salt가 없는 누브 보유자: ${unsalted.join(', ')}`);
@@ -119,7 +119,7 @@ export async function buildPostcardTree(env, cutoffAt) {
 }
 
 // 00:30 KST에 돌면 방금 끝난 하루(서울 기준)의 장부를 새긴다.
-export async function stampLedger(env, now = new Date()) {
+export async function sealLedger(env, now = new Date()) {
   const day = dateIn(LEDGER_TIMEZONE, new Date(now.getTime() - HOUR_MS));
   const existing = await env.DB.prepare(`
     SELECT day, root, people, total_nuv, postcard_root, postcards, status
@@ -132,7 +132,7 @@ export async function stampLedger(env, now = new Date()) {
   const cards = await buildPostcardTree(env, cutoffAt);
   if (!ledger && !cards) return null;
 
-  const stamp = {
+  const seal = {
     day,
     root: ledger?.tree.root || EMPTY_ROOT,
     people: ledger?.people || 0,
@@ -146,14 +146,14 @@ export async function stampLedger(env, now = new Date()) {
       (day, cutoff_at, root, people, total_nuv, postcard_root, postcards, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, 'awaiting_chain')
   `).bind(
-    day, cutoffAt, stamp.root, stamp.people, stamp.total_nuv, stamp.postcard_root, stamp.postcards
+    day, cutoffAt, seal.root, seal.people, seal.total_nuv, seal.postcard_root, seal.postcards
   ).run();
 
-  return { ...stamp, created: true };
+  return { ...seal, created: true };
 }
 
-// 가장 최근 도장 기준으로 한 사람의 줄과 증명 경로. 다시 계산한 루트가 저장된
-// 루트와 다르면 원장이 도장 뒤에 바뀌었다는 뜻이라 증명을 내주지 않는다.
+// 가장 최근 봉인 기준으로 한 사람의 줄과 증명 경로. 다시 계산한 루트가 저장된
+// 루트와 다르면 원장이 봉인 뒤에 바뀌었다는 뜻이라 증명을 내주지 않는다.
 export async function proofForUser(env, userId) {
   const anchor = await env.DB.prepare(`
     SELECT day, cutoff_at, root, status, tx_hash FROM nuv_anchors ORDER BY day DESC LIMIT 1
@@ -209,16 +209,16 @@ export async function postcardProof(env, userId, postcardId) {
   };
 }
 
-export function formatStampMessage(stamp) {
+export function formatSealMessage(seal) {
   return {
     embeds: [{
-      title: `누브 장부 도장 — ${stamp.day}`,
+      title: `누브 장부 봉인 — ${seal.day}`,
       color: 0xa9603a,
       description: [
-        `${stamp.people}명 · 누적 ${stamp.total_nuv}누브`,
-        `루트 \`${stamp.root}\``,
-        `엽서 ${stamp.postcards}장 · 루트 \`${stamp.postcard_root}\``,
-        stamp.status === 'awaiting_chain' ? '체인 기록 대기 중 (도장 지갑 준비 전)' : `상태: ${stamp.status}`,
+        `${seal.people}명 · 누적 ${seal.total_nuv}누브`,
+        `루트 \`${seal.root}\``,
+        `엽서 ${seal.postcards}장 · 루트 \`${seal.postcard_root}\``,
+        seal.status === 'awaiting_chain' ? '체인 기록 대기 중 (체인 기록 지갑 준비 전)' : `상태: ${seal.status}`,
       ].join('\n'),
       timestamp: new Date().toISOString(),
     }],

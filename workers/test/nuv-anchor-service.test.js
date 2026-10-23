@@ -9,10 +9,10 @@ import {
   postcardContentHash,
   postcardProof,
   proofForUser,
-  stampLedger,
+  sealLedger,
 } from '../src/nuv-anchor-service.js';
 
-// 도장에 필요한 만큼만 흉내 내는 D1.
+// 봉인에 필요한 만큼만 흉내 내는 D1.
 function d1(database) {
   return {
     prepare(sql) {
@@ -66,7 +66,7 @@ function createEnvironment() {
 const SALT_1 = `0x${'11'.repeat(32)}`;
 const SALT_2 = `0x${'22'.repeat(32)}`;
 // 2026-09-29 00:30 KST — 09-28 하루를 새기는 시각.
-const STAMP_AT = new Date('2026-09-28T15:30:00Z');
+const SEAL_AT = new Date('2026-09-28T15:30:00Z');
 
 function seedTwoPeople({ addNuv, addAccount }) {
   addAccount.run('user-1', SALT_1);
@@ -76,65 +76,65 @@ function seedTwoPeople({ addNuv, addAccount }) {
   addNuv.run('n3', 'user-2', '2026-09-28', '2026-09-28 10:00:00');
 }
 
-test('the stamp at 00:30 KST seals the Seoul day that just ended', async () => {
+test('the seal at 00:30 KST covers the Seoul day that just ended', async () => {
   const environment = createEnvironment();
   seedTwoPeople(environment);
 
-  const stamp = await stampLedger(environment.env, STAMP_AT);
+  const seal = await sealLedger(environment.env, SEAL_AT);
 
-  assert.equal(stamp.day, '2026-09-28');
-  assert.equal(stamp.people, 2);
-  assert.equal(stamp.total_nuv, 3);
-  assert.equal(stamp.status, 'awaiting_chain');
-  assert.match(stamp.root, /^0x[0-9a-f]{64}$/);
+  assert.equal(seal.day, '2026-09-28');
+  assert.equal(seal.people, 2);
+  assert.equal(seal.total_nuv, 3);
+  assert.equal(seal.status, 'awaiting_chain');
+  assert.match(seal.root, /^0x[0-9a-f]{64}$/);
   const row = environment.database.prepare('SELECT * FROM nuv_anchors').get();
   assert.equal(row.cutoff_at, '2026-09-28 15:30:00');
-  assert.equal(row.root, stamp.root);
+  assert.equal(row.root, seal.root);
 });
 
-test('a proof verifies against the stamped root with the OpenZeppelin rules', async () => {
+test('a proof verifies against the sealed root with the OpenZeppelin rules', async () => {
   const environment = createEnvironment();
   seedTwoPeople(environment);
-  const stamp = await stampLedger(environment.env, STAMP_AT);
+  const seal = await sealLedger(environment.env, SEAL_AT);
 
   const proof = await proofForUser(environment.env, 'user-1');
 
   assert.equal(proof.balance, 2);
   assert.equal(proof.commitment, commitmentOf('user-1', SALT_1));
   assert.ok(StandardMerkleTree.verify(
-    stamp.root, ['bytes32', 'uint256'], [proof.commitment, '2'], proof.proof
+    seal.root, ['bytes32', 'uint256'], [proof.commitment, '2'], proof.proof
   ));
   // 잔액을 부풀리면 같은 증명으로 통과하지 못한다.
   assert.ok(!StandardMerkleTree.verify(
-    stamp.root, ['bytes32', 'uint256'], [proof.commitment, '3'], proof.proof
+    seal.root, ['bytes32', 'uint256'], [proof.commitment, '3'], proof.proof
   ));
 });
 
-test('Nuv earned after the cutoff waits for the next stamp, and the old proof still holds', async () => {
+test('Nuv earned after the cutoff waits for the next seal, and the old proof still holds', async () => {
   const environment = createEnvironment();
   seedTwoPeople(environment);
-  const stamp = await stampLedger(environment.env, STAMP_AT);
+  const seal = await sealLedger(environment.env, SEAL_AT);
 
   environment.addNuv.run('n4', 'user-1', '2026-09-29', '2026-09-28 23:00:00');
   const proof = await proofForUser(environment.env, 'user-1');
 
   assert.equal(proof.day, '2026-09-28');
-  assert.equal(proof.root, stamp.root);
+  assert.equal(proof.root, seal.root);
   assert.equal(proof.balance, 2);
 
-  const next = await stampLedger(environment.env, new Date('2026-09-29T15:30:00Z'));
+  const next = await sealLedger(environment.env, new Date('2026-09-29T15:30:00Z'));
   assert.equal(next.day, '2026-09-29');
   assert.equal(next.total_nuv, 4);
-  assert.notEqual(next.root, stamp.root);
+  assert.notEqual(next.root, seal.root);
 });
 
-test('a day is stamped once; running again changes nothing', async () => {
+test('a day is sealed once; running again changes nothing', async () => {
   const environment = createEnvironment();
   seedTwoPeople(environment);
-  const first = await stampLedger(environment.env, STAMP_AT);
+  const first = await sealLedger(environment.env, SEAL_AT);
 
   environment.addNuv.run('late', 'user-2', 'late', '2026-09-28 15:40:00');
-  const again = await stampLedger(environment.env, new Date('2026-09-28T15:45:00Z'));
+  const again = await sealLedger(environment.env, new Date('2026-09-28T15:45:00Z'));
 
   assert.equal(first.created, true);
   assert.equal(again.created, false);
@@ -142,27 +142,27 @@ test('a day is stamped once; running again changes nothing', async () => {
   assert.equal(environment.database.prepare('SELECT COUNT(*) AS n FROM nuv_anchors').get().n, 1);
 });
 
-test('a ledger changed after the stamp refuses to hand out proofs', async () => {
+test('a ledger changed after the seal refuses to hand out proofs', async () => {
   const environment = createEnvironment();
   seedTwoPeople(environment);
-  await stampLedger(environment.env, STAMP_AT);
+  await sealLedger(environment.env, SEAL_AT);
 
-  // 도장 이전 시각으로 누브를 끼워 넣는 조작.
+  // 봉인 이전 시각으로 누브를 끼워 넣는 조작.
   environment.addNuv.run('forged', 'user-2', 'forged', '2026-09-20 00:00:00');
 
   await assert.rejects(proofForUser(environment.env, 'user-2'), /다르다/);
 });
 
-test('a Nuv holder without a salt fails the stamp instead of vanishing from it', async () => {
+test('a Nuv holder without a salt fails the seal instead of vanishing from it', async () => {
   const environment = createEnvironment();
   environment.addNuv.run('n1', 'ghost', '2026-09-28', '2026-09-28 01:00:00');
 
-  await assert.rejects(stampLedger(environment.env, STAMP_AT), /ghost/);
+  await assert.rejects(sealLedger(environment.env, SEAL_AT), /ghost/);
 });
 
-test('an empty ledger stamps nothing', async () => {
+test('an empty ledger seals nothing', async () => {
   const environment = createEnvironment();
-  assert.equal(await stampLedger(environment.env, STAMP_AT), null);
+  assert.equal(await sealLedger(environment.env, SEAL_AT), null);
 });
 
 test('the commitment hides the user id behind the salt', () => {
@@ -206,19 +206,19 @@ test('postcards are sealed with the Nuv, numbered cards only, up to the cutoff',
   const environment = createEnvironment();
   seedPostcards(environment);
 
-  const stamp = await stampLedger(environment.env, STAMP_AT);
+  const seal = await sealLedger(environment.env, SEAL_AT);
 
-  assert.equal(stamp.postcards, 2);
-  assert.match(stamp.postcard_root, /^0x[0-9a-f]{64}$/);
+  assert.equal(seal.postcards, 2);
+  assert.match(seal.postcard_root, /^0x[0-9a-f]{64}$/);
   // 누브가 하나도 없어도 엽서만으로 봉인된다. 누브 루트는 빈 값.
-  assert.equal(stamp.people, 0);
-  assert.equal(stamp.root, `0x${'00'.repeat(32)}`);
+  assert.equal(seal.people, 0);
+  assert.equal(seal.root, `0x${'00'.repeat(32)}`);
 });
 
 test('a sealed postcard proves its owner, number and content with the OpenZeppelin rules', async () => {
   const environment = createEnvironment();
   seedPostcards(environment);
-  const stamp = await stampLedger(environment.env, STAMP_AT);
+  const seal = await sealLedger(environment.env, SEAL_AT);
 
   const proof = await postcardProof(environment.env, 'user-1', 'card-2');
 
@@ -229,20 +229,20 @@ test('a sealed postcard proves its owner, number and content with the OpenZeppel
     phrase: '천천히 가도 된다', practiced_on: '2026-09-28', logged_days_at_issue: 1,
   }));
   assert.ok(StandardMerkleTree.verify(
-    stamp.postcard_root, POSTCARD_LEAF_ENCODING,
+    seal.postcard_root, POSTCARD_LEAF_ENCODING,
     [proof.commitment, '2', proof.content_hash], proof.proof
   ));
   // 문장을 바꿔 치면 같은 증명으로 통과하지 못한다.
   const forged = postcardContentHash({ phrase: '다른 문장', practiced_on: '2026-09-28', logged_days_at_issue: 1 });
   assert.ok(!StandardMerkleTree.verify(
-    stamp.postcard_root, POSTCARD_LEAF_ENCODING, [proof.commitment, '2', forged], proof.proof
+    seal.postcard_root, POSTCARD_LEAF_ENCODING, [proof.commitment, '2', forged], proof.proof
   ));
 });
 
 test('a postcard made after the seal, or someone else\'s, has no proof yet', async () => {
   const environment = createEnvironment();
   seedPostcards(environment);
-  await stampLedger(environment.env, STAMP_AT);
+  await sealLedger(environment.env, SEAL_AT);
 
   assert.equal((await postcardProof(environment.env, 'user-1', 'card-late')).sealed, false);
   assert.equal((await postcardProof(environment.env, 'user-2', 'card-1')).sealed, false);
@@ -252,7 +252,7 @@ test('a postcard made after the seal, or someone else\'s, has no proof yet', asy
 test('a sealed postcard edited afterwards refuses to hand out proofs', async () => {
   const environment = createEnvironment();
   seedPostcards(environment);
-  await stampLedger(environment.env, STAMP_AT);
+  await sealLedger(environment.env, SEAL_AT);
 
   environment.database.prepare(`UPDATE digital_postcards SET phrase = '고친 문장' WHERE id = 'card-1'`).run();
 

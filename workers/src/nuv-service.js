@@ -1,7 +1,7 @@
 import { getRequiredUserId } from './service-utils.js';
 import { dateIn, normalizeTimezone, phraseDateContext } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
-import { BEAT_THREE_DAYS_STREAK, hasBeatenThreeDays, longestStreak, reflectedDays } from './beat-three-days.js';
+import { BEAT_THREE_DAYS_STREAK, hasBeatenThreeDays, longestStreak, serverLoggedDays } from './beat-three-days.js';
 
 // 누브는 되새김이 쌓여 만들어지는 기록이지 재화가 아니다. 그래서 줄어들지도
 // 않고, 무언가를 여는 열쇠도 아니다.
@@ -17,12 +17,12 @@ import { BEAT_THREE_DAYS_STREAK, hasBeatenThreeDays, longestStreak, reflectedDay
 // 무너졌다. 원장을 열어보니 실제로 그랬다 — 선물 210누브 대 되새김으로 번
 // 4누브, 발행된 엽서 전부가 선물로 산 것이었다. 그래서 선물을 없앴고,
 // 이미 나간 210누브도 원장에서 되돌렸다(schema_v260922_nuv_accrual.sql).
-export const REFLECTION_REWARD = 1;
+export const NUV_PER_LOGGED_DAY = 1;
 // triumph(이겨낸 아침)는 작심삼일을 한 번이라도 이겨낸 사람만 고를 수 있다.
 const POSTCARD_PRESETS = new Set(['morning', 'dawn', 'paper', 'light', 'triumph']);
 const EARNED_PRESET = 'triumph';
 
-// 장부 도장에서 사용자 ID를 가리는 값. 체인에는 루트만 올라가지만 사용자가
+// 장부 봉인에서 사용자 ID를 가리는 값. 체인에는 루트만 올라가지만 사용자가
 // 자기 증명을 공유할 수 있어서, 그때 내부 ID가 드러나지 않게 한다.
 function newSalt() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
@@ -137,7 +137,7 @@ export async function createPostcardFromPhrase(env, request) {
   const loggedDays = counted?.days || 0;
   // 작심삼일 엽서는 이겨낸 사람만. 오늘 화면과 같은 판정(서버 시각 기준)으로 확인한다.
   if (kind === 'beat_three_days'
-      && longestStreak(await reflectedDays(env, userId, phrase.id)) < BEAT_THREE_DAYS_STREAK) {
+      && longestStreak(await serverLoggedDays(env, userId, phrase.id)) < BEAT_THREE_DAYS_STREAK) {
     throw new HttpError(409, `같은 문장을 ${BEAT_THREE_DAYS_STREAK}일 연속 되새기면 발행할 수 있어요.`);
   }
 
@@ -163,9 +163,9 @@ function postcardResult(row, created) {
   };
 }
 
-// 차감이 없어진 뒤로 지갑 잔액은 곧 평생 누적이다 — 원장에 더하기만 들어오니
-// 따로 합계를 낼 필요가 없다.
-export async function getNuvWallet(env, request) {
+// 차감이 없어진 뒤로 nuv_wallets.balance는 곧 평생 누적이다 — 원장에 더하기만
+// 들어오니 따로 합계를 낼 필요가 없다. 테이블 이름만 누브를 쓰던 시절 그대로다.
+export async function getNuvTotal(env, request) {
   const userId = getRequiredUserId(request);
   return { balance: await getNuvBalance(env, userId) };
 }
@@ -213,7 +213,7 @@ export async function ensureNuvAccount(env, userId, timezone) {
 // 가며 보내면 실제 하루에 누브를 2~3개 받을 수 있었다. 누브는 체인에 새길
 // 장부라 그 구멍을 닫는다. 되새김 기록(daily_phrase_logs)은 여전히 앱의
 // 시간대를 따른다 — 화면에 보이는 "오늘"은 사용자가 있는 곳의 오늘이어야 해서.
-export async function awardNuvForReflection(env, userId, phraseId, logDate, {
+export async function awardNuvForLog(env, userId, phraseId, logDate, {
   timezone = null, now = new Date(),
 } = {}) {
   await ensureNuvAccount(env, userId, timezone);
@@ -232,7 +232,7 @@ export async function awardNuvForReflection(env, userId, phraseId, logDate, {
     )
     RETURNING amount
   `).bind(
-    generateId('nuv'), userId, REFLECTION_REWARD, referenceId,
+    generateId('nuv'), userId, NUV_PER_LOGGED_DAY, referenceId,
     phraseId, userId, logDate
   ).first();
 

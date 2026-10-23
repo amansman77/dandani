@@ -12,8 +12,8 @@ const SERIF = FONT.serif;
 // 누브는 받는 것이 아니라 남는 것이다. 그래서 이 화면엔 "잔액"도 "받았어요"도
 // 없다 — 되새긴 하루가 한 줄씩 적혀 있고, 그 줄 수가 곧 누브다. 체인·코인·지갑
 // 이야기도 하지 않는다. 봉인은 실제로 매일 밤 일어나는 일이라 말하지만, 체인에
-// 새겨진다는 말은 도장 지갑이 연결된 뒤에야 사실이 된다
-// (docs/plan/0014-nuv-ledger-stamping-wallet.md).
+// 새겨진다는 말은 체인 기록 지갑이 연결된 뒤에야 사실이 된다
+// (docs/plan/0014-nuv-ledger-anchor-wallet.md).
 
 const formatDay = (day) => {
   const [, month, date] = day.split('-').map(Number);

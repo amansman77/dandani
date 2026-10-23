@@ -116,7 +116,7 @@ const paintTriumph = (ctx, rnd) => {
   ctx.fillRect(0, 0, SIZE, SIZE);
 
   paintHalo(ctx, 1);
-  // 긴 문장은 가운데 띠를 넘어서 도장·날짜 줄까지 내려온다 — 별을 조금만 둔다.
+  // 긴 문장은 가운데 띠를 넘어서 배지·날짜 줄까지 내려온다 — 별을 조금만 둔다.
   paintStars(ctx, rnd, 22);
 
   // 테두리는 문장·하단 마크와 겹치지 않는 가장자리에만.
@@ -253,7 +253,7 @@ export const renderPhraseCard = async ({ phrase, meta, preset = 'morning', badge
   let y = SIZE / 2 - blockH / 2 + size * 0.72;
 
   if (badge) {
-    // 문장 덩어리 바로 위, 양옆에 짧은 선을 둔 도장 같은 한 줄.
+    // 문장 덩어리 바로 위, 양옆에 짧은 선을 둔 배지 한 줄.
     const badgeY = y - size - 64;
     ctx.fillStyle = theme.mark;
     ctx.font = '600 30px Pretendard, sans-serif';

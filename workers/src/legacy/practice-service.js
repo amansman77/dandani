@@ -1,10 +1,9 @@
+import { getRequiredUserId, logUserEvent } from '../service-utils.js';
 import {
   addStartedAtDateString,
   calculateChallengeDayFromStart,
   getClientLocalDate,
-  getRequiredUserId,
-  logUserEvent
-} from '../service-utils.js';
+} from './challenge-dates.js';
 
 export async function getTodayPractice(env, request) {
   const url = new URL(request.url);

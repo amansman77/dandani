@@ -32,21 +32,11 @@ const BACKEND_ALLOWED_EVENT_TYPES = new Set([
   'onboarding_complete'
 ]);
 
-const BACKEND_EVENT_TYPE_ALIAS = {
-  challenge_completed: 'challenge_complete',
-  record_created: 'feedback_submit'
-};
-
+// D1로 보낸 이벤트 가운데 PostHog에도 따로 남기는 것. 챌린지 시절 이벤트의 별칭과
+// 매핑이 여기 있었는데, 그 이벤트를 보내는 곳이 없어 2026-10-23에 걷어냈다.
+// 위 허용 목록은 D1 CHECK 제약과 함께 움직여야 해서 그대로 둔다.
 const POSTHOG_EVENT_MAP = {
   page_visit: '$pageview',
-  challenge_selected: 'challenge_selected',
-  practice_complete: 'practice_complete',
-  feedback_submit: 'practice_recorded',
-  assistant_opened: 'assistant_opened',
-  assistant_skipped: 'assistant_skipped',
-  assistant_completed: 'assistant_completed',
-  record_created: 'record_created',
-  challenge_completed: 'challenge_completed',
 };
 
 function getSessionId() {
@@ -95,8 +85,7 @@ export async function logEvent(eventType, eventData = {}) {
     const userId = getUserId();
     const mappedEvent = POSTHOG_EVENT_MAP[eventType];
     if (mappedEvent) logPostHogEvent(mappedEvent, { ...eventData, event_type: eventType });
-    const backendEventType = BACKEND_EVENT_TYPE_ALIAS[eventType] || eventType;
-    if (!BACKEND_ALLOWED_EVENT_TYPES.has(backendEventType)) return;
+    if (!BACKEND_ALLOWED_EVENT_TYPES.has(eventType)) return;
     const response = await fetch(`${API_BASE_URL}/api/analytics/event`, {
       method: 'POST',
       headers: {
@@ -105,7 +94,7 @@ export async function logEvent(eventType, eventData = {}) {
         'X-Session-ID': getSessionId(),
         ...getClientTimeHeaders(),
       },
-      body: JSON.stringify({ event_type: backendEventType, event_data: eventData }),
+      body: JSON.stringify({ event_type: eventType, event_data: eventData }),
     });
     if (!response.ok) console.debug({ event: 'analytics_request_failed', status: response.status });
   } catch (error) {

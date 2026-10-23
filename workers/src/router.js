@@ -5,7 +5,7 @@ import { handleAdminGet } from './admin-router.js';
 import { createPhrase, replacePhrase } from './phrase-mutations.js';
 import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommunityPhrases } from './phrase-service.js';
 import {
-  createPostcardFromPhrase, getNuvLedger, getNuvWallet, getSavedPostcards, savePostcard,
+  createPostcardFromPhrase, getNuvLedger, getNuvTotal, getSavedPostcards, savePostcard,
 } from './nuv-service.js';
 import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
 
@@ -16,7 +16,7 @@ async function handleGet(url, request, env) {
     case '/api/phrases/active': return jsonResponse(await getActivePhrase(env, request));
     case '/api/phrases/history': return jsonResponse(await getPhraseHistory(env, request));
     case '/api/phrases/community': return jsonResponse(await getCommunityPhrases(env, request));
-    case '/api/nuv': return jsonResponse(await getNuvWallet(env, request));
+    case '/api/nuv': return jsonResponse(await getNuvTotal(env, request));
     case '/api/nuv/ledger': return jsonResponse(await getNuvLedger(env, request));
     case '/api/practices': return jsonResponse(await getPracticeRecords(env, request));
     case '/api/nuv/postcards': return jsonResponse(await getSavedPostcards(env, request));
@@ -42,8 +42,8 @@ async function handlePost(url, request, env) {
     return jsonResponse(result, 201);
   }
   // 가입 선물이 사라져서 이 경로는 더 줄 게 없다. 이미 배포된 클라이언트가
-  // 아직 여기로 오기 때문에, 없애는 대신 잔액만 돌려준다(누브를 발행하지 않음).
-  if (url.pathname === '/api/nuv/welcome') return jsonResponse(await getNuvWallet(env, request));
+  // 아직 여기로 오기 때문에, 없애는 대신 누브 수만 돌려준다(누브를 발행하지 않음).
+  if (url.pathname === '/api/nuv/welcome') return jsonResponse(await getNuvTotal(env, request));
 
   // 엽서 만들기 — 지금 문장을 엽서로. 2026-09-24에 "실천 없이는 증명이
   // 아니다"라며 없앴다가, 09-28 엽서를 "문장을 엽서로 옮기는 일"로 다시 정하면서

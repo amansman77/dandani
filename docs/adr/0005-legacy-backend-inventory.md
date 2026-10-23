@@ -110,14 +110,17 @@
 
 ### 이벤트 타입 허용목록
 
-`workers/src/core.js`의 `ALLOWED_EVENT_TYPES`와 `frontend/src/utils/analytics.js`의
+`workers/src/core.js`의 `ALLOWED_EVENT_TYPES`와 `frontend/src/utils/analytics-transport.js`의
 `BACKEND_ALLOWED_EVENT_TYPES`는 **양쪽 다 고쳐야 합니다**(한쪽만 고치면 조용히 버려짐 —
 2026-09-01 `schema_v260901_fix_user_events_check.sql` 참고).
 
-현재 실제로 발생하는 이벤트는 `page_visit`, `phrase_onboarding_shown`,
-`phrase_example_used`, `phrase_start`, `phrase_day_logged`, `phrase_retired` 6종입니다.
-목록에 남아 있는 `practice_*`, `challenge_*`, `ai_chat_*`, `feedback_submit`,
-`timefold_envelope_create`, `onboarding_complete`는 아무도 쏘지 않습니다.
+> 2026-10-23 갱신: 허용 목록은 이제 `analytics-transport.js`에 있다. 지금 보내는 이벤트는
+> 프런트엔드의 `page_visit`, `splash_shown`, `splash_done`, `onboarding_complete`,
+> `phrase_onboarding_shown`, `phrase_list_seen`, `phrase_list_engaged`, `phrase_example_used`,
+> `phrase_day_logged`, `phrase_shared`와 Worker의 `phrase_start`, `phrase_retired`다.
+> `practice_*`, `challenge_*`, `ai_chat_*`, `feedback_submit`, `timefold_envelope_create`는
+> 여전히 아무도 보내지 않는다. 이 이벤트를 남기던 프런트엔드 함수와 PostHog 매핑은
+> 지웠고, 이름은 D1 CHECK 제약 때문에 허용 목록에만 남아 있다.
 (`onboarding_complete`만 예외적으로 프론트에 호출부가 남아 있으나 백엔드로는 안 갑니다.)
 
 ---

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   calculateChallengeDayFromStart,
   getClientLocalDate,
-} from '../src/core.js';
+} from '../src/legacy/challenge-dates.js';
 
 test('getClientLocalDate applies the requested timezone date', () => {
   const date = getClientLocalDate('2026-09-11T16:00:00.000Z', 'Asia/Seoul');

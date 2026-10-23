@@ -20,12 +20,14 @@ rm -f "$MSG_FILE" "$IMAGE_FILE"
 
 npm run check --silent > "$OUT_DIR/last-run.json"
 
-PROMPT="너는 '단단이'라는 습관/챌린지 동반자 앱의 프로덕트 기획자야. 방금 Playwright로 실제 배포된 사이트(https://dandani.yetimates.com)를 모바일(iPhone 13) 화면으로 방문해서 스크린샷을 찍었어. 실사용자 대부분이 모바일이라 이 기준으로 봐.
+# 제품 소개와 탭 이름은 docs/PROJECT_CONTEXT.md, 스크린샷 파일명은 check.mjs와 맞춘다.
+PROMPT="너는 '단단이'라는 앱의 프로덕트 기획자야. 단단이는 매일 아침 나에게 필요한 문장 하나를 고르고 되새기는 앱이고, 되새긴 하루는 누브로 남고 문장은 엽서로 만들어 간직하거나 공유할 수 있어. 방금 Playwright로 실제 배포된 사이트(https://dandani.yetimates.com)를 모바일(iPhone 13) 화면으로 방문해서 스크린샷을 찍었어. 실사용자 대부분이 모바일이라 이 기준으로 봐.
 
 아래 스크린샷들을 Read 도구로 열어서 실제로 봐:
-- ${OUT_DIR}/1-home.png (첫 진입 화면 / 온보딩)
-- ${OUT_DIR}/2-after-challenge-select.png (챌린지 선택 직후 = 오늘의 챌린지 탭 기본 화면)
-- ${OUT_DIR}/3-tab-0.png, 3-tab-1.png (챌린지 도우미 / 내 기록 탭)
+- ${OUT_DIR}/1-home.png (첫 진입 화면 / 스플래시·온보딩)
+- ${OUT_DIR}/2-today.png (오늘 탭 — 처음 온 사람이라 문장을 고르는 화면)
+- ${OUT_DIR}/3-history.png (기록 탭 — 문장 기록)
+- ${OUT_DIR}/4-postcards.png (엽서 탭 — 엽서함)
 
 그리고 콘솔 에러·페이지 에러·실패한 네트워크 응답 로그도 확인해: ${OUT_DIR}/last-run.json
 
@@ -33,7 +35,7 @@ PROMPT="너는 '단단이'라는 습관/챌린지 동반자 앱의 프로덕트 
 
 이 관찰 문장만 (다른 설명이나 머리말 없이) Write 도구로 ${MSG_FILE} 파일에 그대로 저장해.
 
-그리고 관찰의 근거가 된 스크린샷 파일명 하나만 (예: 3-tab-0.png, 확장자 포함, 다른 텍스트 없이) Write 도구로 ${IMAGE_FILE} 파일에 저장해."
+그리고 관찰의 근거가 된 스크린샷 파일명 하나만 (예: 3-history.png, 확장자 포함, 다른 텍스트 없이) Write 도구로 ${IMAGE_FILE} 파일에 저장해."
 
 claude -p "$PROMPT" \
   --allowedTools "Read Write" \

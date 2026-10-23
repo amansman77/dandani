@@ -59,8 +59,10 @@ test('operational snapshots and retention group by UTC, not Korean dates', async
   assert.equal(report.body.funnel_30d.retained_2plus, 1);
   const activity = await request(app, '/api/analytics/activity?days=30', options);
   assert.equal(activity.status, 200);
-  assert.deepEqual(activity.body.daily_active_users.map(row => [row.activity_date, row.active_users]), [
-    ['2026-09-11', 1], ['2026-09-10', 2], ['2026-09-09', 1],
+  assert.deepEqual(activity.body.daily_active_users.map(row => [
+    row.activity_date, row.active_users, row.phrases_started, row.phrases_logged_users,
+  ]), [
+    ['2026-09-11', 1, 0, 0], ['2026-09-10', 2, 0, 1], ['2026-09-09', 1, 1, 1],
   ]);
   const utcReport = await request(app, '/api/analytics/daily-report?date=2026-09-10', { ...options, timezone: 'UTC' });
   assert.deepEqual(utcReport.body, report.body);

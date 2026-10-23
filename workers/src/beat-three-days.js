@@ -50,7 +50,7 @@ async function pinnedTimezone(env, userId) {
 }
 
 // 이 문장을 실제로 되새긴 날들(고정 시간대 기준, 중복 없음).
-export async function reflectedDays(env, userId, phraseId) {
+export async function serverLoggedDays(env, userId, phraseId) {
   const timezone = await pinnedTimezone(env, userId);
   const { results } = await env.DB.prepare(`
     SELECT created_at FROM daily_phrase_logs WHERE phrase_id = ? AND user_id = ?
@@ -75,7 +75,7 @@ export async function hasBeatenThreeDays(env, userId) {
 // 오늘 화면의 "작심삼일을 이겨냈어요"와 발행 가능 여부가 같은 판정을 쓴다.
 // (예전엔 화면은 모든 되새김으로, 발행은 오늘까지로 따로 판단해 어긋날 수 있었다.)
 export async function beatThreeDaysState(env, userId, phraseId, now = new Date()) {
-  const days = await reflectedDays(env, userId, phraseId);
+  const days = await serverLoggedDays(env, userId, phraseId);
   const issued = await env.DB.prepare(`
     SELECT id FROM digital_postcards
     WHERE user_id = ? AND phrase_id = ? AND kind = 'beat_three_days'

@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import {
-  awardNuvForReflection,
+  awardNuvForLog,
   createPostcardFromPhrase,
   issuePostcardForRecord,
   getSavedPostcards,
   getNuvLedger,
-  getNuvWallet,
+  getNuvTotal,
   savePostcard,
 } from '../src/nuv-service.js';
 import {
@@ -121,8 +121,8 @@ test('a daily reflection awards one Nuv only once', async () => {
   database.prepare('INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date) VALUES (?, ?, ?, ?)')
     .run('log-1', 'phrase-1', 'user-1', '2026-09-17');
 
-  const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-17', seoulNoon('2026-09-17'));
-  const duplicate = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-17', seoulNoon('2026-09-17'));
+  const first = await awardNuvForLog(env, 'user-1', 'phrase-1', '2026-09-17', seoulNoon('2026-09-17'));
+  const duplicate = await awardNuvForLog(env, 'user-1', 'phrase-1', '2026-09-17', seoulNoon('2026-09-17'));
 
   assert.deepEqual(first, { awarded_nuv: 1, balance: 1 });
   assert.deepEqual(duplicate, { awarded_nuv: 0, balance: 1 });
@@ -135,9 +135,9 @@ test('a replaced phrase does not earn a second Nuv on the same day', async () =>
   addLog.run('log-2', 'phrase-2', 'user-1', '2026-09-28');
   addLog.run('log-3', 'phrase-2', 'user-1', '2026-09-29');
 
-  const first = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28', seoulNoon('2026-09-28'));
-  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28', seoulNoon('2026-09-28'));
-  const nextDay = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-29', seoulNoon('2026-09-29'));
+  const first = await awardNuvForLog(env, 'user-1', 'phrase-1', '2026-09-28', seoulNoon('2026-09-28'));
+  const replaced = await awardNuvForLog(env, 'user-1', 'phrase-2', '2026-09-28', seoulNoon('2026-09-28'));
+  const nextDay = await awardNuvForLog(env, 'user-1', 'phrase-2', '2026-09-29', seoulNoon('2026-09-29'));
 
   assert.deepEqual(first, { awarded_nuv: 1, balance: 1 });
   assert.deepEqual(replaced, { awarded_nuv: 0, balance: 1 });
@@ -152,8 +152,8 @@ test('switching the timezone header does not earn a second Nuv on the same real 
   addLog.run('log-1', 'phrase-1', 'user-1', '2026-09-28');
   addLog.run('log-2', 'phrase-1', 'user-1', '2026-09-29');
 
-  const home = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28', { timezone: 'Asia/Seoul', now });
-  const hopped = await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-29', { timezone: 'Pacific/Kiritimati', now });
+  const home = await awardNuvForLog(env, 'user-1', 'phrase-1', '2026-09-28', { timezone: 'Asia/Seoul', now });
+  const hopped = await awardNuvForLog(env, 'user-1', 'phrase-1', '2026-09-29', { timezone: 'Pacific/Kiritimati', now });
 
   assert.deepEqual(home, { awarded_nuv: 1, balance: 1 });
   assert.deepEqual(hopped, { awarded_nuv: 0, balance: 1 });
@@ -167,8 +167,8 @@ test('an unknown timezone is pinned as UTC and every account gets its own salt',
   addLog.run('log-2', 'phrase-2', 'user-2', '2026-09-28');
   const now = new Date('2026-09-28T12:00:00Z');
 
-  await awardNuvForReflection(env, 'user-1', 'phrase-1', '2026-09-28', { timezone: 'Mars/Olympus', now });
-  await awardNuvForReflection(env, 'user-2', 'phrase-2', '2026-09-28', { timezone: 'Asia/Seoul', now });
+  await awardNuvForLog(env, 'user-1', 'phrase-1', '2026-09-28', { timezone: 'Mars/Olympus', now });
+  await awardNuvForLog(env, 'user-2', 'phrase-2', '2026-09-28', { timezone: 'Asia/Seoul', now });
 
   const accounts = database.prepare('SELECT user_id, timezone, salt FROM nuv_accounts ORDER BY user_id').all();
   assert.equal(accounts[0].timezone, 'UTC');
@@ -189,7 +189,7 @@ test('the one-per-day migration keys existing rewards by date alone', async () =
   ));
 
   // 옛 키로 받은 날에도 새 문장으로 한 번 더 받을 수 없다.
-  const replaced = await awardNuvForReflection(env, 'user-1', 'phrase-2', '2026-09-28', seoulNoon('2026-09-28'));
+  const replaced = await awardNuvForLog(env, 'user-1', 'phrase-2', '2026-09-28', seoulNoon('2026-09-28'));
   assert.deepEqual(replaced, { awarded_nuv: 0, balance: 1 });
   assert.equal(
     database.prepare('SELECT reference_id FROM nuv_transactions').get().reference_id,
@@ -241,10 +241,10 @@ test('issuing a postcard leaves the Nuv untouched', async () => {
   };
   const postcardId = await issuePostcardForRecord(env, 'user-1', record);
   // 소모가 아니라서 발행해도 10누브 그대로다.
-  const wallet = await getNuvWallet(env, request('user-1'));
+  const total = await getNuvTotal(env, request('user-1'));
 
   assert.ok(postcardId);
-  assert.deepEqual(wallet, { balance: 10 });
+  assert.deepEqual(total, { balance: 10 });
 
   await savePostcard(env, postcardId, request('user-1', { preset: 'dawn' }));
   const saved = await getSavedPostcards(env, request('user-1'));

@@ -45,7 +45,7 @@ API에서 사용하는 영문 표현이다.
 |---|---|---|---|
 | 문장 | phrase | 사용자가 반복해서 되새기는 한 문장 | 문구, 미션, 과제 |
 | 활성 문장 | active phrase | 사용자가 현재 되새기는 유일한 문장 | 오늘의 챌린지 |
-| 되새기기 | phrase log / log, reflection | 특정 날짜에 문장을 되새겼다는 기록. 화면에서 횟수는 "되새김 N일"로 적는다 | 실천 완료, 출석 |
+| 되새기기 | phrase log / log | 특정 날짜에 문장을 되새겼다는 기록. 화면에서 횟수는 "되새김 N일"로 적는다 | 실천 완료, 출석 |
 | 문장 기록 | phrase history | 활성·은퇴 문장과 되새긴 날짜의 이력 | 챌린지 기록 |
 | 문장 시작 | phrase start | 새 문장을 활성 문장으로 등록하는 행위 | 챌린지 시작 |
 | 문장 바꾸기 | phrase replace | 활성 문장을 은퇴시키고 새 문장을 시작하는 한 번의 요청 | 문장 수정 |
@@ -61,8 +61,10 @@ API에서 사용하는 영문 표현이다.
 | 표준 용어 | 코드/API 용어 | 뜻 | 피할 표현 |
 |---|---|---|---|
 | 누브 | nuv | 되새긴 하루 하나가 남긴 단위. 사람당 하루 1개, 줄어들지 않는다 | 포인트, 코인, 재화 |
+| 누브 수 | balance (`nuv_wallets.balance`, API `balance`) | 지금까지 남은 누브의 합. 줄지 않으므로 평생 누적과 같다 | 잔액, 지갑 |
 | 누브 장부 | nuv ledger | 누브가 남은 날과 그날 되새긴 문장의 목록 | 지갑 내역 |
-| 봉인 | stamp / anchor (`nuv_anchors`) | 매일 00:30 KST 누브·엽서 장부를 머클 루트로 굳히는 일. 체인 기록은 도장 지갑 대기 중 | 체인에 새김(아직 사실 아님) |
+| 봉인 | seal (`sealLedger`, `last_sealed_day`) | 매일 00:30 KST 누브·엽서 장부를 머클 루트로 굳히는 일 | 도장, stamp, 체인에 새김(아직 사실 아님) |
+| 체인 기록 | anchor (`nuv_anchors`, `NuvLedgerAnchor`) | 봉인 루트를 체인에 올리는 일. 체인 기록 지갑을 기다리는 중이라 지금 상태는 모두 `awaiting_chain` | 도장 지갑 |
 
 ### 엽서
 
@@ -90,7 +92,7 @@ D1 열과 API 필드는 이미 설치된 앱과 저장된 데이터 때문에 �
 | `digital_postcards.practiced_on` | 엽서가 가리키는 날. 엽서 만들기 응답에서는 `issued_on`, 프런트엔드 내부에서는 `issuedOn` |
 | `digital_postcards.visit_days` | 방문 일수가 **아니다**. 발행 때의 누브(최소 1)이며 화면에서 읽지 않는다. 방문 일수는 `GET /api/phrases/active`의 `visit_days`뿐이다 |
 | `practice_records`, `practice_record_id`, `practice_body` | 2026-09-28 이전, 실천을 적어야 엽서가 나오던 시기의 기록. 지금 앱은 만들지 않는다 |
-| `reflection` (`awardNuvForReflection`, `daily_reflection`, `reflectedDays`) | 되새기기. 누브 원장 쪽에서 쓰는 영문이며 `log`와 같은 행동이다 |
+| `nuv_transactions.reason`의 `daily_reflection` | 되새기기로 남은 누브. 코드 식별자는 `log`를 쓴다(`awardNuvForLog`, `serverLoggedDays`) |
 | `kind`의 `regular` | 일반 엽서 |
 
 두 날짜 기준도 구분한다. 되새기기의 `log_date`와 화면의 "오늘"은 앱이 보낸 시간대를 따른다.

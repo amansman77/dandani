@@ -40,7 +40,7 @@ function App() {
   useEffect(() => {
     // 예전엔 여기서 가입 선물 누브를 받아왔다. 누브가 "되새긴 날의 수"가 된
     // 뒤로는 받을 게 없어서, 그냥 지금까지 쌓인 값을 읽어온다.
-    const initializeNuvWallet = async () => {
+    const loadNuvBalance = async () => {
       try {
         const response = await fetch(`${API_URL}/api/nuv`, {
           headers: { 'X-User-ID': getUserIdInfo().userId },
@@ -49,10 +49,10 @@ function App() {
         const data = await response.json();
         setNuvBalance(data.balance);
       } catch (error) {
-        // Wallet availability must not block the daily phrase flow.
+        // The Nuv count must not block the daily phrase flow.
       }
     };
-    initializeNuvWallet();
+    loadNuvBalance();
   }, []);
 
   useEffect(() => {
