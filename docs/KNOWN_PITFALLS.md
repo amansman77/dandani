@@ -139,3 +139,17 @@ workspace에서 실행해야 하는 명령은 그 workspace 기준 경로만 사
 결정적 회귀 검사는 `npm run test:e2e`로 실행한다. 이 검사는 로컬 프런트엔드를 띄우고 문장
 API를 브라우저에서 가로채므로 운영 D1을 읽거나 쓰지 않는다. `BASE_URL`을 지정하면 서버를
 직접 띄우지 않으므로, 별도로 준비된 프리뷰 환경에도 같은 검사를 실행할 수 있다.
+
+## 11. Miniflare Worker 테스트가 누브 봉인 의존성을 못 읽는다
+
+**증상:** `npm test`의 Worker 단계에서 `workers/tests/*.test.mjs` 30개가
+`Unable to resolve "src/nuv-anchor-service.js" dependency "@openzeppelin/merkle-tree"`
+(`ERR_MODULE_RULE`)로 실패한다. 2026-10-23 기준 `main`에서도 같다.
+
+**원인:** `workers/tests/runtime.mjs`는 번들하지 않은 `src/index.js`를 Miniflare에 넘기는데,
+누브 장부 봉인이 npm 패키지를 import하기 시작했다. 번들을 거치는 `npm run check:workers-bundle`
+과 `node:sqlite` 가짜 D1을 쓰는 `workers/test/`는 영향을 받지 않는다.
+
+**대응:** 이 실패를 내 변경 탓으로 오인하지 말고, 실패 목록이 전부 `ERR_MODULE_RULE`인지
+확인한다. `cd workers && node --test --test-concurrency=1 test/*.test.*`로 서비스 단위 테스트는
+따로 통과시킨다. 고치는 일은 테스트 런타임을 번들 기반으로 바꾸는 별도 작업으로 다룬다.

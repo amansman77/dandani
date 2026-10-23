@@ -6,7 +6,7 @@ Problem definition → small, safe change → change review → refactor — rep
 
 - Before exploring code, read `docs/PROJECT_CONTEXT.md` for the current product boundary and glossary.
 - Before running Git, build, or deploy commands, read `docs/KNOWN_PITFALLS.md`.
-- Treat `phrase` (문장) and its daily `log` (되새기기) as the current core domain.
+- Treat `phrase` (문장) and its daily `log` (되새기기) as the current core domain; `nuv` (누브) and `postcard` (엽서) are what a 되새기기 leaves behind. Use the glossary in `docs/PROJECT_CONTEXT.md` for every Korean and English term, including the identifiers whose names no longer match their meaning (`practiced_on`, `digital_postcards.visit_days`, `practice_*`).
 - Treat everything in `workers/src/legacy/` as unreachable historical code unless an ADR explicitly revives it.
 - Do not revive or remove legacy assets without reviewing `docs/adr/0005-legacy-backend-inventory.md`.
 
