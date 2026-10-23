@@ -2,7 +2,8 @@ import { phraseDateContext, countPhraseVisits } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
 import { getRequiredUserId, logUserEvent } from './service-utils.js';
 import { getNickname } from './nickname-service.js';
-import { awardNuvForReflection, beatThreeDaysState } from './nuv-service.js';
+import { awardNuvForReflection } from './nuv-service.js';
+import { beatThreeDaysState } from './beat-three-days.js';
 
 function generateId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;

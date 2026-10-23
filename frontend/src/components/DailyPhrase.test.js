@@ -11,8 +11,12 @@ jest.mock('./phraseVariants/VariantA', () => props => (
     <button disabled={props.submitting} onClick={props.onSubmit}>저장</button>
     {props.phrase && <button onClick={props.onLogToday}>되새기기</button>}
     {props.onBackToPicker && <button onClick={props.onBackToPicker}>다시 고르기</button>}
+    {props.phrase && <button onClick={props.onMakePostcard}>엽서 만들기</button>}
   </div>
 ));
+jest.mock('./PhraseCardSheet', () => props => (props.open ? (
+  <div data-testid="postcard-sheet">{`${props.postcardId}|${props.issuedOn}|${props.loggedDays}|${props.kind}`}</div>
+) : null));
 jest.mock('../utils/analytics', () => ({
   logPhraseOnboardingShown: jest.fn(), logPhraseExampleUsed: jest.fn(), logPhraseDayLogged: jest.fn(),
 }));
@@ -132,4 +136,35 @@ test('a picked phrase can return to the picker and preserves its source', async 
 
   const write = fetch.mock.calls.find(([, options]) => options?.method === 'POST');
   expect(JSON.parse(write[1].body)).toEqual({ phrase: '고른 문장', source: 'picked' });
+});
+
+
+test('making a postcard opens the sheet with the day the server issued it on', async () => {
+  const active = { id: 'phrase-1', phrase: '나의 문장', logged_today: true, logged_days: 3, logged_dates: [] };
+  global.fetch = jest.fn((url, options) => {
+    if (options?.method === 'POST') {
+      return reply({ postcard_id: 'postcard-1', issued_on: '2026-10-22', logged_days: 3, kind: 'regular', created: true });
+    }
+    return reply({ phrase: active });
+  });
+  await act(async () => root.render(<DailyPhrase isEditing={false} onEditingChange={jest.fn()} />));
+  await act(async () => Array.from(container.querySelectorAll('button')).find(b => b.textContent === '엽서 만들기').click());
+
+  const [url, options] = fetch.mock.calls.find(([, init]) => init?.method === 'POST');
+  expect(url).toMatch(/\/api\/nuv\/postcards$/);
+  expect(JSON.parse(options.body)).toEqual({ phrase_id: 'phrase-1', kind: 'regular' });
+  expect(container.querySelector('[data-testid="postcard-sheet"]').textContent)
+    .toBe('postcard-1|2026-10-22|3|regular');
+});
+
+test('a postcard the server refuses keeps the sheet closed and says why', async () => {
+  const active = { id: 'phrase-1', phrase: '나의 문장', logged_today: false, logged_days: 0, logged_dates: [] };
+  global.fetch = jest.fn((url, options) => (options?.method === 'POST'
+    ? reply({ error: '문장을 찾을 수 없어요.' }, false)
+    : reply({ phrase: active })));
+  await act(async () => root.render(<DailyPhrase isEditing={false} onEditingChange={jest.fn()} />));
+  await act(async () => Array.from(container.querySelectorAll('button')).find(b => b.textContent === '엽서 만들기').click());
+
+  expect(container.querySelector('[data-testid="postcard-sheet"]')).toBeNull();
+  expect(document.body.textContent).toContain('문장을 찾을 수 없어요.');
 });

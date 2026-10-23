@@ -7,7 +7,7 @@ import { COLOR, FONT } from '../theme/tokens';
 //
 // 되새기기는 접지 않는다. 이 앱에서 유일하게 매일 하는 동작이라 한 번에
 // 닿아야 하고, 한 탭 더 들어가면 매일 한 번씩 손해를 본다. 가끔 쓰는 것들
-// (실천 남기기·공유)만 위쪽 버튼 하나에 접어두고, 누르면 펼쳐진다.
+// (엽서 만들기·공유)만 위쪽 버튼 하나에 접어두고, 누르면 펼쳐진다.
 //
 // 셋을 나란히 세우지 않은 이유는 예전에 한 번 확인했다 — 우측 하단에 물건이
 // 셋이 되면 티커 카드를 가리고, 매일 쓰는 일과 가끔 쓰는 일이 같은 값이 된다.
@@ -77,7 +77,7 @@ function ExpandedAction({ label, onClick, children, delay }) {
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'flex-end',
       pointerEvents: 'auto', animation: `dandaniFabIn .18s ease ${delay}ms both`,
       '@media (prefers-reduced-motion: reduce)': { animation: 'none' } }}>
-      {/* 아이콘만으로는 "실천 남기기"인지 "공유"인지 매번 기억해야 한다.
+      {/* 아이콘만으로는 "엽서 만들기"인지 "공유"인지 매번 기억해야 한다.
           펼쳤을 때만 보이는 글자라 평소 화면은 그대로 조용하다. */}
       <Box sx={{ fontFamily: FONT.sans, fontSize: '0.72rem', color: COLOR.text.body,
         background: COLOR.surface.sheet, border: `1px solid ${COLOR.line.faint}`,

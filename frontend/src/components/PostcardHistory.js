@@ -5,7 +5,7 @@ import { getUserId } from '../utils/userId';
 import {
   DEDICATED_BACKGROUNDS, EARNED_BACKGROUND, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
 } from '../utils/phraseCard';
-import { formatPracticedOn, proofCaption } from '../utils/practiceDate';
+import { formatPostcardDay, postcardCaption } from '../utils/postcardDate';
 import Loader from './Loader';
 import ShareSheet from './ShareSheet';
 
@@ -25,7 +25,7 @@ const PostcardCard = ({ postcard, onShare }) => {
     setPreviewFailed(false);
     renderPhraseCard({
       phrase: postcard.phrase,
-      meta: proofCaption(postcard.practiced_on, postcard.logged_days_at_issue),
+      meta: postcardCaption(postcard.practiced_on, postcard.logged_days_at_issue),
       preset: backgroundFor(postcard.kind, postcard.preset),
       badge: POSTCARD_BADGES[postcard.kind],
     }).then((blob) => {
@@ -61,7 +61,8 @@ const PostcardCard = ({ postcard, onShare }) => {
         ) : <Loader />}
       </Box>
       {/* 증명의 본문. 엽서 그림에는 문장만 들어가서, 무엇을 살아냈는지는
-          여기서 읽는다 — 이게 없으면 그냥 예쁜 카드다. */}
+          여기서 읽는다 — 이게 없으면 그냥 예쁜 카드다. 실천을 적어야 엽서가
+          나오던 2026-09-28 이전 엽서에만 있다. */}
       {postcard.practice_body && (
         <Box sx={{ mt: 1.5, pl: 1.5, borderLeft: `2px solid ${COLOR.accent.line}` }}>
           <Typography sx={{ fontFamily: FONT.serif, fontSize: '0.86rem', color: COLOR.text.body,
@@ -72,7 +73,7 @@ const PostcardCard = ({ postcard, onShare }) => {
               누브를 주고받게 되면 "산 숫자"가 증명서에 박힌다. 증명에 남을
               것은 무엇을 언제 살아냈는가뿐이다. */}
           <Typography sx={{ fontFamily: FONT.sans, fontSize: '0.68rem', color: COLOR.text.muted, mt: 0.75 }}>
-            {formatPracticedOn(postcard.practiced_on)}에 있었던 일
+            {formatPostcardDay(postcard.practiced_on)}에 있었던 일
             {postcard.logged_days_at_issue > 0
               && ` · 그때까지 ${postcard.logged_days_at_issue}일 되새김`}
           </Typography>

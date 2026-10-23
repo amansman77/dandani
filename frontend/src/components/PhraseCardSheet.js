@@ -6,7 +6,7 @@ import {
   DEDICATED_BACKGROUNDS, EARNED_BACKGROUND, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
 } from '../utils/phraseCard';
 import { shareImageFile } from '../utils/shareImageFile';
-import { proofCaption } from '../utils/practiceDate';
+import { postcardCaption } from '../utils/postcardDate';
 import { getUserId } from '../utils/userId';
 
 const SANS = FONT.sans;
@@ -59,7 +59,7 @@ const actionSx = (primary) => ({
 });
 
 const PhraseCardSheet = ({
-  open, onClose, phrase, postcardId, practicedOn, loggedDays, kind, earnedUnlocked,
+  open, onClose, phrase, postcardId, issuedOn, loggedDays, kind, earnedUnlocked,
 }) => {
   const [preset, setPreset] = useState('morning');
   const [url, setUrl] = useState(null);
@@ -77,7 +77,7 @@ const PhraseCardSheet = ({
     setBusy(true);
     try {
       const b = await renderPhraseCard({
-        phrase: phrase.phrase, meta: proofCaption(practicedOn, loggedDays),
+        phrase: phrase.phrase, meta: postcardCaption(issuedOn, loggedDays),
         preset: backgroundFor(kind, preset),
         badge: POSTCARD_BADGES[kind],
       });
@@ -90,7 +90,7 @@ const PhraseCardSheet = ({
     } finally {
       setBusy(false);
     }
-  }, [phrase, preset, practicedOn, loggedDays, kind]);
+  }, [phrase, preset, issuedOn, loggedDays, kind]);
 
   useEffect(() => { if (open) draw(); }, [open, draw]);
 

@@ -1,6 +1,7 @@
 import { getRequiredUserId } from './service-utils.js';
 import { dateIn, normalizeTimezone, phraseDateContext } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
+import { BEAT_THREE_DAYS_STREAK, hasBeatenThreeDays, longestStreak, reflectedDays } from './beat-three-days.js';
 
 // 누브는 되새김이 쌓여 만들어지는 기록이지 재화가 아니다. 그래서 줄어들지도
 // 않고, 무언가를 여는 열쇠도 아니다.
@@ -8,7 +9,8 @@ import { HttpError } from './http-errors.js';
 // 한때 엽서 발행에 10누브 문턱을 뒀다가 없앴다. 차감이 아니라 자격이었지만,
 // 자격이든 값이든 누브가 무언가를 막는 순간 다시 "얼마가 있어야 하는가"를
 // 묻게 된다. 이제 누브는 막지 않고 세기만 한다 — 엽서에 찍히는 숫자로만 쓰인다.
-// 엽서를 여는 건 누브가 아니라 실천이다.
+// 엽서를 여는 건 누브가 아니다 — 처음엔 실천 기록이었고, 2026-09-28부터는
+// 지금 문장 그 자체다(createPostcardFromPhrase).
 //
 // 예전엔 가입하면 10누브를 그냥 줬다(WELCOME_GRANT). 1누브가 "하루를 되새겼다"는
 // 뜻인 이상 그건 살지 않은 열흘을 준 것이어서, 단위의 뜻이 첫 화면에서부터
@@ -38,11 +40,11 @@ export async function getNuvBalance(env, userId) {
   return wallet?.balance || 0;
 }
 
-const getBalance = getNuvBalance;
-
 // 실천 기록에서 엽서를 발행한다. 살아낸 순간은 그 자체로 증명이 되므로
 // 따로 자격을 묻지 않는다. 기록 하나에 엽서는 하나뿐이라 두 번 불러도
-// 두 장이 되지 않는다.
+// 두 장이 되지 않는다. 2026-09-28 이전에 설치된 앱이 부르는
+// POST /api/practices에서만 쓰인다 — 지금 앱의 엽서 만들기는 아래
+// createPostcardFromPhrase다.
 export async function issuePostcardForRecord(env, userId, record) {
   const existing = await env.DB.prepare(`
     SELECT id FROM digital_postcards WHERE practice_record_id = ? AND user_id = ?
@@ -66,7 +68,8 @@ async function insertPostcard(env, userId, card) {
   // 여기 들어가는 값은 전부 지금 한 번 쓰고 다시 쓰지 않는다. 나중에 문장을
   // 바꾸거나 되새김이 더 쌓여도 안 변한다. draft를 거치지 않고 바로 saved로
   // 굳히는 것도 같은 이유다. practiced_on은 이름이 옛날 그대로지만 엽서가
-  // 가리키는 날이다.
+  // 가리키는 날이다(API로는 issued_on). visit_days도 이름과 달리 방문 일수가
+  // 아니라 발행 때의 누브다 — NOT NULL·CHECK(>= 1)라서 최소 1을 넣는다.
   const postcardId = generateId('postcard');
   const created = await env.DB.prepare(`
     INSERT INTO digital_postcards
@@ -96,93 +99,7 @@ async function insertPostcard(env, userId, card) {
 //
 // 같은 문장으로 같은 날 다시 누르면 새 장을 찍지 않고 그날의 엽서를 돌려준다.
 // 누를 때마다 발행번호가 늘면 번호가 아무 뜻이 없어진다.
-// 작심삼일을 이겨낸 엽서 — 같은 문장을 3일 연속 되새기면 발행할 수 있다.
-// 한 번 3일 연속을 해냈으면 그 뒤에 하루 쉬어도 자격은 남는다. 이미 이긴 것이다.
-export const BEAT_THREE_DAYS_STREAK = 3;
 const POSTCARD_KINDS = new Set(['regular', 'beat_three_days']);
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-// 'YYYY-MM-DD' 목록에서 가장 긴 연속 일수. 날짜 문자열을 UTC 정오로 읽어
-// 서머타임 경계에서도 하루가 23·25시간으로 흔들리지 않게 한다.
-export function longestStreak(dates) {
-  const days = [...new Set(dates)].sort().map(date => Date.parse(`${date}T12:00:00Z`) / DAY_MS);
-  let best = 0;
-  let run = 0;
-  days.forEach((day, index) => {
-    run = index > 0 && day - days[index - 1] === 1 ? run + 1 : 1;
-    best = Math.max(best, run);
-  });
-  return best;
-}
-
-// 오늘(또는 어제)에서 끝나는 연속 일수. 오늘 아직 안 되새겼으면 어제까지를 센다.
-export function currentStreak(dates, today) {
-  const set = new Set(dates);
-  const at = offset => new Date(Date.parse(`${today}T12:00:00Z`) - offset * DAY_MS).toISOString().slice(0, 10);
-  let offset = set.has(today) ? 0 : 1;
-  let run = 0;
-  while (set.has(at(offset))) { run += 1; offset += 1; }
-  return run;
-}
-
-// 작심삼일은 앱이 보낸 날짜(log_date)가 아니라 서버가 기록한 시각(created_at)을
-// 그 사람의 고정된 시간대로 읽어 판정한다. log_date는 앱이 보낸 시간대를 따르는데,
-// 같은 순간에도 UTC−12·서울·UTC+14는 날짜가 하루씩 달라서 헤더만 바꿔 보내면
-// 1분 안에 "3일 연속"이 됐다(2026-09-30 로컬에서 재현). 누브의 하루와 같은 기준이다.
-// 시간대가 아직 없는 사람(되새기면 곧바로 생긴다)은 서울로 본다.
-const FALLBACK_TIMEZONE = 'Asia/Seoul';
-
-function serverDay(createdAt, timezone) {
-  return dateIn(timezone, new Date(`${createdAt.replace(' ', 'T')}Z`));
-}
-
-async function pinnedTimezone(env, userId) {
-  const account = await env.DB.prepare(`
-    SELECT timezone FROM nuv_accounts WHERE user_id = ?
-  `).bind(userId).first();
-  return account?.timezone || FALLBACK_TIMEZONE;
-}
-
-// 이 문장을 실제로 되새긴 날들(고정 시간대 기준, 중복 없음).
-export async function reflectedDays(env, userId, phraseId) {
-  const timezone = await pinnedTimezone(env, userId);
-  const { results } = await env.DB.prepare(`
-    SELECT created_at FROM daily_phrase_logs WHERE phrase_id = ? AND user_id = ?
-  `).bind(phraseId, userId).all();
-  return [...new Set(results.map(row => serverDay(row.created_at, timezone)))];
-}
-
-// 어느 문장으로든 3일 연속을 한 번이라도 해냈는가. "이겨낸 아침" 배경이
-// 열리는 조건이다 — 특별한 엽서를 받았는지가 아니라 이겨냈는지로 본다.
-export async function hasBeatenThreeDays(env, userId) {
-  const timezone = await pinnedTimezone(env, userId);
-  const { results } = await env.DB.prepare(`
-    SELECT phrase_id, created_at FROM daily_phrase_logs WHERE user_id = ?
-  `).bind(userId).all();
-  const byPhrase = new Map();
-  results.forEach(row => byPhrase.set(
-    row.phrase_id, [...(byPhrase.get(row.phrase_id) || []), serverDay(row.created_at, timezone)]
-  ));
-  return [...byPhrase.values()].some(days => longestStreak(days) >= BEAT_THREE_DAYS_STREAK);
-}
-
-// 오늘 화면의 "작심삼일을 이겨냈어요"와 발행 가능 여부가 같은 판정을 쓴다.
-// (예전엔 화면은 모든 되새김으로, 발행은 오늘까지로 따로 판단해 어긋날 수 있었다.)
-export async function beatThreeDaysState(env, userId, phraseId, now = new Date()) {
-  const days = await reflectedDays(env, userId, phraseId);
-  const issued = await env.DB.prepare(`
-    SELECT id FROM digital_postcards
-    WHERE user_id = ? AND phrase_id = ? AND kind = 'beat_three_days'
-  `).bind(userId, phraseId).first();
-  return {
-    streak_goal: BEAT_THREE_DAYS_STREAK,
-    streak: currentStreak(days, dateIn(await pinnedTimezone(env, userId), now)),
-    reached: longestStreak(days) >= BEAT_THREE_DAYS_STREAK,
-    postcard_id: issued?.id || null,
-    // 문장과 상관없이, 이 사람에게 "이겨낸 아침" 배경이 열렸는가.
-    background_unlocked: await hasBeatenThreeDays(env, userId),
-  };
-}
 
 export async function createPostcardFromPhrase(env, request) {
   const userId = getRequiredUserId(request);
@@ -227,7 +144,7 @@ export async function createPostcardFromPhrase(env, request) {
   try {
     await insertPostcard(env, userId, {
       phrase_id: phrase.id, phrase: phrase.phrase, record_id: null, body: null,
-      on: today, logged_days: loggedDays, nuv: await getBalance(env, userId), kind,
+      on: today, logged_days: loggedDays, nuv: await getNuvBalance(env, userId), kind,
     });
   } catch (error) {
     // 같은 순간 두 번 눌러 UNIQUE에 걸린 경우 — 먼저 들어간 엽서를 돌려준다.
@@ -250,18 +167,9 @@ function postcardResult(row, created) {
 // 따로 합계를 낼 필요가 없다.
 export async function getNuvWallet(env, request) {
   const userId = getRequiredUserId(request);
-  return { balance: await getBalance(env, userId) };
+  return { balance: await getNuvBalance(env, userId) };
 }
 
-// 되새김은 하루 한 번이라 누브도 사람당 하루 1개다. 원장 키를 날짜만으로
-// 잡아 UNIQUE(user_id, reason, reference_id)가 그걸 지킨다 — 같은 날 문장을
-// 새로 바꾸고 다시 되새겨도 두 번째 누브는 나오지 않는다.
-//
-// 그 날짜는 앱이 보낸 시간대가 아니라 처음 누브를 받을 때 고정한 시간대로
-// 센다. 같은 순간에도 UTC+14와 UTC-12는 날짜가 이틀 차이 나서, 헤더를 바꿔
-// 가며 보내면 실제 하루에 누브를 2~3개 받을 수 있었다. 누브는 체인에 새길
-// 장부라 그 구멍을 닫는다. 되새김 기록(daily_phrase_logs)은 여전히 앱의
-// 시간대를 따른다 — 화면에 보이는 "오늘"은 사용자가 있는 곳의 오늘이어야 해서.
 // 누브 장부 — 누브 하나하나가 어느 날, 어떤 문장을 되새긴 것인지. 원장엔
 // 날짜만 있어서 문장은 그 누브 직전에 남은 되새김 기록으로 찾는다(되새김
 // 기록을 남긴 같은 요청 안에서 누브가 나오므로 그 기록이 곧 이 누브의 것이다).
@@ -282,7 +190,7 @@ export async function getNuvLedger(env, request) {
     SELECT day FROM nuv_anchors ORDER BY day DESC LIMIT 1
   `).first();
   return {
-    total: await getBalance(env, userId),
+    total: await getNuvBalance(env, userId),
     days: results,
     last_sealed_day: seal?.day || null,
   };
@@ -296,8 +204,17 @@ export async function ensureNuvAccount(env, userId, timezone) {
   `).bind(userId, normalizeTimezone(timezone), newSalt()).run();
 }
 
+// 되새김은 하루 한 번이라 누브도 사람당 하루 1개다. 원장 키를 날짜만으로
+// 잡아 UNIQUE(user_id, reason, reference_id)가 그걸 지킨다 — 같은 날 문장을
+// 새로 바꾸고 다시 되새겨도 두 번째 누브는 나오지 않는다.
+//
+// 그 날짜는 앱이 보낸 시간대가 아니라 처음 누브를 받을 때 고정한 시간대로
+// 센다. 같은 순간에도 UTC+14와 UTC-12는 날짜가 이틀 차이 나서, 헤더를 바꿔
+// 가며 보내면 실제 하루에 누브를 2~3개 받을 수 있었다. 누브는 체인에 새길
+// 장부라 그 구멍을 닫는다. 되새김 기록(daily_phrase_logs)은 여전히 앱의
+// 시간대를 따른다 — 화면에 보이는 "오늘"은 사용자가 있는 곳의 오늘이어야 해서.
 export async function awardNuvForReflection(env, userId, phraseId, logDate, {
-  timezone, now = new Date(),
+  timezone = null, now = new Date(),
 } = {}) {
   await ensureNuvAccount(env, userId, timezone);
   const account = await env.DB.prepare(`
@@ -321,7 +238,7 @@ export async function awardNuvForReflection(env, userId, phraseId, logDate, {
 
   return {
     awarded_nuv: granted?.amount || 0,
-    balance: await getBalance(env, userId),
+    balance: await getNuvBalance(env, userId),
   };
 }
 

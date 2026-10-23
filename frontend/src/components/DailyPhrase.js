@@ -52,7 +52,7 @@ const DailyPhrase = ({
     try {
       const made = await createPostcard(phrase.id, kind);
       setIssued({
-        id: made.postcard_id, practicedOn: made.issued_on, loggedDays: made.logged_days, kind: made.kind,
+        id: made.postcard_id, issuedOn: made.issued_on, loggedDays: made.logged_days, kind: made.kind,
       });
       // 작심삼일 엽서를 받았으면 오늘 화면의 안내가 사라져야 한다.
       if (kind !== 'regular') refresh();
@@ -118,7 +118,7 @@ const DailyPhrase = ({
       />
       <PhraseCardSheet
         open={Boolean(issued)} onClose={() => setIssued(null)}
-        phrase={phrase} postcardId={issued?.id} practicedOn={issued?.practicedOn}
+        phrase={phrase} postcardId={issued?.id} issuedOn={issued?.issuedOn}
         loggedDays={issued?.loggedDays} kind={issued?.kind}
         earnedUnlocked={Boolean(phrase?.beat_three_days?.background_unlocked)}
       />

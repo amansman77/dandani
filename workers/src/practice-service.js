@@ -3,6 +3,10 @@ import { phraseDateContext } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
 import { ensureNuvAccount, getNuvBalance, issuePostcardForRecord } from './nuv-service.js';
 
+// 호환용: 지금 앱에는 실천을 적는 화면이 없다. 2026-09-28 이전에 설치된
+// 앱이 아직 POST /api/practices를 부르기 때문에 남아 있다(router.js).
+// 새 엽서는 nuv-service.js의 createPostcardFromPhrase가 만든다.
+//
 // 실천은 되새김과 다른 일이다. 되새김은 매일 두드리는 것이라 내용이 없고,
 // 실천은 가끔 쓰는 것이라 본문이 있다. 그래서 여기서 하는 일은 하나뿐 —
 // 적은 것을 그 시점 그대로 굳혀서 남기는 것.

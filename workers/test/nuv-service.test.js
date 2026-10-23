@@ -5,16 +5,18 @@ import { DatabaseSync } from 'node:sqlite';
 import {
   awardNuvForReflection,
   createPostcardFromPhrase,
-  hasBeatenThreeDays,
-  beatThreeDaysState,
-  longestStreak,
-  currentStreak,
   issuePostcardForRecord,
   getSavedPostcards,
   getNuvLedger,
   getNuvWallet,
   savePostcard,
 } from '../src/nuv-service.js';
+import {
+  hasBeatenThreeDays,
+  beatThreeDaysState,
+  longestStreak,
+  currentStreak,
+} from '../src/beat-three-days.js';
 
 class D1Statement {
   constructor(statement) {
