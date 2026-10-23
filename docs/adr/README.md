@@ -23,27 +23,6 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 
 [상세 내용](./0001-timezone-management-policy.md)
 
-### 0002: 챌린지 상태 정의 (Challenge Status Definition)
-**Status**: Accepted (2026-01-10)
-
-`current` / `completed` / `upcoming` 상태 집합과 판정 규칙을 정의하고, 모든 챌린지에 적용되는 일차/진행률 계산 기준을 문서화합니다.
-
-[상세 내용](./0002-challenge-status-definition.md)
-
-### 0003: 챌린지 모델 통일 (Challenge Model Unification)
-**Status**: Accepted (2026-01-10)
-
-일정형 챌린지(`start_date`/`end_date`)를 제거하고 모든 챌린지를 선택형 모델(`startedAt` 기반)로 통일한 결정입니다. X-Started-At 헤더 필수 요구사항, 기존 데이터 처리 전략, DB 스키마 변경 전략을 포함합니다.
-
-[상세 내용](./0003-challenge-model-unification.md)
-
-### ADR-PROD-011: Story Feed Platform
-**Status**: 제안 (2026-07-19)
-
-챌린지 중심 구조("오늘의 챌린지 → 실천 → 기록")를 Story Feed 중심 구조로 전환하는 제안입니다. 사용자가 홈에서 처음 마주하는 것을 챌린지가 아니라 타인의 삶의 이야기(Story)로 바꾸고, 공감되는 이야기를 발견하면 그 사람이 남긴 작은 실천(Story Challenge)을 따라 하도록 합니다. 초기엔 AI가 Story를 채우고, 사용자 Story가 늘어날수록 Story Feed의 중심이 사용자에게 이동하는 성장 경로를 정의합니다.
-
-[상세 내용](./ADR-PROD-011-story-feed-platform.md)
-
 ### 0004: 단단이 UTM 표준 및 PostHog 저장 전략
 **Status**: Accepted (2026-01-21)
 
@@ -57,6 +36,17 @@ ADR은 다음과 같은 목적으로 작성됩니다:
 2026-08-28 단일 문장 되새기기로 피벗한 뒤 남은 Story Feed/Challenge 시절 백엔드 코드와 D1 테이블을, 프론트엔드처럼 삭제하지 않고 인벤토리로 문서화하기로 한 결정입니다. 살아있는 API·크론·테이블과 죽은 것들을 행 수까지 포함해 구분하고, 나중에 실제로 지울 때의 순서를 정리했습니다.
 
 [상세 내용](./0005-legacy-backend-inventory.md)
+
+### 0006: 문장 교체·날짜·운영 API 경계
+**Status**: Accepted (2026-09-11)
+
+문장 교체를 한 번의 요청으로 원자적으로 처리하고, 되새기기 날짜를 서버 시각과 사용자 시간대로 판정하며, 운영 API를 관리자 토큰 뒤에 두기로 한 결정입니다.
+
+[상세 내용](./0006-phrase-reliability.md)
+
+챌린지 상태(0002, 0002-01), 챌린지 모델 통일(0003), Story Feed(ADR-PROD-011) 결정은 해당 제품이
+없어져 2026-10-23에 삭제했습니다. 남은 레거시 코드와 테이블은 ADR-0005가 다루고, 원문은 Git 이력에
+있습니다.
 
 ## ADR 작성 가이드
 

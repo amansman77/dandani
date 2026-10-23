@@ -168,7 +168,7 @@ Worker 테스트는 두 폴더에 있다. `workers/test/`는 `node:sqlite`로 �
 2. `workers/src/router.js`에 등록된 실제 라우트
 3. 이 문서
 4. Accepted ADR(특히 ADR-0001, ADR-0005)
-5. `docs/archive/`의 과거 계획, 실험 및 프로토타입
+5. `docs/archive/`의 과거 실험
 
 ## 변경 전 체크리스트
 
