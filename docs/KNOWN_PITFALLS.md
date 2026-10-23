@@ -140,16 +140,18 @@ workspace에서 실행해야 하는 명령은 그 workspace 기준 경로만 사
 API를 브라우저에서 가로채므로 운영 D1을 읽거나 쓰지 않는다. `BASE_URL`을 지정하면 서버를
 직접 띄우지 않으므로, 별도로 준비된 프리뷰 환경에도 같은 검사를 실행할 수 있다.
 
-## 11. Miniflare Worker 테스트가 누브 봉인 의존성을 못 읽는다
+## 11. Miniflare Worker 테스트는 번들한 Worker와 전체 스키마로 돈다
 
-**증상:** `npm test`의 Worker 단계에서 `workers/tests/*.test.mjs` 30개가
+**증상(2026-09-28~10-23):** `workers/tests/*.test.mjs` 30개가
 `Unable to resolve "src/nuv-anchor-service.js" dependency "@openzeppelin/merkle-tree"`
-(`ERR_MODULE_RULE`)로 실패한다. 2026-10-23 기준 `main`에서도 같다.
+(`ERR_MODULE_RULE`)로 실패했다. 이 실패에 가려서, 테스트 D1의 스키마 목록이 09-18에
+멈춰 있다는 사실도 드러나지 않았다. 그 결과 되새기기 요청이 `nuv_accounts`가 없어 500이 됐다.
 
-**원인:** `workers/tests/runtime.mjs`는 번들하지 않은 `src/index.js`를 Miniflare에 넘기는데,
-누브 장부 봉인이 npm 패키지를 import하기 시작했다. 번들을 거치는 `npm run check:workers-bundle`
-과 `node:sqlite` 가짜 D1을 쓰는 `workers/test/`는 영향을 받지 않는다.
+**원인:** Miniflare는 번들을 하지 않는다. 그런데 누브 장부 봉인이 CommonJS npm 패키지를
+import하기 시작했다. 테스트 D1은 `schemas/` 폴더가 아니라 `workers/tests/helpers.mjs`의
+`newSchemas` 목록으로 만든다.
 
-**대응:** 이 실패를 내 변경 탓으로 오인하지 말고, 실패 목록이 전부 `ERR_MODULE_RULE`인지
-확인한다. `cd workers && node --test --test-concurrency=1 test/*.test.*`로 서비스 단위 테스트는
-따로 통과시킨다. 고치는 일은 테스트 런타임을 번들 기반으로 바꾸는 별도 작업으로 다룬다.
+**대응:** `helpers.mjs`가 wrangler에 들어 있는 esbuild로 `tests/runtime.mjs`를 번들한 뒤
+Miniflare에 넘긴다. `browser` 필드를 읽지 않으면 `debug`의 Node 빌드가 들어와 `tty`를
+찾지 못한다. 새 마이그레이션을 추가하면 `newSchemas`에도 적용 순서대로 넣는다. 빠뜨리면
+`tests/schema-coverage.test.mjs`가 실패한다.

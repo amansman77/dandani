@@ -6,14 +6,47 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const wranglerRequire = createRequire(require.resolve('wrangler/package.json'));
 const { Miniflare } = wranglerRequire('miniflare');
+const esbuild = wranglerRequire('esbuild');
+const runtimePath = fileURLToPath(new URL('./runtime.mjs', import.meta.url));
+
+// Miniflare does not bundle, and the ledger seal imports CommonJS npm packages
+// (@openzeppelin/merkle-tree), so handing it src/ unbundled fails with
+// ERR_MODULE_RULE. Bundle once per test file with the same resolution wrangler
+// uses for Workers; `npm run check:workers-bundle` still checks the real bundle.
+let bundledRuntime;
+function bundleRuntime() {
+  bundledRuntime ??= esbuild.build({
+    entryPoints: [runtimePath],
+    bundle: true,
+    write: false,
+    format: 'esm',
+    platform: 'neutral',
+    target: 'es2022',
+    mainFields: ['browser', 'module', 'main'],
+    conditions: ['workerd', 'worker', 'browser'],
+    logLevel: 'silent',
+  }).then(result => result.outputFiles[0].text);
+  return bundledRuntime;
+}
 const baseSchemas = [
   'schema_v250923_1.sql', 'schema_v260901_fix_user_events_check.sql',
   'schema_v260828_daily_phrases.sql',
 ];
-const newSchemas = [
+// Every migration production has, in the order it was applied. This list stopped
+// at 09-18, and while the suite could not load (see bundleRuntime) nobody saw
+// that logging a day now needs nuv_accounts — every date test returned 500. A new
+// schema file belongs here too — tests/schema-coverage.test.mjs fails without it.
+export const newSchemas = [
   'schema_v260910_active_phrase_unique.sql', 'schema_v260910_phrase_replacement.sql',
-  'schema_v260917_nuv.sql', 'schema_v260917_postcards.sql',
-  'schema_v260918_postcard_images.sql',
+  'schema_v260917_nuv.sql', 'schema_v260917_nuv_welcome_grant.sql',
+  'schema_v260917_postcards.sql', 'schema_v260918_postcard_images.sql',
+  'schema_v260922_nuv_accrual.sql',
+  'schema_v260923_practice_records.sql', 'schema_v260923_postcard_proof.sql',
+  'schema_v260924_drop_postcard_images.sql', 'schema_v260926_practice_logged_days.sql',
+  'schema_v260928_nuv_accounts.sql', 'schema_v260928_nuv_anchors.sql',
+  'schema_v260928_anchor_postcards.sql', 'schema_v260928_nuv_one_per_day.sql',
+  'schema_v260928_postcard_per_phrase_day.sql',
+  'schema_v260930_beat_three_days.sql', 'schema_v260930_triumph_background.sql',
 ];
 
 function splitSqlStatements(sql) {
@@ -50,8 +83,8 @@ export async function createApp(t, { migrate = true, token = 'local-test-token',
   const outbound = [];
   const mf = new Miniflare({
     modules: true,
-    modulesRules: [{ type: 'ESModule', include: ['**/*.js'] }],
-    scriptPath: fileURLToPath(new URL('./runtime.mjs', import.meta.url)),
+    script: await bundleRuntime(),
+    scriptPath: runtimePath,
     compatibilityDate: '2024-03-18',
     d1Databases: ['DB'],
     bindings: { ADMIN_API_TOKEN: token, TEST_NOW: now },
