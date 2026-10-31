@@ -1,7 +1,7 @@
-import { getUserId } from './userId';
-import { getClientTimeHeaders } from './clientTime';
+import { getUserId } from '../utils/userId';
+import { getClientTimeHeaders } from '../utils/clientTime';
+import { API_URL } from '../api/config';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const POSTHOG_WAIT_MS = 3000;
 const POSTHOG_POLL_MS = 100;
 
@@ -86,7 +86,7 @@ export async function logEvent(eventType, eventData = {}) {
     const mappedEvent = POSTHOG_EVENT_MAP[eventType];
     if (mappedEvent) logPostHogEvent(mappedEvent, { ...eventData, event_type: eventType });
     if (!BACKEND_ALLOWED_EVENT_TYPES.has(eventType)) return;
-    const response = await fetch(`${API_BASE_URL}/api/analytics/event`, {
+    const response = await fetch(`${API_URL}/api/analytics/event`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

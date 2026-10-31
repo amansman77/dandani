@@ -4,7 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { PostHogProvider } from 'posthog-js/react';
 import App from './App';
-import { initAnalytics } from './utils/analytics';
+import { initAnalytics } from './analytics/analytics';
 import { COLOR, FONT } from './theme/tokens';
 
 // 팔레트엔 원래 Story Feed 시절 색(파랑 #3f7198 / 빨강 #df4846 / 초록 …)이

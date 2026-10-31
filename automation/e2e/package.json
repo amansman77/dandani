@@ -1,0 +1,11 @@
+{
+  "name": "dandani-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.61.1"
+  }
+}

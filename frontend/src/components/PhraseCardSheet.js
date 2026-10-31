@@ -4,13 +4,12 @@ import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
 import {
   DEDICATED_BACKGROUNDS, EARNED_BACKGROUND, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
-} from '../utils/phraseCard';
-import { shareImageFile } from '../utils/shareImageFile';
+} from '../share/phraseCard';
+import { shareImageFile } from '../share/shareImageFile';
 import { postcardCaption } from '../utils/postcardDate';
-import { getUserId } from '../utils/userId';
+import { savePostcardBackground } from '../api/nuv';
 
 const SANS = FONT.sans;
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 const chipSx = (on) => ({
   border: `1px solid ${on ? COLOR.accent.line : COLOR.line.main}`,
@@ -117,13 +116,7 @@ const PhraseCardSheet = ({
     if (!postcardId || saving) return;
     setSaving(true);
     try {
-      const response = await fetch(`${API_URL}/api/nuv/postcards/${postcardId}/save`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
-        body: JSON.stringify({ preset }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || '엽서를 저장하지 못했어요');
+      await savePostcardBackground(postcardId, preset);
       // 그림은 서버로 보내지 않는다. 엽서함 미리보기는 문장·프리셋으로
       // 그때그때 다시 그리는 것이라, 고른 배경만 남기면 충분하다.
       setSavedPreset(preset);

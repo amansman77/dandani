@@ -76,6 +76,42 @@ const write = (file, buffer) => {
   console.log(`  ${path.relative(ROOT, file)}  ${(buffer.length / 1024).toFixed(1)}KB`);
 };
 
+// Android는 res/mipmap-anydpi-v26/ic_launcher.xml이 배경·전경 두 장을 16.7%씩 안으로 들여
+// 겹친 뒤 기기 모양(원·둥근 사각)으로 깎는다. 예전 generate-icons.js는 전경을 투명 배경에
+// 70%로 줄이고 배경을 크림색(#faf5e9)으로 깔았다 — 옛 아이콘엔 맞았지만 이 문양은 어두운
+// 별밭째로 한 장이라, 그렇게 하면 크림 테두리 안에 어두운 사각형이 뜬다. 그래서 전경은
+// 잘라낸 원본 그대로, 배경은 원본 모서리의 어두운 색으로 채운다. 문양은 이미 원본의 69%라
+// 깎이는 영역 안에 들어간다. 7.x 이하 기기용 ic_launcher·ic_launcher_round도 같이 만든다.
+const ANDROID_DENSITIES = [
+  ['mipmap-mdpi', 48], ['mipmap-hdpi', 72], ['mipmap-xhdpi', 96],
+  ['mipmap-xxhdpi', 144], ['mipmap-xxxhdpi', 192],
+];
+
+async function cornerColor(master) {
+  const { data, info } = await sharp(master).resize(32, 32).raw().toBuffer({ resolveWithObject: true });
+  const at = (x, y) => (y * info.width + x) * info.channels;
+  const corners = [at(0, 0), at(31, 0), at(0, 31), at(31, 31)];
+  const mean = (offset) => Math.round(corners.reduce((sum, i) => sum + data[i + offset], 0) / corners.length);
+  return { r: mean(0), g: mean(1), b: mean(2), alpha: 1 };
+}
+
+async function writeAndroidIcons(master) {
+  const background = await cornerColor(master);
+  const res = path.join(ROOT, 'android/app/src/main/res');
+  for (const [folder, size] of ANDROID_DENSITIES) {
+    const square = await sharp(master).resize(size, size, { fit: 'cover' }).png().toBuffer();
+    const circle = Buffer.from(
+      `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}"/></svg>`
+    );
+    const round = await sharp(square).composite([{ input: circle, blend: 'dest-in' }]).png().toBuffer();
+    const fill = await sharp({ create: { width: size, height: size, channels: 4, background } }).png().toBuffer();
+    write(path.join(res, folder, 'ic_launcher.png'), square);
+    write(path.join(res, folder, 'ic_launcher_round.png'), round);
+    write(path.join(res, folder, 'ic_launcher_foreground.png'), square);
+    write(path.join(res, folder, 'ic_launcher_background.png'), fill);
+  }
+}
+
 async function main() {
   if (!SOURCE || !fs.existsSync(SOURCE)) {
     console.error('원본 이미지 경로를 넘겨주세요.');
@@ -127,6 +163,9 @@ async function main() {
     const scale = parseInt(image.scale, 10) || 1;
     write(path.join(iconSet, image.filename), await png(Math.round(base * scale)));
   }
+
+  console.log('\nAndroid 앱 아이콘');
+  await writeAndroidIcons(master);
 
   console.log('\n네이티브 빌드용 원본');
   write(path.join(ROOT, 'assets/icon/icon.png'), master);

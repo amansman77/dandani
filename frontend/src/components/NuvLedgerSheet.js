@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Typography, Drawer } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
-import { fetchNuvLedger } from '../utils/nuvApi';
+import { fetchNuvLedger } from '../api/nuv';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;

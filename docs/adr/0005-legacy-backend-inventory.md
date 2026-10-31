@@ -110,11 +110,11 @@
 
 ### 이벤트 타입 허용목록
 
-`workers/src/core.js`의 `ALLOWED_EVENT_TYPES`와 `frontend/src/utils/analytics-transport.js`의
+`workers/src/core.js`의 `ALLOWED_EVENT_TYPES`와 `frontend/src/analytics/analytics-transport.js`의
 `BACKEND_ALLOWED_EVENT_TYPES`는 **양쪽 다 고쳐야 합니다**(한쪽만 고치면 조용히 버려짐 —
 2026-09-01 `schema_v260901_fix_user_events_check.sql` 참고).
 
-> 2026-10-23 갱신: 허용 목록은 이제 `analytics-transport.js`에 있다. 지금 보내는 이벤트는
+> 2026-10-23 갱신: 허용 목록은 이제 `frontend/src/analytics/analytics-transport.js`에 있다. 지금 보내는 이벤트는
 > 프런트엔드의 `page_visit`, `splash_shown`, `splash_done`, `onboarding_complete`,
 > `phrase_onboarding_shown`, `phrase_list_seen`, `phrase_list_engaged`, `phrase_example_used`,
 > `phrase_day_logged`, `phrase_shared`와 Worker의 `phrase_start`, `phrase_retired`다.

@@ -9,7 +9,7 @@ import { newSchemas } from './helpers.mjs';
 const FIRST_LISTED = 'schema_v260910_active_phrase_unique.sql';
 
 test('every migration since the phrase rebuild is applied to the test database', async () => {
-  const files = (await readdir(new URL('../schemas/', import.meta.url)))
+  const files = (await readdir(new URL('../../schemas/', import.meta.url)))
     .filter(name => name.startsWith('schema_v') && name >= FIRST_LISTED)
     .sort();
   assert.deepEqual([...newSchemas].sort(), files);

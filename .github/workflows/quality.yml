@@ -27,8 +27,8 @@ jobs:
           cache: npm
           cache-dependency-path: |
             package-lock.json
-            automation/ux-check/package-lock.json
+            automation/e2e/package-lock.json
       - run: npm ci
-      - run: npm ci --prefix automation/ux-check
-      - run: npx --prefix automation/ux-check playwright install --with-deps chromium
+      - run: npm ci --prefix automation/e2e
+      - run: npx --prefix automation/e2e playwright install --with-deps chromium
       - run: npm run test:e2e

@@ -1,4 +1,4 @@
-import { getRequiredUserId, logUserEvent } from '../service-utils.js';
+import { getRequiredUserId, logUserEvent } from '../core.js';
 import { getClientLocalDate } from './challenge-dates.js';
 
 function generateId(prefix) {

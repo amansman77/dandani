@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Alert } from '@mui/material';
-import { getUserId } from '../utils/userId';
+import { fetchPhraseHistory } from '../api/phrases';
 import Loader from './Loader';
 import { COLOR, FONT } from '../theme/tokens';
-
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 const SERIF = FONT.serif;
 const SANS = FONT.sans;
@@ -25,12 +23,7 @@ const PhraseHistory = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${API_URL}/api/phrases/history`, {
-          headers: { 'X-User-ID': getUserId() },
-        });
-        if (!response.ok) throw new Error(`Failed to fetch history: ${response.status}`);
-        const data = await response.json();
-        setPhrases(data.phrases || []);
+        setPhrases(await fetchPhraseHistory());
       } catch (err) {
         setError(err.message);
       } finally {

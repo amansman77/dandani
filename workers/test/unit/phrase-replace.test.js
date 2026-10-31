@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { replacePhrase } from '../src/phrase-mutations.js';
+import { replacePhrase } from '../../src/phrase-mutations.js';
 
 // 문장을 바꾸면 되새김은 처음부터 다시 센다. 다른 말을 살기로 한 것이니
 // 그 문장의 날수도 거기서 시작한다.

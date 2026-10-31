@@ -1,4 +1,6 @@
-import { fetchActivePhrase, savePhrase, logPhraseToday } from './phraseApi';
+import {
+  fetchActivePhrase, savePhrase, logPhraseToday, fetchPhraseHistory, fetchCommunityPhrases,
+} from './phrases';
 
 beforeEach(() => {
   localStorage.setItem('dandani_user_id', 'test-user');
@@ -30,4 +32,21 @@ test('a server conflict is displayed without retrying the write automatically', 
   fetch.mockResolvedValue({ ok: false, json: async () => ({ error: '문장이 이미 변경됐어요.' }) });
   await expect(savePhrase('다른 문장', 'original')).rejects.toThrow('문장이 이미 변경됐어요.');
   expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+test('the history tab gets the phrase list, or a status it can show', async () => {
+  fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ phrases: [{ id: 'p1' }] }) });
+  expect(await fetchPhraseHistory()).toEqual([{ id: 'p1' }]);
+  expect(fetch.mock.calls[0][0]).toMatch(/\/api\/phrases\/history$/);
+  fetch.mockResolvedValueOnce({ ok: false, status: 503 });
+  await expect(fetchPhraseHistory()).rejects.toThrow('Failed to fetch history: 503');
+});
+
+test('other people\'s phrases fall back to an empty list instead of failing', async () => {
+  fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [{ phrase: '남의 문장' }] }) });
+  expect(await fetchCommunityPhrases()).toEqual([{ phrase: '남의 문장' }]);
+  fetch.mockResolvedValueOnce({ ok: false });
+  expect(await fetchCommunityPhrases()).toEqual([]);
+  fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  expect(await fetchCommunityPhrases()).toEqual([]);
 });

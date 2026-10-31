@@ -108,18 +108,26 @@ D1 열과 API 필드는 이미 설치된 앱과 저장된 데이터 때문에 �
 - `frontend/src/components/PhraseHistory.js`: 문장 기록
 - `frontend/src/components/PostcardHistory.js`, `PhraseCardSheet.js`: 엽서함, 엽서 배경 고르기
 - `frontend/src/components/NuvLedgerSheet.js`: 누브 장부
-- `frontend/src/utils/phrasePool.js`: 추천 및 다른 사용자의 문장 조회
-- `frontend/src/utils/phraseCard.js`, `postcardDate.js`: 엽서 그림과 날짜 표기
+- `frontend/src/utils/phrasePool.js`: 추천 문장과 다른 사용자의 문장 섞기
+- `frontend/src/share/`: 엽서 그림(`phraseCard.js`), 이미지·카카오톡 공유
+- `frontend/src/utils/postcardDate.js`: 엽서 날짜 표기
+- `frontend/src/api/`: 모든 서버 호출(`phrases.js`, `nuv.js`). Worker 주소는 `config.js` 한 곳에 있다
+- `frontend/src/analytics/`: 이벤트 전송, PostHog, UTM
 - `workers/src/router.js`: 활성 API 라우팅
 - `workers/src/phrase-service.js`, `phrase-mutations.js`: 문장과 되새기기 저장/조회
 - `workers/src/nuv-service.js`: 누브 원장과 엽서 발행·저장
 - `workers/src/beat-three-days.js`: 연속 일수와 작심삼일 판정
 - `workers/src/nuv-anchor-service.js`: 매일 밤 누브·엽서 장부 봉인
-- `workers/src/practice-service.js`: 옛 앱이 부르는 `/api/practices` 호환 경로
+- `workers/src/practice-records-compat.js`: 옛 앱이 부르는 `/api/practices` 호환 경로
 - `workers/src/core.js`, `analytics-service.js`: 이벤트와 운영 지표
 
-Worker 테스트는 두 폴더에 있다. `workers/test/`는 `node:sqlite`로 만든 가짜 D1로 서비스
-함수를 직접 부르고, `workers/tests/`는 Miniflare로 Worker 전체를 띄운다.
+Worker 테스트는 `workers/test/` 아래 두 폴더로 나뉜다. `unit/`은 `node:sqlite`로 만든 가짜 D1로
+서비스 함수를 직접 부르고, `integration/`은 번들한 Worker 전체를 Miniflare로 띄운다.
+새 마이그레이션을 추가하면 `integration/helpers.mjs`의 `newSchemas`에도 넣는다.
+
+프런트엔드의 새 서버 호출은 `src/api/`에 함수로 추가하고, 컴포넌트에서 직접 `fetch`하지 않는다.
+예외는 세션 헤더가 붙는 분석 이벤트 전송(`src/analytics/analytics-transport.js`) 하나다. 브라우저
+회귀 테스트는 `automation/e2e/`, 운영 화면을 보는 UX 관찰은 `automation/ux-check/`에 있다.
 
 ### 활성 문장 API
 
@@ -157,7 +165,7 @@ Worker 테스트는 두 폴더에 있다. `workers/test/`는 `node:sqlite`로 �
 새 기능에서 이 코드에 연결하거나 해당 용어를 재사용하지 않는다.
 
 `practice`만은 레거시 폴더 밖에도 남아 있다. 피벗 이전 챌린지의 실천(`legacy/practice-service.js`)과
-2026-09-23~28 엽서용 실천 기록(`workers/src/practice-service.js`)은 다른 것이고, 뒤의 것은
+2026-09-23~28 엽서용 실천 기록(`workers/src/practice-records-compat.js`)은 다른 것이고, 뒤의 것은
 이미 설치된 앱 때문에 라우터에 남은 호환 경로다. 둘 다 새 기능의 용어로 쓰지 않는다.
 분석 이벤트 허용 목록의 `challenge_*`, `practice_*` 이름은 D1 CHECK 제약과 지난 데이터
 때문에 남아 있을 뿐, 지금 앱에서 보내는 곳은 없다. 전체 상태와 예외는

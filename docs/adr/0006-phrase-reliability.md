@@ -6,7 +6,7 @@ Accepted — 2026-09-11. 사용자가 로컬 구현·회귀 테스트 보완 결
 
 ## Context
 
-[작업 계획](../plan/0007-phrase-reliability.md)의 문제·선택지·영향 범위를 따른다. 운영 데이터와 Cloudflare Access 설정은 아직 조회하지 않았으므로 중복이 없거나 외부 인증이 적용됐다고 가정하지 않는다.
+[작업 계획](../plan/0006-phrase-reliability.md)의 문제·선택지·영향 범위를 따른다. 운영 데이터와 Cloudflare Access 설정은 아직 조회하지 않았으므로 중복이 없거나 외부 인증이 적용됐다고 가정하지 않는다.
 
 ## Decision
 

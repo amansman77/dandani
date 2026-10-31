@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { fetchActivePhrase } from '../utils/phraseApi';
+import { fetchActivePhrase } from '../api/phrases';
 
 export default function usePhraseResource() {
   const [phrase, setPhrase] = useState(null);

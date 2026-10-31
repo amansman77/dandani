@@ -1,4 +1,4 @@
-import { getRequiredUserId, logUserEvent } from '../service-utils.js';
+import { getRequiredUserId, logUserEvent } from '../core.js';
 import {
   addStartedAtDateString,
   calculateChallengeDayFromStart,

@@ -1,4 +1,4 @@
-import worker from '../src/index.js';
+import worker from '../../src/index.js';
 
 // Freeze only the test worker's clock. SQLite timestamps are set explicitly in fixtures.
 const NativeDate = Date;

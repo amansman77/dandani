@@ -78,6 +78,7 @@ yarn-error.log*
 automation/ux-check/.env
 automation/ux-check/out/
 automation/ux-check/node_modules/
+automation/e2e/node_modules/
 
 # OS generated files
 .DS_Store

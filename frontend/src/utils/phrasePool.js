@@ -1,6 +1,4 @@
-import { getUserId } from './userId';
-
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
+import { fetchCommunityPhrases } from '../api/phrases';
 
 // 실제 다른 사용자 데이터 사이사이에, 편집팀이 고른 문장을 섞어 넣는다
 // (항상 맨 앞에 고정하면 "다른 사람들의 아침"인데도 짜여진 것처럼 보인다는
@@ -128,18 +126,7 @@ export function shuffle(arr) {
 // 티커와 첫 문장 고르기 화면이 같은 재료를 쓴다. 실제 사용자 문장을 못 받아와도
 // 추천 문장만으로 화면이 비지 않게 항상 합쳐서 돌려준다.
 export async function fetchPhrasePool() {
-  let list = [];
-  try {
-    const response = await fetch(`${API_URL}/api/phrases/community`, {
-      headers: { 'X-User-ID': getUserId() },
-    });
-    if (response.ok) {
-      const data = await response.json();
-      list = data.items || [];
-    }
-  } catch (err) {
-    // 부가 데이터라 실패해도 조용히 넘어간다
-  }
+  const list = await fetchCommunityPhrases();
   return shuffle([...RECOMMENDED_ITEMS, ...list]);
 }
 

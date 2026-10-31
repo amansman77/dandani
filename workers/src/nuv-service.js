@@ -1,4 +1,4 @@
-import { getRequiredUserId } from './service-utils.js';
+import { getRequiredUserId } from './core.js';
 import { dateIn, normalizeTimezone, phraseDateContext } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
 import { BEAT_THREE_DAYS_STREAK, hasBeatenThreeDays, longestStreak, serverLoggedDays } from './beat-three-days.js';

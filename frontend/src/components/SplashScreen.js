@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
-import { logSplashShown, logSplashDone } from '../utils/analytics';
+import { logSplashShown, logSplashDone } from '../analytics/analytics';
 
 // 앱을 열 때마다 뜨는 스플래시("발화" 안).
 //

@@ -35,7 +35,7 @@ const baseSchemas = [
 // Every migration production has, in the order it was applied. This list stopped
 // at 09-18, and while the suite could not load (see bundleRuntime) nobody saw
 // that logging a day now needs nuv_accounts — every date test returned 500. A new
-// schema file belongs here too — tests/schema-coverage.test.mjs fails without it.
+// schema file belongs here too — test/integration/schema-coverage.test.mjs fails without it.
 export const newSchemas = [
   'schema_v260910_active_phrase_unique.sql', 'schema_v260910_phrase_replacement.sql',
   'schema_v260917_nuv.sql', 'schema_v260917_nuv_welcome_grant.sql',
@@ -74,7 +74,7 @@ function splitSqlStatements(sql) {
 }
 
 export async function applySchema(db, name) {
-  const sql = await readFile(new URL(`../schemas/${name}`, import.meta.url), 'utf8');
+  const sql = await readFile(new URL(`../../schemas/${name}`, import.meta.url), 'utf8');
   const statements = splitSqlStatements(sql);
   await db.batch(statements.map(statement => db.prepare(statement)));
 }

@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { createPracticeRecord, getPracticeRecords } from '../src/practice-service.js';
-import { getSavedPostcards, savePostcard } from '../src/nuv-service.js';
+import { createPracticeRecord, getPracticeRecords } from '../../src/practice-records-compat.js';
+import { getSavedPostcards, savePostcard } from '../../src/nuv-service.js';
 
 class D1Statement {
   constructor(statement) {
@@ -42,18 +42,18 @@ function createEnvironment() {
     );
   `);
   for (const file of [
-    '../schemas/schema_v260917_nuv.sql',
-    '../schemas/schema_v260917_postcards.sql',
+    '../../schemas/schema_v260917_nuv.sql',
+    '../../schemas/schema_v260917_postcards.sql',
     // 실제 순서 그대로 — 이미지 칸을 만들었다가 나중에 걷어냈다.
-    '../schemas/schema_v260918_postcard_images.sql',
-    '../schemas/schema_v260923_practice_records.sql',
-    '../schemas/schema_v260923_postcard_proof.sql',
-    '../schemas/schema_v260924_drop_postcard_images.sql',
-    '../schemas/schema_v260926_practice_logged_days.sql',
-    '../schemas/schema_v260928_nuv_accounts.sql',
-    '../schemas/schema_v260928_postcard_per_phrase_day.sql',
-    '../schemas/schema_v260930_beat_three_days.sql',
-    '../schemas/schema_v260930_triumph_background.sql',
+    '../../schemas/schema_v260918_postcard_images.sql',
+    '../../schemas/schema_v260923_practice_records.sql',
+    '../../schemas/schema_v260923_postcard_proof.sql',
+    '../../schemas/schema_v260924_drop_postcard_images.sql',
+    '../../schemas/schema_v260926_practice_logged_days.sql',
+    '../../schemas/schema_v260928_nuv_accounts.sql',
+    '../../schemas/schema_v260928_postcard_per_phrase_day.sql',
+    '../../schemas/schema_v260930_beat_three_days.sql',
+    '../../schemas/schema_v260930_triumph_background.sql',
   ]) {
     database.exec(readFileSync(new URL(file, import.meta.url), 'utf8'));
   }

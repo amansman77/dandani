@@ -1,4 +1,4 @@
-import { logPhraseShared } from './analytics';
+import { logPhraseShared } from '../analytics/analytics';
 
 // 인스타는 웹에서 직접 열 수 없다(메타 문서상 네이티브 전용). 그런데 OS 공유
 // 시트에 이미지 '파일'을 넘기면 그 목록에 인스타가 뜬다 — 이미지가 인스타로

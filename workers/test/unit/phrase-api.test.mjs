@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { handleRequest } from '../src/router.js';
+import { handleRequest } from '../../src/router.js';
 import { createPhraseDbFake } from './support/phrase-db-fake.mjs';
 
 const API_URL = 'https://example.test/api/phrases';

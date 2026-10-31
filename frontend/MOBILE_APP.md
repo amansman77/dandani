@@ -114,11 +114,21 @@ cd frontend/android
 
 ### 아이콘 생성
 
-필요한 크기:
-- Android: 48x48, 72x72, 96x96, 144x144, 192x192, 512x512
-- iOS: 20x20, 29x29, 40x40, 60x60, 76x76, 83.5x83.5, 1024x1024
+```bash
+cd frontend
+npm run icons:make   # scripts/make-icons.js assets/dandani-emblem-source.png
+```
 
-현재 아이콘 위치: `frontend/public/favicon/`
+원본 한 장(`assets/dandani-emblem-source.png`)에서 문양을 찾아 잘라낸 뒤, 그 기준 이미지로 아래를 모두 만든다.
+
+- 웹: `public/favicon/`, `public/assets/icons/`
+- iOS: `ios/App/App/Assets.xcassets/AppIcon.appiconset/`
+- Android: `android/app/src/main/res/mipmap-*/`(일반·원형·적응형 전경/배경)
+- 네이티브 빌드용 기준 이미지: `assets/icon/icon.png`
+
+예전 `generate-icons.js`는 2026-10-23에 지웠다. 그 스크립트는 Android 적응형 아이콘을 투명 전경과 크림색
+배경으로 만들었다. 옛 캐릭터 아이콘에는 맞았지만 어두운 문양에는 맞지 않았다. 9/25 아이콘을 문양으로
+바꿀 때도 돌리지 않아서 Android만 10/23까지 옛 캐릭터 아이콘이었다.
 
 ### 스플래시 스크린
 

@@ -7,7 +7,7 @@
 // page_visit마다 그대로 흘려보낸다 — 퍼널 집계 때 사용자별 첫 page_visit 행을
 // 기준으로 캠페인을 붙이면 되고, 원본 이벤트 로그는 있는 그대로 남기는 게 낫다.
 import { getUTMFromURL, hasAnyUTM } from './utm';
-import { getAppUtmFromCapacitor } from './execution-platform';
+import { getAppUtmFromCapacitor } from '../utils/execution-platform';
 
 export function getCurrentUTM() {
   if (typeof window === 'undefined') {

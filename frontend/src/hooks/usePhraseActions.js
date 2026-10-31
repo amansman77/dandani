@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { savePhrase, logPhraseToday } from '../utils/phraseApi';
-import { logPhraseExampleUsed, logPhraseDayLogged } from '../utils/analytics';
+import { savePhrase, logPhraseToday } from '../api/phrases';
+import { logPhraseExampleUsed, logPhraseDayLogged } from '../analytics/analytics';
 
 // 첫 문장을 저장한 직후에 공유 시트를 자동으로 열던 자리가 여기였다.
 // 방금 쓴 사적인 문장을 아직 한 번도 되새기지 않았는데 앱이 먼저 "남한테

@@ -133,25 +133,28 @@ workspace에서 실행해야 하는 명령은 그 workspace 기준 경로만 사
 
 ## 10. UX 관찰과 E2E 테스트는 목적이 다르다
 
-`automation/ux-check/check.mjs`는 운영 화면을 캡처해 사람이 UX를 관찰하기 위한 도구다.
-운영 네트워크 상태에 의존하고 실패를 단언하지 않으므로 품질 게이트로 해석하지 않는다.
+`automation/ux-check/`는 운영 화면을 캡처해 UX 관찰 에이전트에게 넘기는 도구다(`check.mjs`, `run.sh`).
+운영 사이트를 신규 방문자로 열어 운영 D1에 방문을 남기고 실패를 단언하지 않으므로, 품질 게이트가
+아니고 확인 목적으로 함부로 돌리지 않는다.
 
-결정적 회귀 검사는 `npm run test:e2e`로 실행한다. 이 검사는 로컬 프런트엔드를 띄우고 문장
-API를 브라우저에서 가로채므로 운영 D1을 읽거나 쓰지 않는다. `BASE_URL`을 지정하면 서버를
-직접 띄우지 않으므로, 별도로 준비된 프리뷰 환경에도 같은 검사를 실행할 수 있다.
+결정적 회귀 검사는 `automation/e2e/`의 스모크 테스트이며 `npm run test:e2e`로 실행한다. 로컬
+프런트엔드를 존재하지 않는 테스트 API 주소로 띄우고 `/api/**` 요청을 전부 브라우저에서 가로챈다.
+운영 Worker로 요청이 하나라도 나가면 실패한다. 2026-10-23 이전에는 두 도구가 같은 폴더에 있었고,
+스모크 테스트가 `/api/nuv`·`/api/analytics/event`를 가로채지 않아 운영으로 요청이 나갔으며, 바뀐
+버튼 문구 때문에 실패하고 있었다. `BASE_URL`을 지정하면 서버를 띄우지 않고 그 주소를 검사한다.
 
 ## 11. Miniflare Worker 테스트는 번들한 Worker와 전체 스키마로 돈다
 
-**증상(2026-09-28~10-23):** `workers/tests/*.test.mjs` 30개가
+**증상(2026-09-28~10-23):** `workers/tests/*.test.mjs`(지금의 `workers/test/integration/`) 30개가
 `Unable to resolve "src/nuv-anchor-service.js" dependency "@openzeppelin/merkle-tree"`
 (`ERR_MODULE_RULE`)로 실패했다. 이 실패에 가려서, 테스트 D1의 스키마 목록이 09-18에
 멈춰 있다는 사실도 드러나지 않았다. 그 결과 되새기기 요청이 `nuv_accounts`가 없어 500이 됐다.
 
 **원인:** Miniflare는 번들을 하지 않는다. 그런데 누브 장부 봉인이 CommonJS npm 패키지를
-import하기 시작했다. 테스트 D1은 `schemas/` 폴더가 아니라 `workers/tests/helpers.mjs`의
+import하기 시작했다. 테스트 D1은 `schemas/` 폴더가 아니라 `workers/test/integration/helpers.mjs`의
 `newSchemas` 목록으로 만든다.
 
-**대응:** `helpers.mjs`가 wrangler에 들어 있는 esbuild로 `tests/runtime.mjs`를 번들한 뒤
+**대응:** `helpers.mjs`가 wrangler에 들어 있는 esbuild로 `runtime.mjs`를 번들한 뒤
 Miniflare에 넘긴다. `browser` 필드를 읽지 않으면 `debug`의 Node 빌드가 들어와 `tty`를
 찾지 못한다. 새 마이그레이션을 추가하면 `newSchemas`에도 적용 순서대로 넣는다. 빠뜨리면
-`tests/schema-coverage.test.mjs`가 실패한다.
+`test/integration/schema-coverage.test.mjs`가 실패한다.

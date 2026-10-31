@@ -7,7 +7,7 @@ import { getActivePhrase, logPhraseDay, retirePhrase, getPhraseHistory, getCommu
 import {
   createPostcardFromPhrase, getNuvLedger, getNuvTotal, getSavedPostcards, savePostcard,
 } from './nuv-service.js';
-import { createPracticeRecord, getPracticeRecords } from './practice-service.js';
+import { createPracticeRecord, getPracticeRecords } from './practice-records-compat.js';
 
 // Legacy services stay unregistered; see docs/adr/0005-legacy-backend-inventory.md.
 async function handleGet(url, request, env) {

@@ -65,8 +65,8 @@ npm run check
 운영 데이터에 영향을 주지 않습니다.
 
 ```bash
-npm ci --prefix automation/ux-check
-npx --prefix automation/ux-check playwright install chromium
+npm ci --prefix automation/e2e
+npx --prefix automation/e2e playwright install chromium
 npm run test:e2e
 ```
 
@@ -78,6 +78,7 @@ npm run test:e2e
 
 * [현재 제품과 표준 용어](docs/PROJECT_CONTEXT.md)
 * [배포](DEPLOYMENT.md)
+* [모바일 앱 빌드](frontend/MOBILE_APP.md)
 * [아키텍처 결정](docs/adr/README.md)
 
 과거 챌린지와 Story Feed 관련 코드·데이터는 의도적으로 일부 보존되어 있습니다. 현재

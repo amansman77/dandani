@@ -10,7 +10,7 @@ import {
   postcardProof,
   proofForUser,
   sealLedger,
-} from '../src/nuv-anchor-service.js';
+} from '../../src/nuv-anchor-service.js';
 
 // 봉인에 필요한 만큼만 흉내 내는 D1.
 function d1(database) {
@@ -45,7 +45,7 @@ function createEnvironment() {
     'schema_v260930_beat_three_days.sql',
     'schema_v260930_triumph_background.sql',
   ]) {
-    database.exec(readFileSync(new URL(`../schemas/${file}`, import.meta.url), 'utf8'));
+    database.exec(readFileSync(new URL(`../../schemas/${file}`, import.meta.url), 'utf8'));
   }
   const addNuv = database.prepare(`
     INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id, created_at)
@@ -172,7 +172,7 @@ test('the commitment hides the user id behind the salt', () => {
 
 test('the accounts migration pins existing Nuv holders to Seoul with their own salt', () => {
   const database = new DatabaseSync(':memory:');
-  database.exec(readFileSync(new URL('../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
   const addNuv = database.prepare(`
     INSERT INTO nuv_transactions (id, user_id, amount, reason, reference_id) VALUES (?, ?, 1, 'daily_reflection', ?)
   `);
@@ -180,7 +180,7 @@ test('the accounts migration pins existing Nuv holders to Seoul with their own s
   addNuv.run('n2', 'user-1', '2026-09-28');
   addNuv.run('n3', 'user-2', '2026-09-28');
 
-  database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
 
   const accounts = database.prepare('SELECT * FROM nuv_accounts ORDER BY user_id').all();
   assert.equal(accounts.length, 2);

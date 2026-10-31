@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
-import { getUserId } from '../utils/userId';
+import { fetchSavedPostcards } from '../api/nuv';
 import {
   DEDICATED_BACKGROUNDS, EARNED_BACKGROUND, POSTCARD_BADGES, PRESETS, backgroundFor, renderPhraseCard,
-} from '../utils/phraseCard';
+} from '../share/phraseCard';
 import { formatPostcardDay, postcardCaption } from '../utils/postcardDate';
 import Loader from './Loader';
 import ShareSheet from './ShareSheet';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 const presetLabels = Object.fromEntries([...PRESETS, EARNED_BACKGROUND].map((preset) => [preset.id, preset.label]));
 
 const PostcardCard = ({ postcard, onShare }) => {
@@ -115,12 +114,8 @@ const PostcardHistory = () => {
     let alive = true;
     const load = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/nuv/postcards`, {
-          headers: { 'X-User-ID': getUserId() },
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || '엽서함을 불러오지 못했어요');
-        if (alive) setPostcards(data.postcards);
+        const saved = await fetchSavedPostcards();
+        if (alive) setPostcards(saved);
       } catch (fetchError) {
         if (alive) setError(fetchError.message);
       }

@@ -4,8 +4,8 @@ import VariantA from './phraseVariants/VariantA';
 import Loader from './Loader';
 import PhrasePicker from './PhrasePicker';
 import PhraseCardSheet from './PhraseCardSheet';
-import { logPhraseOnboardingShown } from '../utils/analytics';
-import { createPostcard } from '../utils/nuvApi';
+import { logPhraseOnboardingShown } from '../analytics/analytics';
+import { createPostcard } from '../api/nuv';
 import usePhraseResource from '../hooks/usePhraseResource';
 import { usePhraseEditor, usePhraseLogging } from '../hooks/usePhraseActions';
 

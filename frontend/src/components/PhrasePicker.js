@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
 import Loader from './Loader';
 import { fetchPhrasePool, metaLabel } from '../utils/phrasePool';
-import { logPhraseListSeen, logPhraseListEngaged } from '../utils/analytics';
+import { logPhraseListSeen, logPhraseListEngaged } from '../analytics/analytics';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;

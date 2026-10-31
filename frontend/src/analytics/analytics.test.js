@@ -1,4 +1,4 @@
-import { getUserId, getUserIdInfo } from './userId';
+import { getUserId, getUserIdInfo } from '../utils/userId';
 
 let analytics;
 
@@ -54,7 +54,7 @@ test('PostHog capture failure does not prevent the backend visit', () => {
 
 test('a fresh visit and phrase creation send the same generated identity', async () => {
   fetch.mockResolvedValue({ ok: true, json: async () => ({ id: 'created-phrase' }) });
-  const { savePhrase } = require('./phraseApi');
+  const { savePhrase } = require('../api/phrases');
   expect(localStorage.getItem('dandani_user_id')).toBeNull();
   analytics.initAnalytics();
   await savePhrase('처음 적는 문장');

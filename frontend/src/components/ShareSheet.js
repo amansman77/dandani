@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Typography, Drawer, Snackbar } from '@mui/material';
 import { COLOR, FONT } from '../theme/tokens';
-import { logPhraseShared } from '../utils/analytics';
-import { isKakaoConfigured, preloadKakao, shareToKakao } from '../utils/kakaoShare';
-import { canShareImage, shareImageFile } from '../utils/shareImageFile';
+import { logPhraseShared } from '../analytics/analytics';
+import { isKakaoConfigured, preloadKakao, shareToKakao } from '../share/kakaoShare';
+import { canShareImage, shareImageFile } from '../share/shareImageFile';
 
 const SANS = FONT.sans;
 const SERIF = FONT.serif;

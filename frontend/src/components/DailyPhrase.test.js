@@ -17,7 +17,7 @@ jest.mock('./phraseVariants/VariantA', () => props => (
 jest.mock('./PhraseCardSheet', () => props => (props.open ? (
   <div data-testid="postcard-sheet">{`${props.postcardId}|${props.issuedOn}|${props.loggedDays}|${props.kind}`}</div>
 ) : null));
-jest.mock('../utils/analytics', () => ({
+jest.mock('../analytics/analytics', () => ({
   logPhraseOnboardingShown: jest.fn(), logPhraseExampleUsed: jest.fn(), logPhraseDayLogged: jest.fn(),
 }));
 jest.mock('./PhrasePicker', () => ({ onPick, onWriteOwn }) => (

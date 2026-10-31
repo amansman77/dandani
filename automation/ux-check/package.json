@@ -3,8 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node check.mjs",
-    "test:smoke": "node smoke.mjs"
+    "check": "node check.mjs"
   },
   "dependencies": {
     "playwright": "^1.61.1"

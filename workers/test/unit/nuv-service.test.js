@@ -10,13 +10,13 @@ import {
   getNuvLedger,
   getNuvTotal,
   savePostcard,
-} from '../src/nuv-service.js';
+} from '../../src/nuv-service.js';
 import {
   hasBeatenThreeDays,
   beatThreeDaysState,
   longestStreak,
   currentStreak,
-} from '../src/beat-three-days.js';
+} from '../../src/beat-three-days.js';
 
 class D1Statement {
   constructor(statement) {
@@ -83,18 +83,18 @@ function createEnvironment() {
       UNIQUE(phrase_id, log_date)
     );
   `);
-  database.exec(readFileSync(new URL('../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260917_postcards.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260923_practice_records.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260918_postcard_images.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260923_postcard_proof.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260917_nuv.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260917_postcards.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260923_practice_records.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260918_postcard_images.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260923_postcard_proof.sql', import.meta.url), 'utf8'));
   // 이미지 칸은 만들었다가 걷어냈다 — 실제 순서대로 재현해야 DROP도 검증된다.
-  database.exec(readFileSync(new URL('../schemas/schema_v260924_drop_postcard_images.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260926_practice_logged_days.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260928_postcard_per_phrase_day.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260930_beat_three_days.sql', import.meta.url), 'utf8'));
-  database.exec(readFileSync(new URL('../schemas/schema_v260930_triumph_background.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260924_drop_postcard_images.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260926_practice_logged_days.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260928_nuv_accounts.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260928_postcard_per_phrase_day.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260930_beat_three_days.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260930_triumph_background.sql', import.meta.url), 'utf8'));
 
   return {
     database,
@@ -185,7 +185,7 @@ test('the one-per-day migration keys existing rewards by date alone', async () =
     .run('log-2', 'phrase-2', 'user-1', '2026-09-28');
 
   database.exec(readFileSync(
-    new URL('../schemas/schema_v260928_nuv_one_per_day.sql', import.meta.url), 'utf8'
+    new URL('../../schemas/schema_v260928_nuv_one_per_day.sql', import.meta.url), 'utf8'
   ));
 
   // 옛 키로 받은 날에도 새 문장으로 한 번 더 받을 수 없다.
@@ -214,7 +214,7 @@ test('the accrual migration erases granted and spent Nuv and rebuilds balances',
   assert.equal(database.prepare('SELECT balance FROM nuv_wallets WHERE user_id = ?').get('user-2').balance, 2);
 
   database.exec(readFileSync(
-    new URL('../schemas/schema_v260922_nuv_accrual.sql', import.meta.url), 'utf8'
+    new URL('../../schemas/schema_v260922_nuv_accrual.sql', import.meta.url), 'utf8'
   ));
 
   // 선물만 받은 사람은 0으로, 되새긴 사람은 되새긴 날의 수 그대로 남는다.
@@ -257,7 +257,7 @@ test('issuing a postcard leaves the Nuv untouched', async () => {
 
 test('the ledger lists each Nuv day with the phrase reflected on, newest first', async () => {
   const { database, env } = createEnvironment();
-  database.exec(readFileSync(new URL('../schemas/schema_v260928_nuv_anchors.sql', import.meta.url), 'utf8'));
+  database.exec(readFileSync(new URL('../../schemas/schema_v260928_nuv_anchors.sql', import.meta.url), 'utf8'));
   const addPhrase = database.prepare('INSERT INTO daily_phrases VALUES (?, ?, ?, ?)');
   const addLog = database.prepare(`
     INSERT INTO daily_phrase_logs (id, phrase_id, user_id, log_date, created_at) VALUES (?, ?, ?, ?, ?)

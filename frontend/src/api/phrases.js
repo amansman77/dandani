@@ -1,7 +1,7 @@
-import { getUserId } from './userId';
-import { getClientTimeHeaders } from './clientTime';
+import { getUserId } from '../utils/userId';
+import { getClientTimeHeaders } from '../utils/clientTime';
+import { API_URL } from './config';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 async function phraseRequest(path, body) {
   let response;
@@ -32,3 +32,27 @@ export const savePhrase = (text, currentId, source) => phraseRequest(
   { phrase: text.trim(), ...(source ? { source } : {}) },
 );
 export const logPhraseToday = id => phraseRequest(`/${encodeURIComponent(id)}/log`, {});
+
+// 기록 탭. 실패 문구는 화면이 그대로 보여 준다.
+export async function fetchPhraseHistory() {
+  const response = await fetch(`${API_URL}/api/phrases/history`, {
+    headers: { 'X-User-ID': getUserId() },
+  });
+  if (!response.ok) throw new Error(`Failed to fetch history: ${response.status}`);
+  const data = await response.json();
+  return data.phrases || [];
+}
+
+// 다른 사람들의 아침. 부가 데이터라 실패해도 조용히 빈 목록을 돌려준다.
+export async function fetchCommunityPhrases() {
+  try {
+    const response = await fetch(`${API_URL}/api/phrases/community`, {
+      headers: { 'X-User-ID': getUserId() },
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items || [];
+  } catch (err) {
+    return [];
+  }
+}

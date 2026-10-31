@@ -1,4 +1,4 @@
-import { getRequiredUserId } from './service-utils.js';
+import { getRequiredUserId } from './core.js';
 import { phraseDateContext } from './phrase-dates.js';
 import { HttpError } from './http-errors.js';
 import { ensureNuvAccount, getNuvBalance, issuePostcardForRecord } from './nuv-service.js';

@@ -1,7 +1,7 @@
-import { getUserId } from './userId';
-import { getClientTimeHeaders } from './clientTime';
+import { getUserId } from '../utils/userId';
+import { getClientTimeHeaders } from '../utils/clientTime';
+import { API_URL } from './config';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 export async function fetchNuvLedger() {
   let response;
@@ -33,5 +33,37 @@ export async function createPostcard(phraseId, kind = 'regular') {
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || '엽서를 만들지 못했어요. 다시 시도해 주세요.');
+  return data;
+}
+
+// 헤더의 누브 수. 응답이 실패면 null — 누브가 문장 화면을 막으면 안 돼서 화면은 그냥 비워 둔다.
+export async function fetchNuvBalance() {
+  const response = await fetch(`${API_URL}/api/nuv`, {
+    headers: { 'X-User-ID': getUserId() },
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return data.balance;
+}
+
+// 엽서함.
+export async function fetchSavedPostcards() {
+  const response = await fetch(`${API_URL}/api/nuv/postcards`, {
+    headers: { 'X-User-ID': getUserId() },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || '엽서함을 불러오지 못했어요');
+  return data.postcards;
+}
+
+// 엽서 배경 저장. 바꿀 수 있는 건 배경뿐이다(workers/src/nuv-service.js savePostcard).
+export async function savePostcardBackground(postcardId, preset) {
+  const response = await fetch(`${API_URL}/api/nuv/postcards/${postcardId}/save`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-User-ID': getUserId() },
+    body: JSON.stringify({ preset }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || '엽서를 저장하지 못했어요');
   return data;
 }

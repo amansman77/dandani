@@ -3,7 +3,7 @@
 // URL에 UTM이 없어도 Capacitor(iOS/Android) 앱이면 utm_source=ios_app|android_app 로 저장합니다.
 
 import { getUTMFromURL, hasAnyUTM } from './utm';
-import { getAppUtmFromCapacitor } from './execution-platform';
+import { getAppUtmFromCapacitor } from '../utils/execution-platform';
 
 const STORAGE_KEY = 'dandani:first_utm_written';
 

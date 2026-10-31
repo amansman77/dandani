@@ -10,12 +10,12 @@ import PhraseHistory from './components/PhraseHistory';
 import PostcardHistory from './components/PostcardHistory';
 import { pushNavState, replaceNavState } from './utils/navHistory';
 import { getUserIdInfo, markUserInitialized } from './utils/userId';
-import { logOnboardingComplete, logSplashBypassed } from './utils/analytics';
-import { isCampaignEntry } from './utils/attribution';
+import { logOnboardingComplete, logSplashBypassed } from './analytics/analytics';
+import { isCampaignEntry } from './analytics/attribution';
 import { COLOR } from './theme/tokens';
 import NuvLedgerSheet from './components/NuvLedgerSheet';
+import { fetchNuvBalance } from './api/nuv';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://dandani-api.amansman77.workers.dev';
 
 function App() {
   const [activeTab, setActiveTab] = useState(0);
@@ -42,12 +42,8 @@ function App() {
     // 뒤로는 받을 게 없어서, 그냥 지금까지 쌓인 값을 읽어온다.
     const loadNuvBalance = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/nuv`, {
-          headers: { 'X-User-ID': getUserIdInfo().userId },
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        setNuvBalance(data.balance);
+        const balance = await fetchNuvBalance();
+        if (balance !== null) setNuvBalance(balance);
       } catch (error) {
         // The Nuv count must not block the daily phrase flow.
       }

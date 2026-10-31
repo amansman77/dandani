@@ -26,7 +26,7 @@
     "build": "sh scripts/build-with-kakao.sh",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "test": "react-scripts test",
-    "test:coverage": "react-scripts test --watchAll=false --coverage --coverageReporters=text --collectCoverageFrom=src/components/DailyPhrase.js --collectCoverageFrom=src/components/OnboardingModal.js --collectCoverageFrom=src/utils/utm.js --coverageThreshold='{\"global\":{\"statements\":70,\"branches\":55,\"functions\":70,\"lines\":75}}'",
+    "test:coverage": "react-scripts test --watchAll=false --coverage --coverageReporters=text --collectCoverageFrom=src/components/DailyPhrase.js --collectCoverageFrom=src/components/OnboardingModal.js --collectCoverageFrom=src/analytics/utm.js --coverageThreshold='{\"global\":{\"statements\":70,\"branches\":55,\"functions\":70,\"lines\":75}}'",
     "eject": "react-scripts eject",
     "cap:add": "npx cap add",
     "cap:sync": "npx cap sync",
@@ -36,11 +36,10 @@
     "cap:run": "npx cap run",
     "cap:ios": "npm run build && npx cap sync && npx cap open ios",
     "cap:android": "npm run build && npx cap sync && npx cap open android",
-    "icons:generate": "node scripts/generate-icons.js",
+    "icons:make": "node scripts/make-icons.js assets/dandani-emblem-source.png",
     "splash:generate": "node scripts/generate-splash.js",
-    "assets:generate": "npm run icons:generate && npm run splash:generate",
-    "xcode:clean": "bash scripts/clean-xcode-cache.sh",
-    "android:clean": "bash scripts/fix-android-icon-cache.sh"
+    "assets:generate": "npm run icons:make && npm run splash:generate",
+    "xcode:clean": "bash scripts/clean-xcode-cache.sh"
   },
   "eslintConfig": {
     "extends": [
